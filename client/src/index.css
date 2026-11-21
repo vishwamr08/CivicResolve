@@ -2,10 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --govt-navy: #1a3c6e;
+  --govt-navy-light: #2a5298;
+  --govt-navy-dark: #0f2040;
+  --govt-saffron: #f47920;
+  --govt-saffron-dark: #d96810;
+  --govt-green: #138808;
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #f0f2f5;
+  --border-light: #e5e7eb;
+  --text-primary: #1a1a2e;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+}
+
 @layer base {
   body {
-    @apply font-sans;
+    @apply font-sans bg-[#f8f9fa] text-[#1a1a2e];
   }
+}
+
+/* CivicLens Signature Components */
+.btn-primary-pill {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-white bg-[#f47920] hover:bg-[#d96810] shadow-md shadow-orange-500/20 active:scale-95 transition-all;
+}
+
+.btn-outline-pill {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-[#1a3c6e] bg-transparent border-2 border-[#1a3c6e] hover:bg-[#1a3c6e] hover:text-white active:scale-95 transition-all;
+}
+
+.btn-secondary-pill {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-white bg-white/15 border border-white/30 hover:bg-white/25 active:scale-95 transition-all backdrop-blur-sm;
+}
+
+.card-civiclens {
+  @apply bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all;
 }
 
 /* Custom scrollbars */

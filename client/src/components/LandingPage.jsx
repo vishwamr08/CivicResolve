@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   AlertTriangle, CheckCircle2, ShieldCheck, 
   MapPin, ArrowRight, Zap, Droplets, Trash2, Lightbulb, Activity, Building2, FileText, 
-  Search, UserCheck, ChevronDown, Eye, Lock, BarChart3, ArrowUpRight, Megaphone
+  Search, UserCheck, ChevronDown, Eye, Lock, BarChart3, ArrowUpRight, Megaphone, Clock
 } from 'lucide-react';
 import { translations } from '../data/translations';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
@@ -232,39 +232,56 @@ export default function LandingPage({
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* SECTION 1: PROFESSIONAL GOVERNMENT-STYLE HERO SECTION          */}
+      {/* SECTION 1: CIVICLENS THEMED HERO BANNER                        */}
       {/* ------------------------------------------------------------- */}
-      <section className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white pt-16 pb-24 px-4 sm:px-6 lg:px-8 border-b border-slate-800 relative overflow-hidden">
+      <section className="bg-gradient-to-b from-[#0a1628] via-[#1a3c6e] to-[#2a5298] text-white pt-16 pb-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         
         {/* Subtle geometric background watermark */}
-        <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#14b8a6_1px,transparent_1px)] [background-size:16px_16px]"></div>
+        <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#f47920_1px,transparent_1px)] [background-size:20px_20px]"></div>
 
-        <div className="max-w-6xl mx-auto space-y-8 relative z-10">
+        <div className="max-w-6xl mx-auto space-y-8 relative z-10 text-center">
           
-          <div className="text-center max-w-3xl mx-auto space-y-4">
+          <div className="max-w-3xl mx-auto space-y-4">
             
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-semibold tracking-wide">
-              <ShieldCheck className="w-4 h-4 text-teal-400" />
-              <span>Government of Tamil Nadu • Municipal Redressal Prototype</span>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-semibold backdrop-blur-sm shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-[#138808] animate-pulse"></span>
+              <span>Design Thinking Project — 2026 • Government of Tamil Nadu</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
-              Report Issues. Track Action. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-emerald-300 to-teal-200">
-                Build Better Communities.
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight text-white">
+              Empowering Citizens.<br />
+              <span className="text-[#f47920]">
+                Enabling Governance.
               </span>
             </h1>
 
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal max-w-2xl mx-auto">
-              Tamil Nadu's unified AI grievance redressal portal. Instant geotagging, municipal AI bilingual triage, and strict SLA timelines for 38 districts and 25 Municipal Corporations.
+            <p className="text-sm sm:text-base text-slate-200 leading-relaxed font-normal max-w-2xl mx-auto">
+              A transparent civic grievance tracking platform — report issues, track resolutions, and hold your local authorities accountable across Tamil Nadu.
             </p>
+
+            {/* Hero Pill Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3">
+              <button
+                onClick={() => onOpenSubmit('Road Damage')}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#f47920] hover:bg-[#d96810] text-white font-bold text-sm shadow-lg shadow-orange-500/30 transition-all hover:scale-105 active:scale-95"
+              >
+                <span>File a Complaint</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onGoToTracker()}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-sm border border-white/30 backdrop-blur-sm transition-all hover:scale-105 active:scale-95"
+              >
+                <span>Learn More & Track</span>
+              </button>
+            </div>
 
           </div>
 
           {/* Quick Track Input Bar inside Hero */}
-          <div className="max-w-xl mx-auto">
-            <form onSubmit={handleQuickTrack} className="bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/20 shadow-2xl flex items-center gap-2">
-              <div className="pl-3 text-teal-400">
+          <div className="max-w-xl mx-auto pt-2">
+            <form onSubmit={handleQuickTrack} className="bg-white/10 backdrop-blur-md p-2 rounded-full border border-white/25 shadow-2xl flex items-center gap-2">
+              <div className="pl-4 text-[#f47920]">
                 <Search className="w-5 h-5" />
               </div>
               <input
@@ -272,11 +289,11 @@ export default function LandingPage({
                 placeholder={lang === 'ta' ? 'மனு எண் உள்ளிடவும் (e.g. CR-TN-2026-1042)' : 'Enter Complaint ID (e.g. CR-TN-2026-1042)'}
                 value={quickTrackId}
                 onChange={(e) => setQuickTrackId(e.target.value)}
-                className="w-full bg-transparent text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none px-2"
+                className="w-full bg-transparent text-white placeholder-slate-300 text-xs sm:text-sm focus:outline-none px-2"
               />
               <button
                 type="submit"
-                className="flex-shrink-0 px-4 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-xs transition-colors shadow-md shadow-teal-500/20"
+                className="flex-shrink-0 px-5 py-2.5 rounded-full bg-[#f47920] hover:bg-[#d96810] text-white font-bold text-xs transition-colors shadow-md shadow-orange-500/25"
               >
                 {lang === 'ta' ? 'நிலை அறி' : 'Track Status'}
               </button>
@@ -286,27 +303,27 @@ export default function LandingPage({
           {/* ------------------------------------------------------------- */}
           {/* SECTIONS 2, 3, 4: PROMINENT ACTION TILES                      */}
           {/* ------------------------------------------------------------- */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-6 text-left">
             
             {/* Tile 1: Report a Grievance */}
             <div 
               onClick={() => onOpenSubmit('Road Damage')}
-              className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 p-5 rounded-2xl cursor-pointer transition-all hover:-translate-y-1 group flex flex-col justify-between"
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 p-5 rounded-2xl cursor-pointer transition-all hover:-translate-y-1 group flex flex-col justify-between"
             >
               <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-teal-500 text-slate-950 flex items-center justify-center font-bold shadow-lg shadow-teal-500/30">
+                <div className="w-10 h-10 rounded-xl bg-[#f47920] text-white flex items-center justify-center font-bold shadow-lg shadow-orange-500/30">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-white group-hover:text-teal-300 transition-colors">
+                  <h3 className="font-bold text-base text-white group-hover:text-[#f47920] transition-colors">
                     {lang === 'ta' ? 'மனு பதிவு செய்க' : 'Report Grievance'}
                   </h3>
-                  <p className="text-xs text-slate-300 mt-1">
+                  <p className="text-xs text-slate-200 mt-1">
                     Geotag civic hazards, dictate in Tamil or English, and attach photo evidence.
                   </p>
                 </div>
               </div>
-              <div className="pt-4 flex items-center text-xs font-bold text-teal-300 gap-1">
+              <div className="pt-4 flex items-center text-xs font-bold text-[#f47920] gap-1">
                 <span>Start Filing</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </div>
@@ -315,7 +332,7 @@ export default function LandingPage({
             {/* Tile 2: Track Your Complaint */}
             <div 
               onClick={() => onGoToTracker()}
-              className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 p-5 rounded-2xl cursor-pointer transition-all hover:-translate-y-1 group flex flex-col justify-between"
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 p-5 rounded-2xl cursor-pointer transition-all hover:-translate-y-1 group flex flex-col justify-between"
             >
               <div className="space-y-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center font-bold shadow-lg shadow-blue-500/30">
@@ -325,7 +342,7 @@ export default function LandingPage({
                   <h3 className="font-bold text-base text-white group-hover:text-blue-300 transition-colors">
                     {lang === 'ta' ? 'மனு நிலை அறிய' : 'Track Grievance'}
                   </h3>
-                  <p className="text-xs text-slate-300 mt-1">
+                  <p className="text-xs text-slate-200 mt-1">
                     Follow 14-stage workflow timeline, officer remarks, and SLA countdown.
                   </p>
                 </div>
@@ -339,7 +356,7 @@ export default function LandingPage({
             {/* Tile 3: Public Dashboard & Transparency */}
             <div 
               onClick={() => onGoToPublicDashboard ? onGoToPublicDashboard() : onGoToCitizen()}
-              className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 p-5 rounded-2xl cursor-pointer transition-all hover:-translate-y-1 group flex flex-col justify-between"
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 p-5 rounded-2xl cursor-pointer transition-all hover:-translate-y-1 group flex flex-col justify-between"
             >
               <div className="space-y-3">
                 <div className="w-10 h-10 rounded-xl bg-indigo-500 text-white flex items-center justify-center font-bold shadow-lg shadow-indigo-500/30">
@@ -349,7 +366,7 @@ export default function LandingPage({
                   <h3 className="font-bold text-base text-white group-hover:text-indigo-300 transition-colors">
                     {lang === 'ta' ? 'பொது தகவல் பலகை' : 'Public Dashboard'}
                   </h3>
-                  <p className="text-xs text-slate-300 mt-1">
+                  <p className="text-xs text-slate-200 mt-1">
                     Statewide resolution percentages, category volumes, and ward charts.
                   </p>
                 </div>
@@ -363,22 +380,22 @@ export default function LandingPage({
             {/* Tile 4: Citizen Portal / Officer Desk */}
             <div 
               onClick={adminUser ? onGoToOfficer : onGoToCitizen}
-              className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 p-5 rounded-2xl cursor-pointer transition-all hover:-translate-y-1 group flex flex-col justify-between"
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 p-5 rounded-2xl cursor-pointer transition-all hover:-translate-y-1 group flex flex-col justify-between"
             >
               <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-lg shadow-amber-500/30">
+                <div className="w-10 h-10 rounded-xl bg-[#138808] text-white flex items-center justify-center font-bold shadow-lg shadow-green-600/30">
                   <UserCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-white group-hover:text-amber-300 transition-colors">
+                  <h3 className="font-bold text-base text-white group-hover:text-emerald-300 transition-colors">
                     {adminUser ? 'Officer Task Desk' : 'Citizen Mobile Portal'}
                   </h3>
-                  <p className="text-xs text-slate-300 mt-1">
+                  <p className="text-xs text-slate-200 mt-1">
                     {adminUser ? 'Inspect assigned tasks, upload repair proof, and manage cases.' : 'Mobile OTP sign-in, personal grievance history, and receipts.'}
                   </p>
                 </div>
               </div>
-              <div className="pt-4 flex items-center text-xs font-bold text-amber-300 gap-1">
+              <div className="pt-4 flex items-center text-xs font-bold text-emerald-300 gap-1">
                 <span>{adminUser ? 'Open Desk' : 'Citizen Login'}</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </div>
@@ -387,39 +404,79 @@ export default function LandingPage({
           </div>
 
         </div>
+
+        {/* Wave Divider to next section */}
+        <div className="w-full overflow-hidden leading-none mt-10 -mb-12">
+          <svg viewBox="0 0 1440 120" preserveAspectRatio="none" className="w-full h-12 sm:h-16 text-[#f8f9fa] fill-current">
+            <path d="M0,60 C360,120 720,0 1080,60 C1260,90 1380,60 1440,60 L1440,120 L0,120 Z" />
+          </svg>
+        </div>
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* SECTION 6: LIVE PLATFORM STATISTICS FROM BACKEND DATABASE     */}
+      {/* SECTION 6: CIVICLENS STATISTIC COUNTER CARDS                   */}
       {/* ------------------------------------------------------------- */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-20">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 grid grid-cols-2 md:grid-cols-4 gap-6 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 relative z-20">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           
-          <div className="space-y-1 text-center sm:text-left">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Grievances</span>
-            <p className="text-3xl font-extrabold text-slate-900">{totalRegistered}</p>
-            <span className="text-[11px] text-teal-600 font-semibold flex items-center justify-center sm:justify-start gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
-              Live SQLite Database
+          {/* Card 1: Total Filed (Govt Navy) */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Grievances</span>
+              <div className="w-10 h-10 rounded-xl bg-[#1a3c6e]/10 text-[#1a3c6e] flex items-center justify-center font-bold">
+                <FileText className="w-5 h-5" />
+              </div>
+            </div>
+            <p className="text-3xl sm:text-4xl font-extrabold text-[#1a3c6e]">{totalRegistered}</p>
+            <span className="text-[11px] text-[#1a3c6e] font-semibold mt-2 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#1a3c6e]"></span>
+              Live Citizen Records
             </span>
           </div>
 
-          <div className="space-y-1 text-center sm:text-left sm:pl-6">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Field Squads Deployed</span>
-            <p className="text-3xl font-extrabold text-blue-600">{inProgressCases}</p>
-            <span className="text-[11px] text-slate-500">Under Active Inspection</span>
+          {/* Card 2: Under Review (CivicLens Saffron) */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#f47920]">Under Review</span>
+              <div className="w-10 h-10 rounded-xl bg-[#f47920]/10 text-[#f47920] flex items-center justify-center font-bold">
+                <Clock className="w-5 h-5" />
+              </div>
+            </div>
+            <p className="text-3xl sm:text-4xl font-extrabold text-[#f47920]">{inProgressCases}</p>
+            <span className="text-[11px] text-[#f47920] font-semibold mt-2 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#f47920]"></span>
+              Under Field Review
+            </span>
           </div>
 
-          <div className="space-y-1 text-center sm:text-left sm:pl-6">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Certified Resolved</span>
-            <p className="text-3xl font-extrabold text-emerald-600">{resolvedCases}</p>
-            <span className="text-[11px] text-emerald-600 font-semibold">{resolutionRate} Adherence</span>
+          {/* Card 3: Resolved Successfully (Tiranga Green) */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#138808]">Resolved Tickets</span>
+              <div className="w-10 h-10 rounded-xl bg-[#138808]/10 text-[#138808] flex items-center justify-center font-bold">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+            </div>
+            <p className="text-3xl sm:text-4xl font-extrabold text-[#138808]">{resolvedCases}</p>
+            <span className="text-[11px] text-[#138808] font-semibold mt-2 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#138808]"></span>
+              {resolutionRate} Resolution Rate
+            </span>
           </div>
 
-          <div className="space-y-1 text-center sm:text-left sm:pl-6">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">AI Triage SLA</span>
-            <p className="text-3xl font-extrabold text-teal-600">&lt; 1.5s</p>
-            <span className="text-[11px] text-slate-500">Automated Triage</span>
+          {/* Card 4: SLA Target (Navy/Blue) */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Statutory SLA</span>
+              <div className="w-10 h-10 rounded-xl bg-[#2a5298]/10 text-[#2a5298] flex items-center justify-center font-bold">
+                <Zap className="w-5 h-5" />
+              </div>
+            </div>
+            <p className="text-3xl sm:text-4xl font-extrabold text-[#2a5298]">&lt; 24h</p>
+            <span className="text-[11px] text-slate-500 mt-2 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#2a5298]"></span>
+              Guaranteed Escalation
+            </span>
           </div>
 
         </div>
@@ -908,31 +965,64 @@ export default function LandingPage({
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* SECTION 16: GOVERNMENT-STYLE FOOTER                           */}
+      {/* SECTION 15: READY TO MAKE A DIFFERENCE (CIVICLENS CTA)        */}
       {/* ------------------------------------------------------------- */}
-      <footer className="bg-slate-950 text-white border-t border-slate-800 pt-16 pb-12">
+      <section className="bg-gradient-to-r from-[#0f2040] via-[#1a3c6e] to-[#0f2040] text-white py-16 px-4 sm:px-6 lg:px-8 border-y border-white/10 text-center relative overflow-hidden">
+        <div className="max-w-4xl mx-auto space-y-6 relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-semibold text-[#f47920]">
+            <span className="w-2 h-2 rounded-full bg-[#f47920] animate-pulse"></span>
+            <span>Civic Engagement Platform</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+            Ready to Make a Difference?
+          </h2>
+          <p className="text-sm sm:text-base text-slate-200 max-w-xl mx-auto leading-relaxed">
+            Join thousands of proactive citizens using CivicResolve to report issues, monitor live municipal progress, and build better communities.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+            <button
+              onClick={() => onOpenSubmit('Road Damage')}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#f47920] hover:bg-[#d96810] text-white font-bold text-sm shadow-xl shadow-orange-500/30 transition-all hover:scale-105 active:scale-95"
+            >
+              <span>File a Grievance</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => onGoToTracker()}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-sm border border-white/30 backdrop-blur-sm transition-all hover:scale-105 active:scale-95"
+            >
+              <span>Track Existing Ticket</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------- */}
+      {/* SECTION 16: CIVICLENS THEMED FOOTER (GOVT NAVY + SAFFRON)     */}
+      {/* ------------------------------------------------------------- */}
+      <footer className="bg-[#0a1628] text-white border-t-4 border-[#f47920] pt-16 pb-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             
             <div className="space-y-4 md:col-span-2">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-teal-500 flex items-center justify-center">
-                  <ShieldCheck className="w-6 h-6 text-slate-950" />
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#1a3c6e] to-[#0f2040] border-2 border-[#f47920] flex items-center justify-center shadow-md">
+                  <ShieldCheck className="w-6 h-6 text-[#f47920]" />
                 </div>
                 <div>
-                  <span className="font-extrabold text-xl tracking-tight text-white">CivicResolve</span>
-                  <p className="text-[10px] text-teal-400 uppercase font-bold tracking-wider">Tamil Nadu Municipal Redressal Prototype</p>
+                  <span className="font-extrabold text-2xl tracking-tight text-white">Civic<span className="text-[#f47920]">Resolve</span></span>
+                  <p className="text-[10px] text-[#f47920] uppercase font-bold tracking-wider">Citizen Grievance Tracking Platform</p>
                 </div>
               </div>
-              <p className="text-xs text-slate-400 max-w-md leading-relaxed">
-                CivicResolve is an independent, next-generation AI grievance redressal prototype designed for municipal corporations and panchayats across Tamil Nadu. Empowering citizens through real-time accountability, municipal AI triage, and verified field resolutions.
+              <p className="text-xs text-slate-300 max-w-md leading-relaxed">
+                Empowering citizens to report civic issues, track resolutions, and demand accountability from local authorities across Tamil Nadu municipal corporations and panchayats.
               </p>
             </div>
 
             <div className="space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-teal-400">Quick Links</h4>
-              <ul className="space-y-2 text-xs text-slate-400">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#f47920]">Quick Links</h4>
+              <ul className="space-y-2 text-xs text-slate-300">
                 <li><button onClick={() => onOpenSubmit('Road Damage')} className="hover:text-white transition-colors">Submit Grievance</button></li>
                 <li><button onClick={() => onGoToTracker()} className="hover:text-white transition-colors">Track Complaint</button></li>
                 <li><button onClick={() => onGoToCitizen()} className="hover:text-white transition-colors">Citizen Mobile Portal</button></li>
@@ -945,21 +1035,27 @@ export default function LandingPage({
             </div>
 
             <div className="space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-teal-400">Security & Legal</h4>
-              <ul className="space-y-2 text-xs text-slate-400">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#f47920]">Platform & Help</h4>
+              <ul className="space-y-2 text-xs text-slate-300">
                 <li><span className="hover:text-white cursor-pointer">Citizen Privacy Charter</span></li>
                 <li><span className="hover:text-white cursor-pointer">PII Masking Standards</span></li>
                 <li><span className="hover:text-white cursor-pointer">Audit Logging Protocol</span></li>
-                <li><span className="hover:text-white cursor-pointer">Terms of Service</span></li>
-                <li><span className="hover:text-white cursor-pointer">Disclaimer Notice</span></li>
+                <li><span className="hover:text-white cursor-pointer">Helpline: 1800-425-1100</span></li>
+                <li><span className="hover:text-white cursor-pointer">support@civicresolve.gov</span></li>
               </ul>
             </div>
 
           </div>
 
-          <div className="pt-8 border-t border-slate-900 flex flex-wrap items-center justify-between gap-4 text-[11px] text-slate-500">
-            <p>© {new Date().getFullYear()} CivicResolve Platform. Engineered for Tamil Nadu Municipal Operations.</p>
-            <p className="text-slate-500">Independent Academic & Competition Prototype • Not affiliated with official government bodies.</p>
+          <div className="pt-8 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4 text-[11px] text-slate-400">
+            <p>© {new Date().getFullYear()} CivicResolve — Citizen Grievance Tracking Platform.</p>
+            <div className="flex items-center gap-4">
+              <span className="hover:text-white cursor-pointer">Privacy Policy</span>
+              <span>•</span>
+              <span className="hover:text-white cursor-pointer">Terms of Use</span>
+              <span>•</span>
+              <span className="hover:text-white cursor-pointer">Accessibility</span>
+            </div>
           </div>
 
         </div>

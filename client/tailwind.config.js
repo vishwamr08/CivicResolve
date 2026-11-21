@@ -7,27 +7,44 @@ export default {
   theme: {
     extend: {
       colors: {
+        govt: {
+          navy: '#1a3c6e',
+          'navy-light': '#2a5298',
+          'navy-dark': '#0f2040',
+          saffron: '#f47920',
+          'saffron-dark': '#d96810',
+          green: '#138808',
+          'green-dark': '#0f6b06',
+        },
         navy: {
-          950: '#070F1E',
-          900: '#0A192F',
-          800: '#112240',
-          700: '#1E3A5F',
-          600: '#274A78',
+          950: '#0a1628',
+          900: '#0f2040',
+          800: '#1a3c6e',
+          700: '#2a5298',
+          600: '#3b6ab5',
+        },
+        saffron: {
+          DEFAULT: '#f47920',
+          light: '#ff8f3d',
+          dark: '#d96810',
+          glow: 'rgba(244, 121, 32, 0.25)',
         },
         teal: {
-          DEFAULT: '#0D9488',
-          light: '#14B8A6',
-          dark: '#0F766E',
-          accent: '#2DD4BF'
+          DEFAULT: '#f47920', // Align legacy teal to CivicLens signature saffron for uniform theme
+          light: '#ff8f3d',
+          dark: '#d96810',
+          accent: '#ff9a4d'
         },
         civic: {
-          blue: '#1D4ED8',
-          sky: '#0284C7',
-          light: '#F0F7FF'
+          navy: '#1a3c6e',
+          saffron: '#f47920',
+          green: '#138808',
+          blue: '#2a5298',
+          light: '#f8f9fa'
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       }
     },
   },
