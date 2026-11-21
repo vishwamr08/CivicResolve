@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   X, UploadCloud, AlertTriangle, Sparkles, 
   Trash2, Loader2, Compass, CheckCircle2, 
@@ -52,6 +52,74 @@ export default function ComplaintFormModal({
 
   const t = translations[lang] || translations.en;
 
+  // Auto-detect GPS coordinates and reverse geocode
+  const handleGetLocation = useCallback((forceUpdateAddress = false) => {
+    if (!navigator.geolocation) {
+      console.warn('Geolocation not supported by browser.');
+      setLatitude('13.0827');
+      setLongitude('80.2707');
+      setIsGpsDetected(true);
+      if (!streetAddress || forceUpdateAddress) {
+        setStreetAddress('Ripon Building, Greater Chennai Corporation, Chennai - 600003');
+      }
+      return;
+    }
+
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude.toFixed(6);
+        const lng = pos.coords.longitude.toFixed(6);
+        setLatitude(lat);
+        setLongitude(lng);
+        setIsGpsDetected(true);
+
+        try {
+          const res = await fetch(getApiUrl(`/api/geocode/reverse?lat=${lat}&lng=${lng}`));
+          if (res.ok) {
+            const data = await res.json();
+            if (data.address && (!streetAddress || forceUpdateAddress)) {
+              setStreetAddress(data.address);
+            }
+            if (data.district) {
+              const match = TAMIL_NADU_DISTRICTS.find(d => 
+                d.name.toLowerCase() === data.district.toLowerCase() ||
+                d.id.toLowerCase() === data.district.toLowerCase()
+              );
+              if (match) {
+                setSelectedDistrict(match.id);
+                if (match.localBodies?.length) {
+                  setSelectedLocalBody(match.localBodies[0].id);
+                  if (match.localBodies[0].zones?.length) {
+                    setSelectedZoneWard(match.localBodies[0].zones[0].name);
+                  }
+                }
+              }
+            }
+          }
+        } catch {
+          if (!streetAddress || forceUpdateAddress) {
+            setStreetAddress(`Geotagged Location: Lat ${lat}, Lng ${lng} (Tamil Nadu)`);
+          }
+        } finally {
+          setIsGettingLocation(false);
+        }
+      },
+      (err) => {
+        console.warn('Geolocation fallback:', err.message);
+        // Default to Chennai Municipal Center coordinates
+        setLatitude('13.0827');
+        setLongitude('80.2707');
+        setIsGpsDetected(true);
+        if (!streetAddress || forceUpdateAddress) {
+          setStreetAddress('Greater Chennai Municipal Corporation Zone, Tamil Nadu');
+        }
+        setIsGettingLocation(false);
+      },
+      { timeout: 7000, enableHighAccuracy: true, maximumAge: 60000 }
+    );
+  }, [streetAddress]);
+
   // Setup speech recognition
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -81,23 +149,57 @@ export default function ComplaintFormModal({
     }
   }, [lang]);
 
-  // Pre-fill user data
+  // Pre-fill user data & auto-fetch location on open
   useEffect(() => {
     if (isOpen) {
       setStep(1);
       setValidationError('');
       if (initialCategory) setCategory(initialCategory);
-      if (citizenUser) {
-        setCitizenName(citizenUser.name || '');
-        setCitizenPhone(citizenUser.phone || '');
-        setCitizenEmail(citizenUser.email || '');
-        if (citizenUser.district) {
-          const match = TAMIL_NADU_DISTRICTS.find(d => d.name.toLowerCase() === citizenUser.district.toLowerCase());
-          if (match) setSelectedDistrict(match.id);
+
+      // Auto-fetch Citizen Profile Details from props or localStorage
+      let activeUser = citizenUser;
+      if (!activeUser) {
+        try {
+          const saved = localStorage.getItem('civic_citizen_user');
+          if (saved) activeUser = JSON.parse(saved);
+        } catch {
+          activeUser = null;
         }
       }
+
+      if (activeUser) {
+        if (activeUser.name) setCitizenName(activeUser.name);
+        if (activeUser.phone) setCitizenPhone(activeUser.phone);
+        if (activeUser.email) setCitizenEmail(activeUser.email);
+        if (activeUser.district) {
+          const match = TAMIL_NADU_DISTRICTS.find(d => 
+            d.name.toLowerCase() === activeUser.district.toLowerCase() ||
+            d.id.toLowerCase() === activeUser.district.toLowerCase()
+          );
+          if (match) {
+            setSelectedDistrict(match.id);
+            if (activeUser.municipality || activeUser.localBody) {
+              const targetLb = (activeUser.municipality || activeUser.localBody || '').toLowerCase();
+              const lbMatch = match.localBodies?.find(lb => 
+                lb.id.toLowerCase() === targetLb ||
+                lb.name.toLowerCase().includes(targetLb)
+              );
+              if (lbMatch) {
+                setSelectedLocalBody(lbMatch.id);
+                if (activeUser.ward && lbMatch.zones?.length) {
+                  const zMatch = lbMatch.zones.find(z => z.name.toLowerCase().includes(activeUser.ward.toLowerCase()));
+                  if (zMatch) setSelectedZoneWard(zMatch.name);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Auto-fetch GPS Location immediately
+      handleGetLocation(false);
     }
-  }, [isOpen, initialCategory, citizenUser]);
+  }, [isOpen, initialCategory, citizenUser, handleGetLocation]);
 
   if (!isOpen) return null;
 
@@ -187,50 +289,6 @@ export default function ComplaintFormModal({
     }
   };
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      setValidationError('Geolocation is not supported by your browser.');
-      return;
-    }
-
-    setIsGettingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude.toFixed(6);
-        const lng = pos.coords.longitude.toFixed(6);
-        setLatitude(lat);
-        setLongitude(lng);
-        setIsGpsDetected(true);
-
-        try {
-          const res = await fetch(getApiUrl(`/api/geocode/reverse?lat=${lat}&lng=${lng}`));
-          if (res.ok) {
-            const data = await res.json();
-            if (data.address) {
-              setStreetAddress(data.address);
-            }
-          }
-        } catch {
-          if (!streetAddress) {
-            setStreetAddress(`Geotagged Coordinates: Lat ${lat}, Lng ${lng}`);
-          }
-        } finally {
-          setIsGettingLocation(false);
-        }
-      },
-      (err) => {
-        console.warn('Geolocation fallback:', err.message);
-        // Default to Chennai Central coordinates
-        setLatitude('13.0827');
-        setLongitude('80.2707');
-        setIsGpsDetected(true);
-        if (!streetAddress) setStreetAddress('Chennai Central Municipal Zone, Tamil Nadu');
-        setIsGettingLocation(false);
-      },
-      { timeout: 7000 }
-    );
-  };
-
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -317,20 +375,20 @@ export default function ComplaintFormModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/75 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6">
+      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[95vh] sm:max-h-[90vh]">
         
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 px-6 py-5 text-white flex items-center justify-between border-b border-navy-800 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal/20 border border-teal/40 flex items-center justify-center text-teal-accent">
-              <Sparkles className="w-5 h-5" />
+        <div className="bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 px-4 sm:px-6 py-3.5 sm:py-5 text-white flex items-center justify-between border-b border-navy-800 flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-teal/20 border border-teal/40 flex items-center justify-center text-teal-accent flex-shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold">
+              <h2 className="text-sm sm:text-lg font-bold">
                 {lang === 'ta' ? 'குறைதீர்ப்பு மனு பதிவு செய்க' : 'Register Civic Grievance'}
               </h2>
-              <p className="text-xs text-slate-300">
+              <p className="text-[11px] sm:text-xs text-slate-300">
                 Tamil Nadu Municipal AI Triage & Direct Field Dispatch
               </p>
             </div>
@@ -345,14 +403,14 @@ export default function ComplaintFormModal({
         </div>
 
         {/* Demo Fast-fill Bar */}
-        <div className="bg-slate-50 px-6 py-2.5 border-b border-slate-200 flex flex-wrap items-center gap-2 text-xs flex-shrink-0">
-          <span className="font-bold text-slate-500">Quick Test Cases:</span>
+        <div className="bg-slate-50 px-4 sm:px-6 py-2 border-b border-slate-200 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs overflow-x-auto flex-nowrap sm:flex-wrap flex-shrink-0">
+          <span className="font-bold text-slate-500 flex-shrink-0">Quick Test Cases:</span>
           {demoPresets.map((preset, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => applyPreset(preset)}
-              className="px-2.5 py-1 rounded-lg bg-teal/10 hover:bg-teal/20 text-teal-dark font-medium border border-teal/20 transition-colors"
+              className="px-2.5 py-1 rounded-lg bg-teal/10 hover:bg-teal/20 text-teal-dark font-medium border border-teal/20 transition-colors whitespace-nowrap"
             >
               {preset.label}
             </button>
@@ -360,7 +418,7 @@ export default function ComplaintFormModal({
         </div>
 
         {/* 4-Step Progress Indicator */}
-        <div className="bg-white px-6 py-3 border-b border-slate-100 flex items-center justify-between text-xs font-semibold flex-shrink-0">
+        <div className="bg-white px-4 sm:px-6 py-2.5 sm:py-3 border-b border-slate-100 flex items-center justify-between text-[11px] sm:text-xs font-semibold flex-shrink-0">
           {[
             { num: 1, label: t.stepLocation || '1. Location' },
             { num: 2, label: t.stepCategory || '2. Issue Type' },
@@ -369,11 +427,11 @@ export default function ComplaintFormModal({
           ].map((s) => (
             <div 
               key={s.num}
-              className={`flex items-center gap-1.5 ${
+              className={`flex items-center gap-1 sm:gap-1.5 ${
                 step === s.num ? 'text-teal font-bold' : step > s.num ? 'text-emerald-600' : 'text-slate-400'
               }`}
             >
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+              <span className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-bold ${
                 step === s.num ? 'bg-teal text-white' : step > s.num ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
               }`}>
                 {step > s.num ? '✓' : s.num}
@@ -384,7 +442,7 @@ export default function ComplaintFormModal({
         </div>
 
         {/* Form Body Scroll Area */}
-        <div className="p-6 overflow-y-auto space-y-5 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1">
           {validationError && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
@@ -398,6 +456,23 @@ export default function ComplaintFormModal({
               <div className="p-3 bg-blue-50/60 border border-blue-200 rounded-xl text-xs text-blue-900">
                 <strong>Administrative Routing:</strong> Grievances are routed directly to the specific Municipal Corporation, Zone, and Ward field teams in Tamil Nadu.
               </div>
+
+              {/* Auto-detected GPS notice banner */}
+              {isGpsDetected && (
+                <div className="p-2.5 sm:p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <span><strong>Auto-Detected GPS:</strong> Lat {latitude}, Lng {longitude} (Verified Geotag)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleGetLocation(true)}
+                    className="text-[11px] font-bold text-teal hover:underline flex-shrink-0"
+                  >
+                    Refresh GPS
+                  </button>
+                </div>
+              )}
 
               {/* District */}
               <div>
@@ -475,7 +550,7 @@ export default function ComplaintFormModal({
                   </label>
                   <button
                     type="button"
-                    onClick={handleGetLocation}
+                    onClick={() => handleGetLocation(true)}
                     disabled={isGettingLocation}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-teal hover:text-teal-dark transition-colors"
                   >
@@ -645,9 +720,16 @@ export default function ComplaintFormModal({
 
               {/* Citizen Contact Information */}
               <div className="space-y-3 pt-2 border-t border-slate-100">
-                <span className="text-xs font-bold text-navy-950 block">
-                  Citizen Contact for SMS & Resolution Slip (Optional)
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-navy-950 block">
+                    Citizen Contact for SMS & Resolution Slip (Optional)
+                  </span>
+                  {(citizenName || citizenPhone || citizenEmail) && (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      ✓ Session Pre-filled
+                    </span>
+                  )}
+                </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
@@ -689,14 +771,14 @@ export default function ComplaintFormModal({
           )}
         </div>
 
-        {/* Modal Footer Controls */}
-        <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-between gap-3 flex-shrink-0">
+        {/* Modal Footer Controls - Sticky Bottom Bar */}
+        <div className="sticky bottom-0 bg-slate-50 px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-200 flex items-center justify-between gap-2 sm:gap-3 flex-shrink-0 z-10">
           {step > 1 ? (
             <button
               type="button"
               onClick={() => setStep(step - 1)}
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors"
+              className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back</span>
@@ -706,7 +788,7 @@ export default function ComplaintFormModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2.5 rounded-xl text-slate-600 hover:text-navy-950 font-semibold text-xs transition-colors"
+              className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-slate-600 hover:text-navy-950 font-semibold text-xs transition-colors"
             >
               Cancel
             </button>
@@ -716,7 +798,7 @@ export default function ComplaintFormModal({
             <button
               type="button"
               onClick={handleNextStep}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-teal-dark hover:from-teal-light hover:to-teal text-white font-bold text-xs shadow-md shadow-teal-500/20 transition-all"
+              className="flex items-center gap-1.5 sm:gap-2 px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-teal-dark hover:from-teal-light hover:to-teal text-white font-bold text-xs shadow-md shadow-teal-500/20 transition-all"
             >
               <span>Next Step</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -726,7 +808,7 @@ export default function ComplaintFormModal({
               type="button"
               onClick={handleSubmitFinal}
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-teal-dark hover:from-teal-light hover:to-teal text-white font-bold text-xs shadow-md shadow-teal-500/20 transition-all disabled:opacity-50"
+              className="flex items-center gap-1.5 sm:gap-2 px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-teal-dark hover:from-teal-light hover:to-teal text-white font-bold text-xs shadow-md shadow-teal-500/20 transition-all disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

@@ -32,10 +32,20 @@ export default function CitizenPortal({
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState('');
 
-  // Profile Settings State
-  const [profileName, setProfileName] = useState(citizenUser?.name || '');
-  const [profilePhone, setProfilePhone] = useState(citizenUser?.phone || '');
-  const [profileDistrict, setProfileDistrict] = useState(citizenUser?.district || 'Chennai');
+  // Profile Settings State with resilient session autofetch
+  const storedCitizen = (() => {
+    try {
+      const s = localStorage.getItem('civic_citizen_user');
+      return s ? JSON.parse(s) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const effectiveCitizen = citizenUser || storedCitizen;
+
+  const [profileName, setProfileName] = useState(effectiveCitizen?.name || '');
+  const [profilePhone, setProfilePhone] = useState(effectiveCitizen?.phone || '');
+  const [profileDistrict, setProfileDistrict] = useState(effectiveCitizen?.district || 'Chennai');
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [smsNotifs, setSmsNotifs] = useState(false);
   const [whatsappNotifs, setWhatsappNotifs] = useState(false);
@@ -96,7 +106,18 @@ export default function CitizenPortal({
   };
 
   useEffect(() => {
-    if (citizenUser) {
+    let user = citizenUser;
+    if (!user) {
+      try {
+        const saved = localStorage.getItem('civic_citizen_user');
+        if (saved) user = JSON.parse(saved);
+      } catch {}
+    }
+
+    if (user) {
+      if (user.name) setProfileName(user.name);
+      if (user.phone) setProfilePhone(user.phone);
+      if (user.district) setProfileDistrict(user.district);
       fetchMyComplaints();
       fetchProfileSettings();
     } else {

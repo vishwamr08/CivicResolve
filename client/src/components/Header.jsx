@@ -116,7 +116,7 @@ export default function Header({
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden xl:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1">
             {navLinks.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -124,7 +124,7 @@ export default function Header({
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all relative ${
+                  className={`flex items-center gap-1 xl:gap-1.5 px-2 py-1.5 xl:px-3 xl:py-2 rounded-lg text-[11px] xl:text-xs font-semibold transition-all relative ${
                     isActive
                       ? 'bg-slate-900 text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -143,35 +143,35 @@ export default function Header({
           </nav>
 
           {/* Action CTAs */}
-          <div className="hidden sm:flex items-center gap-2.5">
+          <div className="hidden sm:flex items-center gap-1.5 xl:gap-2.5">
             
             {/* Primary Submit Grievance CTA */}
             <button
               onClick={() => onOpenSubmit && onOpenSubmit('Road Damage')}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-600/20 active:scale-95 transition-all"
+              className="flex items-center gap-1.5 px-3 xl:px-4 py-2 xl:py-2.5 rounded-xl font-bold text-[11px] xl:text-xs text-white bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-600/20 active:scale-95 transition-all"
             >
-              <PlusCircle className="w-4 h-4 text-white" />
+              <PlusCircle className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-white" />
               <span>{lang === 'ta' ? 'மனு பதிவு' : 'Report Issue'}</span>
             </button>
 
             {/* Citizen Auth Badge / Login Button */}
             {citizenUser ? (
-              <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+              <div className="flex items-center gap-1.5 xl:gap-2 pl-2 border-l border-slate-200">
                 <button
                   onClick={() => handleNavClick('citizen-portal')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 xl:py-2 rounded-xl text-[11px] xl:text-xs font-bold border transition-all ${
                     activeTab === 'citizen-portal'
                       ? 'bg-teal-50 border-teal-300 text-teal-800'
                       : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   <User className="w-3.5 h-3.5 text-teal-600" />
-                  <span className="max-w-[100px] truncate">{citizenUser.name.split(' ')[0]}</span>
+                  <span className="max-w-[80px] xl:max-w-[100px] truncate">{citizenUser.name.split(' ')[0]}</span>
                 </button>
                 <button
                   onClick={onLogoutCitizen}
                   title="Logout Citizen"
-                  className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                  className="p-1.5 xl:p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -179,10 +179,10 @@ export default function Header({
             ) : (
               <button
                 onClick={onOpenCitizenAuth}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-700 border border-slate-300 hover:bg-slate-50 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 xl:px-3.5 py-1.5 xl:py-2.5 rounded-xl text-[11px] xl:text-xs font-bold text-slate-700 border border-slate-300 hover:bg-slate-50 transition-colors"
               >
                 <User className="w-3.5 h-3.5 text-slate-600" />
-                <span>{lang === 'ta' ? 'குடிமக்கள் லாகின்' : 'Citizen Login'}</span>
+                <span>{lang === 'ta' ? 'குடிமக்கள்' : 'Citizen Login'}</span>
               </button>
             )}
 
@@ -191,7 +191,7 @@ export default function Header({
               <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
                 <button
                   onClick={() => handleNavClick('admin')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 xl:py-2 rounded-xl text-[11px] xl:text-xs font-bold transition-all ${
                     activeTab === 'admin' || activeTab === 'officer-portal'
                       ? 'bg-slate-900 text-white'
                       : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
@@ -203,7 +203,7 @@ export default function Header({
                 <button
                   onClick={onLogoutAdmin}
                   title="Sign Out Officer"
-                  className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                  className="p-1.5 xl:p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -211,17 +211,17 @@ export default function Header({
             ) : (
               <button
                 onClick={() => handleNavClick('admin-login')}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 xl:py-2.5 rounded-xl text-[11px] xl:text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
               >
                 <Lock className="w-3.5 h-3.5 text-slate-500" />
-                <span className="hidden lg:inline">{lang === 'ta' ? 'அதிகாரி லாகின்' : 'Municipal Login'}</span>
+                <span className="hidden xl:inline">{lang === 'ta' ? 'அதிகாரி லாகின்' : 'Municipal Login'}</span>
               </button>
             )}
 
           </div>
 
           {/* Mobile Hamburger Toggle */}
-          <div className="flex xl:hidden items-center gap-2">
+          <div className="flex lg:hidden items-center gap-2">
             <button
               onClick={() => onOpenSubmit && onOpenSubmit('Road Damage')}
               className="p-2 rounded-xl bg-teal-600 text-white font-bold text-xs"
@@ -244,7 +244,7 @@ export default function Header({
 
       {/* Mobile Responsive Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="xl:hidden bg-white border-b border-slate-200 shadow-xl px-4 pt-3 pb-6 space-y-4 animate-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden bg-white border-b border-slate-200 shadow-xl px-4 pt-3 pb-6 space-y-4 animate-in slide-in-from-top-2 duration-200">
           
           <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-100">
             {citizenUser ? (
