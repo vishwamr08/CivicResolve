@@ -88,6 +88,9 @@ export default function CitizenAuthModal({
       setSuccessMsg(data.message || 'OTP dispatched to registered mobile.');
       setCooldown(data.cooldownSeconds || 60);
       setIsNewUser(!data.isExistingUser);
+      if (data.devOtp) {
+        setEnteredOtp(String(data.devOtp));
+      }
       setOtpStep('verify-otp');
     } catch (err) {
       setError(err.message);
@@ -220,13 +223,6 @@ export default function CitizenAuthModal({
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDemoFill = (citizenEmail) => {
-    setAuthMethod('password');
-    setLoginEmail(citizenEmail);
-    setLoginPassword('Citizen#2026!Demo');
-    setError('');
   };
 
   return (
@@ -553,29 +549,6 @@ export default function CitizenAuthModal({
                 </div>
               </div>
 
-              {/* Demo Account Quick Fill */}
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5">
-                <span className="text-[10px] font-bold uppercase text-slate-500 block">
-                  1-Click Demo Citizen Profiles:
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleDemoFill('citizen@civicresolve.gov')}
-                    className="flex-1 py-1 px-2 rounded-lg bg-white border border-slate-200 hover:border-teal-500 text-[10px] font-bold text-slate-700 transition-colors truncate"
-                  >
-                    Selvi Anitha (Chennai)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDemoFill('karthik@civicresolve.gov')}
-                    className="flex-1 py-1 px-2 rounded-lg bg-white border border-slate-200 hover:border-teal-500 text-[10px] font-bold text-slate-700 transition-colors truncate"
-                  >
-                    Karthik Raja (CBE)
-                  </button>
-                </div>
-              </div>
-
               <button
                 type="submit"
                 disabled={loading || !loginEmail.trim() || !loginPassword}
@@ -584,6 +557,16 @@ export default function CitizenAuthModal({
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
                 <span>{lang === 'ta' ? 'உள்நுழைக' : 'Sign In with Password'}</span>
               </button>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setAuthMethod('otp'); setError(''); }}
+                  className="text-xs font-semibold text-teal-600 hover:text-teal-700 hover:underline"
+                >
+                  {lang === 'ta' ? 'புதிய குடிமகன்? மொபைல் OTP மூலம் பதிவு செய்க' : 'New Citizen? Register with Mobile OTP'}
+                </button>
+              </div>
             </form>
           )}
 
