@@ -74,22 +74,166 @@ app.use('/api/', (req, res, next) => {
   next();
 });
 
-// Standard Middleware
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+// -------------------------------------------------------------
+// PRODUCTION CORS CONFIGURATION
+// -------------------------------------------------------------
+const allowedOrigins = [
+  'https://civicresolve-yc9v.onrender.com',
+  process.env.FRONTEND_URL,
+  process.env.CORS_ORIGIN,
+  // Development origins (only active outside production)
+  ...(process.env.NODE_ENV !== 'production' ? [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5000',
+    'http://127.0.0.1:5000'
+  ] : [])
+].filter(Boolean).map(origin => origin.trim().replace(/\/$/, ''));
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser requests with no Origin header (curl, mobile, backend-to-backend)
+    if (!origin) return callback(null, true);
+
+    const cleanOrigin = origin.trim().replace(/\/$/, '');
+    const isExplicitlyAllowed = allowedOrigins.some(allowed => allowed.toLowerCase() === cleanOrigin.toLowerCase());
+
+    if (isExplicitlyAllowed) {
+      return callback(null, true);
+    }
+
+    // In non-production development mode, allow any localhost/127.0.0.1 port
+    if (process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin)) {
+      return callback(null, true);
+    }
+
+    // Explicitly reject unapproved origins
+    return callback(new Error(`CORS error: Origin '${origin}' is not authorized.`));
+  },
+  credentials: true,
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // Cache preflight for 24h
+};
+
+// Apply CORS middleware before any API routes
+app.use(cors(corsOptions));
+app.options(/(.*)/, cors(corsOptions));
+
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use(cookieParser());
 
+// Cookie options for cross-origin production and local development
+function getCookieOptions() {
+  const isProd = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    maxAge: 24 * 60 * 60 * 1000,
+    path: '/'
+  };
+}
 
-// Ensure uploads folder exists
-const uploadsDir = path.join(__dirname, 'uploads');
+function getClearCookieOptions() {
+  const isProd = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/'
+  };
+}
+
+// Persistent uploads folder configuration (Supports Render Persistent Disks)
+const uploadsDir = process.env.UPLOADS_DIR || 
+  (process.env.DATA_DIR ? path.join(process.env.DATA_DIR, 'uploads') : path.join(__dirname, 'uploads'));
+
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 app.use('/uploads', express.static(uploadsDir));
+
+// Root Entry Point (GET /)
+app.get('/', (req, res) => {
+  res.status(200).json({
+    application: 'CivicResolve',
+    name: 'CivicResolve',
+    service: 'Backend API',
+    status: 'operational',
+    version: '2.5.0',
+    tagline: 'Report Issues. Track Action. Build Better Communities.',
+    health_endpoint: '/api/health',
+    health: '/api/health',
+    routes: {
+      health: '/api/health',
+      system_health: '/health',
+      complaints: '/api/complaints',
+      track_complaint: '/api/complaints/track/:refId',
+      dashboard_stats: '/api/dashboard/stats',
+      announcements: '/api/announcements',
+      citizen_auth: '/api/auth/citizen',
+      admin_auth: '/api/auth/login'
+    }
+  });
+});
+
+// Root Health Check for Render & Infrastructure Monitors (GET /health)
+app.get('/health', (req, res) => {
+  try {
+    if (!db || typeof db.prepare !== 'function' || db.open === false) {
+      return res.status(503).json({
+        status: 'unhealthy',
+        service: 'CivicResolve',
+        database: 'disconnected',
+        database_status: 'disconnected',
+        'database status': 'disconnected',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const dbCheck = db.prepare('SELECT 1 as test').get();
+    if (!dbCheck || dbCheck.test !== 1) {
+      return res.status(503).json({
+        status: 'unhealthy',
+        service: 'CivicResolve',
+        database: 'disconnected',
+        database_status: 'disconnected',
+        'database status': 'disconnected',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    return res.status(200).json({
+      status: 'healthy',
+      service: 'CivicResolve',
+      database: 'connected',
+      database_status: 'connected',
+      'database status': 'connected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('[Health Check Failure]:', err?.message || err);
+    return res.status(503).json({
+      status: 'unhealthy',
+      service: 'CivicResolve',
+      database: 'disconnected',
+      database_status: 'disconnected',
+      'database status': 'disconnected',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
 // Multer Storage Configuration
 const storage = multer.diskStorage({
@@ -223,14 +367,39 @@ function recordAuditLog({ complaintRef, actorId, actorName, actorRole, action, p
 // -------------------------------------------------------------
 app.get('/api/health', (req, res) => {
   try {
+    if (!db || typeof db.prepare !== 'function' || db.open === false) {
+      return res.status(503).json({
+        status: 'unhealthy',
+        service: 'CivicResolve',
+        database: 'disconnected',
+        database_status: 'disconnected',
+        'database status': 'disconnected',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     const dbCheck = db.prepare('SELECT 1 as test').get();
+    if (!dbCheck || dbCheck.test !== 1) {
+      return res.status(503).json({
+        status: 'unhealthy',
+        service: 'CivicResolve',
+        database: 'disconnected',
+        database_status: 'disconnected',
+        'database status': 'disconnected',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     const hasGeminiKey = !!process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY.includes('your_');
     res.json({
       status: 'healthy',
+      service: 'CivicResolve',
+      database_status: 'connected',
+      'database status': 'connected',
       app: 'CivicResolve API',
       version: '2.5.0',
       tagline: 'Report Issues. Track Action. Build Better Communities.',
-      database: dbCheck.test === 1 ? 'connected' : 'error',
+      database: 'connected',
       aiConfigured: hasGeminiKey,
       geminiConfigured: hasGeminiKey,
       aiProvider: 'Google Gemini',
@@ -241,7 +410,15 @@ app.get('/api/health', (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (err) {
-    res.status(500).json({ status: 'unhealthy', error: err.message });
+    console.error('[API Health Check Failure]:', err?.message || err);
+    res.status(503).json({
+      status: 'unhealthy',
+      service: 'CivicResolve',
+      database: 'disconnected',
+      database_status: 'disconnected',
+      'database status': 'disconnected',
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
@@ -442,13 +619,7 @@ app.post('/api/auth/citizen/verify-otp', (req, res) => {
       db.prepare('UPDATE citizens SET mobile_verified = 1 WHERE id = ?').run(citizen.id);
       const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, type: 'citizen' });
 
-      res.cookie('civic_citizen_token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000,
-        path: '/'
-      });
+      res.cookie('civic_citizen_token', token, getCookieOptions());
 
       return res.json({
         success: true,
@@ -531,13 +702,7 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
     const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward FROM citizens WHERE id = ?').get(result.lastInsertRowid);
     const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, type: 'citizen' });
 
-    res.cookie('civic_citizen_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-      path: '/'
-    });
+    res.cookie('civic_citizen_token', token, getCookieOptions());
 
     createNotification('citizen', citizen.id, null, 'Welcome to CivicResolve', `வணக்கம் ${citizen.name}! Your citizen portal account is verified and ready.`);
 
@@ -580,13 +745,7 @@ app.post('/api/auth/citizen/register', (req, res) => {
     const citizen = db.prepare('SELECT id, name, email, phone, district, email_verified, email_notifications FROM citizens WHERE id = ?').get(result.lastInsertRowid);
     const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, type: 'citizen' });
 
-    res.cookie('civic_citizen_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-      path: '/'
-    });
+    res.cookie('civic_citizen_token', token, getCookieOptions());
 
     // Fire welcome notification asynchronously
     notifyCitizenEvent({
@@ -633,13 +792,7 @@ app.post('/api/auth/citizen/login', (req, res) => {
     recordSuccessfulLogin(clientIp);
     const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, type: 'citizen' });
 
-    res.cookie('civic_citizen_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-      path: '/'
-    });
+    res.cookie('civic_citizen_token', token, getCookieOptions());
 
     res.json({
       message: 'Citizen login successful',
@@ -670,7 +823,7 @@ app.get('/api/auth/citizen/me', authenticateCitizen, (req, res) => {
 
 // POST /api/auth/citizen/logout
 app.post('/api/auth/citizen/logout', (req, res) => {
-  res.clearCookie('civic_citizen_token', { path: '/' });
+  res.clearCookie('civic_citizen_token', getClearCookieOptions());
   res.json({ message: 'Citizen logged out successfully' });
 });
 
@@ -813,13 +966,7 @@ app.post('/api/auth/login', (req, res) => {
     const token = generateToken(tokenPayload);
 
     // Set secure HTTP-only cookie
-    res.cookie('civic_admin_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-      path: '/'
-    });
+    res.cookie('civic_admin_token', token, getCookieOptions());
 
     res.json({
       message: 'Officer authentication successful',
@@ -834,7 +981,7 @@ app.post('/api/auth/login', (req, res) => {
 
 // POST /api/auth/logout
 app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('civic_admin_token', { path: '/' });
+  res.clearCookie('civic_admin_token', getClearCookieOptions());
   res.json({ message: 'Officer logged out successfully' });
 });
 
@@ -2089,10 +2236,13 @@ app.get('/api/complaints/:refId/receipt', optionalCitizenAuth, (req, res) => {
 
 // Global Generic Error Handler
 app.use((err, req, res, next) => {
-  console.error('[Unhandled Server Error]:', err);
   if (res.headersSent) {
     return next(err);
   }
+  if (err.message && err.message.startsWith('CORS error:')) {
+    return res.status(403).json({ error: err.message });
+  }
+  console.error('[Unhandled Server Error]:', err);
   res.status(err.status || 500).json({
     error: process.env.NODE_ENV === 'production' ? 'An internal server error occurred.' : err.message
   });

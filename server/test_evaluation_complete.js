@@ -15,8 +15,9 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const db = require('./db.js');
+const app = require('./index.js');
 
-const BASE_URL = 'http://127.0.0.1:5000';
+let BASE_URL = 'http://127.0.0.1:5000';
 
 let passedTests = 0;
 let totalTests = 0;
@@ -86,6 +87,17 @@ async function runTests() {
   console.log('   CIVICRESOLVE COMPREHENSIVE EVALUATION TEST SUITE   ');
   console.log('======================================================\n');
 
+  // Start internal test server on ephemeral port for reliable cross-environment testing
+  const server = await new Promise((resolve, reject) => {
+    const s = app.listen(0, '127.0.0.1', () => {
+      const port = s.address().port;
+      BASE_URL = `http://127.0.0.1:${port}`;
+      console.log(`[Test Suite] Active on ephemeral address: ${BASE_URL}`);
+      resolve(s);
+    });
+    s.on('error', reject);
+  });
+
   // ==========================================
   // CRITERION 1: CODE QUALITY & DB INTEGRITY
   // ==========================================
@@ -152,6 +164,39 @@ async function runTests() {
     const unauthorizedOfficer = await makeRequest('GET', '/api/officer/tasks');
     const isOfficerBlocked = unauthorizedOfficer.statusCode === 401 || unauthorizedOfficer.statusCode === 403;
     recordResult('Security', 'Field Officer Task Access Control', isOfficerBlocked, `HTTP ${unauthorizedOfficer.statusCode} without officer token`);
+
+    // 2.6 Production CORS Preflight Support (OPTIONS check)
+    const preflightRes = await makeRequest('OPTIONS', '/api/health', {
+      'Origin': 'https://civicresolve-yc9v.onrender.com',
+      'Access-Control-Request-Method': 'POST',
+      'Access-Control-Request-Headers': 'Content-Type,Authorization'
+    });
+    const isCorsPreflightValid = preflightRes.statusCode === 204 && 
+      preflightRes.headers['access-control-allow-origin'] === 'https://civicresolve-yc9v.onrender.com' &&
+      preflightRes.headers['access-control-allow-credentials'] === 'true';
+    recordResult('Security', 'Production CORS Preflight Allowlist Enforcement', isCorsPreflightValid, `Status: ${preflightRes.statusCode}, Origin: ${preflightRes.headers['access-control-allow-origin']}`);
+
+    // 2.7 CORS Unauthorized Origin Protection
+    const unauthorizedCorsRes = await makeRequest('GET', '/api/health', {
+      'Origin': 'https://malicious-attacker.com'
+    });
+    const isUnauthorizedCorsBlocked = unauthorizedCorsRes.statusCode === 403 || 
+      unauthorizedCorsRes.headers['access-control-allow-origin'] !== 'https://malicious-attacker.com';
+    recordResult('Security', 'CORS Unauthorized Origin Rejection', isUnauthorizedCorsBlocked, `Status: ${unauthorizedCorsRes.statusCode}`);
+
+    // 2.8 Root System Health & Heartbeat Endpoint
+    const rootHealthRes = await makeRequest('GET', '/health');
+    const isRootHealthOk = rootHealthRes.statusCode === 200 && rootHealthRes.data?.status === 'healthy';
+    recordResult('Security', 'Root Health & Database Heartbeat Endpoint', isRootHealthOk, `Status: ${rootHealthRes.data?.status}, DB: ${rootHealthRes.data?.database}`);
+
+    // 2.9 Root Entry Point Specification (GET /)
+    const rootRes = await makeRequest('GET', '/');
+    const isRootValid = rootRes.statusCode === 200 &&
+      (rootRes.data?.application === 'CivicResolve' || rootRes.data?.name === 'CivicResolve') &&
+      rootRes.data?.status === 'operational' &&
+      rootRes.data?.service === 'Backend API' &&
+      (rootRes.data?.health_endpoint || rootRes.data?.health) === '/api/health';
+    recordResult('Security', 'Root Entry Point JSON Specification (GET /)', isRootValid, `Status: ${rootRes.statusCode}, Service: ${rootRes.data?.service}`);
   } catch (err) {
     recordResult('Security', 'Security audit error', false, err.message);
   }
@@ -321,6 +366,12 @@ async function runTests() {
       // 7.4 Citizen Tracking by Reference ID
       const canTrack = trackRes.statusCode === 200 && trackRes.data?.ref_id === refId;
       recordResult('Problem Statement', 'Citizen Tracking by Unique Reference ID', canTrack, `Tracked successfully`);
+
+      // Clean up test complaint
+      try {
+        db.prepare("DELETE FROM complaints WHERE ref_id = ?").run(refId);
+        db.prepare("DELETE FROM audit_logs WHERE complaint_ref = ?").run(refId);
+      } catch (cleanErr) {}
     }
 
     // 7.5 All Mandated Tamil Nadu Grievance Categories Supported
@@ -330,6 +381,11 @@ async function runTests() {
     recordResult('Problem Statement', 'Tamil Nadu Grievance Typology Support', hasKeyCategories, `Categories indexed in system`);
   } catch (err) {
     recordResult('Problem Statement', 'Problem statement alignment error', false, err.message);
+  }
+
+  // Gracefully close internal test server
+  if (server) {
+    server.close();
   }
 
   // ==========================================
