@@ -1,0 +1,36 @@
+services:
+  # CivicResolve Express + SQLite Backend API
+  - type: web
+    name: civicresolve-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: NODE_ENV
+        value: production
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+
+  # CivicResolve React + Vite Frontend
+  - type: static
+    name: civicresolve-frontend
+    plan: free
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://civicresolve-api.onrender.com/api/*
+      - type: rewrite
+        source: /uploads/*
+        destination: https://civicresolve-api.onrender.com/uploads/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
