@@ -19,32 +19,45 @@ export default {
         navy: {
           950: '#0a1628',
           900: '#0f2040',
+          850: '#15294e',
           800: '#1a3c6e',
           700: '#2a5298',
           600: '#3b6ab5',
+          50: '#f0f4f9',
         },
         saffron: {
           DEFAULT: '#f47920',
           light: '#ff8f3d',
           dark: '#d96810',
-          glow: 'rgba(244, 121, 32, 0.25)',
+          50: '#fff7ed',
+          100: '#ffedd5',
+          200: '#fed7aa',
+        },
+        green: {
+          govt: '#138808',
+          'govt-dark': '#0f6b06',
         },
         teal: {
-          DEFAULT: '#f47920', // Align legacy teal to CivicLens signature saffron for uniform theme
-          light: '#ff8f3d',
-          dark: '#d96810',
-          accent: '#ff9a4d'
+          DEFAULT: '#0d9488',
+          dark: '#0f766e',
+          light: '#14b8a6',
+          accent: '#2dd4bf',
         },
         civic: {
           navy: '#1a3c6e',
           saffron: '#f47920',
           green: '#138808',
           blue: '#2a5298',
-          light: '#f8f9fa'
+          canvas: '#f8f9fa',
+          surface: '#ffffff',
+          border: '#e2e8f0',
+          text: '#0f172a',
+          muted: '#64748b'
         }
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       }
     },
   },

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   PlusCircle, Search, Filter, AlertCircle, Clock, CheckCircle2, 
-  MapPin, Sparkles, ChevronRight, Calendar, 
+  MapPin, ChevronRight, Calendar, 
   Map as MapIcon, List, SearchCheck, Wrench } from 'lucide-react';
 import ComplaintMap from './ComplaintMap';
 import ComplaintTracker from './ComplaintTracker';
@@ -48,19 +48,17 @@ export default function CitizenDashboard({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Welcome & Action Banner */}
-      <div className="bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-navy-700">
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-[radial-gradient(circle_at_70%_50%,rgba(13,148,136,0.25),transparent_70%)] pointer-events-none"></div>
-        
+      <div className="bg-[#0f2040] rounded-xl p-6 sm:p-8 text-white shadow-sm relative overflow-hidden border border-navy-850">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal/20 text-teal-accent text-xs font-semibold mb-3 border border-teal/30">
-              <Sparkles className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold mb-3 border border-saffron/30">
+              <SearchCheck className="w-3.5 h-3.5" />
               <span>Public Accountability & Tracking Portal</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
               Citizen Grievance Redressal Center
             </h1>
-            <p className="mt-2 text-sm sm:text-base text-slate-300">
+            <p className="mt-2 text-sm text-slate-300 leading-relaxed">
               Submit community issues with GPS geotagging, track official audit lifecycles with Reference IDs, and view neighborhood hazard resolution maps.
             </p>
           </div>
@@ -68,15 +66,15 @@ export default function CitizenDashboard({
           <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
             <button
               onClick={() => setShowTrackerSection(!showTrackerSection)}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-slate-200 bg-navy-800/90 hover:bg-navy-700/90 border border-slate-700 text-xs transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-slate-200 bg-navy-900 hover:bg-navy-850 border border-slate-700 text-xs transition-colors"
             >
-              <SearchCheck className="w-4 h-4 text-teal-accent" />
+              <SearchCheck className="w-4 h-4 text-saffron" />
               <span>{showTrackerSection ? 'Hide Tracker' : 'Track by Ref ID'}</span>
             </button>
 
             <button
               onClick={onOpenSubmit}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-teal-500 to-teal-dark hover:from-teal-light hover:to-teal shadow-lg shadow-teal-500/25 active:scale-95 transition-all text-xs"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-white bg-saffron hover:bg-saffron-dark shadow-sm transition-colors text-xs"
             >
               <PlusCircle className="w-4 h-4 text-white" />
               <span>Submit New Grievance</span>
@@ -87,68 +85,68 @@ export default function CitizenDashboard({
 
       {/* Dedicated Tracker Section (when toggled or always accessible) */}
       {showTrackerSection && (
-        <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="animate-in fade-in duration-200">
           <ComplaintTracker onSelectComplaint={onSelectComplaint} />
         </div>
       )}
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/90 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Reports</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-navy-900 mt-1">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Reports</p>
+            <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1 tabular-nums tracking-tight">
               {stats?.totalComplaints || (complaints.length > 0 ? complaints.length : 37)}
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">Municipal SQLite records</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">Municipal SQLite records</p>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-navy-50 text-navy-800 flex items-center justify-center font-bold">
-            <Calendar className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-lg bg-navy-50 text-navy-800 border border-navy-100 flex items-center justify-center font-bold">
+            <Calendar className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/90 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">Under Review</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-amber-600 mt-1">
+            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Under Review</p>
+            <h3 className="text-2xl sm:text-3xl font-bold text-amber-700 mt-1 tabular-nums tracking-tight">
               {stats?.pendingComplaints || (complaints.length > 0 ? complaints.filter(c => c.status === 'Submitted' || c.status === 'Under Review').length : 5)}
             </h3>
-            <p className="text-[11px] text-amber-600/80 mt-0.5">Initial triage queue</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">Initial triage queue</p>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-            <Clock className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center font-bold">
+            <Clock className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/90 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">Field Action</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-blue-600 mt-1">
+            <p className="text-xs font-semibold text-navy-800 uppercase tracking-wider">Field Action</p>
+            <h3 className="text-2xl sm:text-3xl font-bold text-navy-800 mt-1 tabular-nums tracking-tight">
               {stats?.inProgressComplaints || (complaints.length > 0 ? complaints.filter(c => c.status === 'Assigned' || c.status === 'In Progress').length : 8)}
             </h3>
-            <p className="text-[11px] text-blue-600/80 mt-0.5">Assigned & crew deployed</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">Assigned & crew deployed</p>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-            <Wrench className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-lg bg-navy-50 text-navy-800 border border-navy-100 flex items-center justify-center font-bold">
+            <Wrench className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/90 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-emerald-600 uppercase tracking-wider">Resolved</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-1">
+            <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">Resolved</p>
+            <h3 className="text-2xl sm:text-3xl font-bold text-emerald-700 mt-1 tabular-nums tracking-tight">
               {stats?.resolvedComplaints || (complaints.length > 0 ? complaints.filter(c => c.status === 'Resolved').length : 24)}
             </h3>
-            <p className="text-[11px] text-emerald-600/80 mt-0.5">Verified closed tickets</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">Verified closed tickets</p>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-            <CheckCircle2 className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold">
+            <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* Search, Filter & View Controls */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/90 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           {/* Search Bar */}
           <div className="relative flex-1">
@@ -158,16 +156,16 @@ export default function CitizenDashboard({
               placeholder="Search by issue title, Ref ID (e.g. CR-2026-1042), or street address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal transition-all bg-slate-50/50"
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-navy-800 transition-colors bg-slate-50 focus:bg-white"
             />
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start md:self-auto">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg self-start md:self-auto border border-slate-200">
             <button
               onClick={() => setViewMode('list')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                viewMode === 'list' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy-900'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                viewMode === 'list' ? 'bg-white text-navy-950 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <List className="w-4 h-4" />
@@ -175,8 +173,8 @@ export default function CitizenDashboard({
             </button>
             <button
               onClick={() => setViewMode('map')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                viewMode === 'map' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy-900'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                viewMode === 'map' ? 'bg-white text-navy-950 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <MapIcon className="w-4 h-4" />
@@ -187,7 +185,7 @@ export default function CitizenDashboard({
 
         {/* Status Filter Pills */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
-          <span className="text-xs font-semibold text-slate-400 mr-1 flex items-center gap-1">
+          <span className="text-xs font-semibold text-slate-500 mr-1 flex items-center gap-1">
             <Filter className="w-3.5 h-3.5" />
             Status:
           </span>
@@ -195,10 +193,10 @@ export default function CitizenDashboard({
             <button
               key={st}
               onClick={() => setSelectedStatus(st)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                 selectedStatus === st
-                  ? 'bg-navy-900 text-white font-semibold shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-navy-900 text-white font-semibold shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               {st}
@@ -208,17 +206,17 @@ export default function CitizenDashboard({
 
         {/* Category Pills */}
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span className="text-xs font-semibold text-slate-400 mr-1">
+          <span className="text-xs font-semibold text-slate-500 mr-1">
             Category:
           </span>
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all ${
+              className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors ${
                 selectedCategory === cat
-                  ? 'bg-teal text-white font-semibold shadow-xs'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  ? 'bg-navy-900 text-white font-semibold shadow-xs'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
               }`}
             >
               {cat}
@@ -238,8 +236,8 @@ export default function CitizenDashboard({
       ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
-            <h3 className="font-bold text-navy-900 text-lg">
-              Recent Grievances ({filteredComplaints.length})
+            <h3 className="font-bold text-slate-900 text-base sm:text-lg">
+              Recent Grievances <span className="tabular-nums">({filteredComplaints.length})</span>
             </h3>
             <span className="text-xs text-slate-500">
               Sorted by submission timestamp
@@ -247,13 +245,13 @@ export default function CitizenDashboard({
           </div>
 
           {filteredComplaints.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-              <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <div className="bg-white rounded-xl border border-slate-200/90 p-12 text-center">
+              <AlertCircle className="w-10 h-10 text-slate-300 mx-auto mb-3" />
               <h4 className="font-semibold text-slate-700">No complaints found</h4>
               <p className="text-xs text-slate-500 mt-1">Try adjusting the search query or status filter.</p>
               <button
                 onClick={() => { setSearchTerm(''); setSelectedCategory('All'); setSelectedStatus('All'); }}
-                className="mt-4 px-4 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200"
+                className="mt-4 px-3.5 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 transition-colors"
               >
                 Clear All Filters
               </button>
@@ -264,29 +262,29 @@ export default function CitizenDashboard({
                 <div
                   key={item.id || item.ref_id}
                   onClick={() => onSelectComplaint(item)}
-                  className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-teal/50 transition-all cursor-pointer flex flex-col justify-between group"
+                  className="bg-white rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all cursor-pointer flex flex-col justify-between group"
                 >
                   <div>
                     {/* Top Meta */}
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-teal bg-teal/10 px-2 py-0.5 rounded-md">
+                        <span className="font-mono text-xs font-bold text-navy-950 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 tabular-nums">
                           {item.ref_id}
                         </span>
-                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
-                          item.priority === 'Critical' ? 'bg-rose-100 text-rose-700 border border-rose-200' :
-                          item.priority === 'High' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                          'bg-teal/10 text-teal border border-teal/20'
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
+                          item.priority === 'Critical' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                          item.priority === 'High' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                          'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
                           {item.priority}
                         </span>
                       </div>
 
-                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
-                        item.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
-                        item.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                        item.status === 'Assigned' ? 'bg-purple-100 text-purple-800' :
-                        'bg-amber-100 text-amber-800'
+                      <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-md flex items-center gap-1 ${
+                        item.status === 'Resolved' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                        item.status === 'In Progress' ? 'bg-blue-50 text-blue-800 border border-blue-200' :
+                        item.status === 'Assigned' ? 'bg-indigo-50 text-indigo-800 border border-indigo-200' :
+                        'bg-amber-50 text-amber-800 border border-amber-200'
                       }`}>
                         <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
                         {item.status}
@@ -294,7 +292,7 @@ export default function CitizenDashboard({
                     </div>
 
                     {/* Title */}
-                    <h4 className="font-bold text-base text-navy-900 group-hover:text-teal transition-colors line-clamp-1">
+                    <h4 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-navy-800 transition-colors line-clamp-1">
                       {item.title}
                     </h4>
 
@@ -305,7 +303,7 @@ export default function CitizenDashboard({
                         <span className="line-clamp-1">{item.location}</span>
                       </span>
                       {item.is_gps_verified && (
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
                           GPS Geotagged
                         </span>
                       )}
@@ -313,17 +311,17 @@ export default function CitizenDashboard({
                       <span className="font-medium text-slate-600">{item.department || item.category}</span>
                     </div>
 
-                    {/* AI Assessment / Resolution note preview */}
+                    {/* Resolution note preview */}
                     {item.resolution_remarks ? (
-                      <div className="mt-3 p-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-xs text-emerald-900">
+                      <div className="mt-3 p-2.5 rounded-lg bg-emerald-50 border border-emerald-100 text-xs text-emerald-900">
                         <span className="font-bold block text-[10px] text-emerald-800 uppercase">Resolution Remarks</span>
                         <p className="italic line-clamp-2">{item.resolution_remarks}</p>
                       </div>
                     ) : item.ai_summary ? (
-                      <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                        <div className="flex items-center gap-1 text-[11px] font-semibold text-teal mb-0.5">
-                          <Sparkles className="w-3 h-3" />
-                          <span>AI Synthesis</span>
+                      <div className="mt-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+                        <div className="flex items-center gap-1 text-[11px] font-semibold text-navy-800 mb-0.5">
+                          <CheckCircle2 className="w-3 h-3 text-navy-800" />
+                          <span>Triage Assessment</span>
                         </div>
                         <p className="text-slate-600 line-clamp-2 italic">
                           "{item.ai_summary}"
@@ -334,12 +332,12 @@ export default function CitizenDashboard({
 
                   {/* Footer Meta */}
                   <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                    <span>
-                      {new Date(item.created_at).toLocaleDateString(undefined, { 
+                    <span className="tabular-nums">
+                      {new Date(item.created_at).toLocaleDateString('en-IN', { 
                         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
                       })}
                     </span>
-                    <div className="flex items-center gap-1 font-semibold text-teal group-hover:translate-x-1 transition-transform">
+                    <div className="flex items-center gap-1 font-semibold text-navy-800 group-hover:translate-x-0.5 transition-transform">
                       <span>View Lifecycle & Audit</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </div>

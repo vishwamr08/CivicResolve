@@ -343,15 +343,15 @@ export default function App() {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl border text-sm font-semibold transition-all animate-in slide-in-from-bottom-5 ${
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg shadow-lg border text-xs font-semibold transition-all animate-in slide-in-from-bottom-5 ${
           toastMessage.type === 'error'
-            ? 'bg-rose-900 text-white border-rose-800'
-            : 'bg-slate-900 text-white border-teal-500/40'
+            ? 'bg-rose-950 text-white border-rose-800'
+            : 'bg-navy-950 text-white border-navy-800'
         }`}>
           {toastMessage.type === 'error' ? (
             <AlertCircle className="w-4 h-4 text-rose-400" />
           ) : (
-            <CheckCircle className="w-4 h-4 text-teal-400" />
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
           )}
           <span>{toastMessage.text}</span>
         </div>
@@ -361,17 +361,17 @@ export default function App() {
       <main id="main-content" role="main" tabIndex="-1" className="flex-1 outline-none">
         {loading ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-            <Loader2 className="w-10 h-10 animate-spin text-teal-600" />
-            <p className="text-sm font-semibold text-slate-600">Loading CivicResolve Telemetry...</p>
+            <Loader2 className="w-8 h-8 animate-spin text-navy-900" />
+            <p className="text-xs font-medium text-slate-600">Loading CivicResolve Telemetry...</p>
           </div>
         ) : error ? (
-          <div className="max-w-md mx-auto my-16 p-6 bg-rose-50 border border-rose-200 rounded-2xl text-center space-y-3">
-            <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
-            <h3 className="font-bold text-rose-900 text-base">Backend Connection Notice</h3>
+          <div className="max-w-md mx-auto my-16 p-5 bg-rose-50 border border-rose-200 rounded-xl text-center space-y-2.5">
+            <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
+            <h3 className="font-bold text-rose-900 text-sm">Backend Connection Notice</h3>
             <p className="text-xs text-rose-700">{error}</p>
             <button
               onClick={fetchData}
-              className="mt-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl"
+              className="mt-2 px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-lg transition-colors"
             >
               Retry Connection
             </button>

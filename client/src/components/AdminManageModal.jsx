@@ -94,25 +94,25 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-3xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-3xl w-full border border-slate-200 shadow-xl overflow-hidden my-8 animate-in fade-in duration-200 max-h-[92vh] flex flex-col">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 px-6 py-5 text-white flex items-center justify-between border-b border-navy-800 flex-shrink-0">
+        <div className="bg-navy-950 px-6 py-4 text-white flex items-center justify-between border-b border-navy-900 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal/20 border border-teal/40 flex items-center justify-center text-teal-accent">
-              <Wrench className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-lg bg-navy-900 border border-navy-800 flex items-center justify-center text-saffron">
+              <Wrench className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-bold text-teal-accent bg-teal/10 px-2.5 py-0.5 rounded border border-teal/30">
+                <span className="font-mono text-xs font-bold text-saffron bg-navy-900 px-2 py-0.5 rounded border border-saffron/30 tabular-nums">
                   {complaint.ref_id}
                 </span>
-                <span className="text-xs uppercase font-bold text-slate-300">
-                  Municipal Action & Task Desk (e-Yantra Workflow)
+                <span className="text-xs uppercase font-semibold text-slate-300">
+                  Municipal Action & Task Desk
                 </span>
               </div>
-              <h2 className="text-base font-bold text-white mt-0.5 line-clamp-1">
+              <h2 className="text-sm sm:text-base font-bold text-white mt-0.5 line-clamp-1">
                 {complaint.title}
               </h2>
             </div>
@@ -121,35 +121,35 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-900 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab switch */}
-        <div className="bg-slate-100 px-6 py-2 border-b border-slate-200 flex items-center justify-between text-xs">
+        <div className="bg-slate-50 px-6 py-2 border-b border-slate-200 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveTab('manage')}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                activeTab === 'manage' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy-900'
+              className={`px-3 py-1.5 rounded-md font-semibold transition-colors ${
+                activeTab === 'manage' ? 'bg-white text-navy-950 border border-slate-200 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Task Allocation & Resolution Action
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                activeTab === 'history' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy-900'
+              className={`px-3 py-1.5 rounded-md font-semibold transition-colors ${
+                activeTab === 'history' ? 'bg-white text-navy-950 border border-slate-200 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Audit Trail & Logs ({complaint.status_history?.length || 0})
+              Audit Trail & Logs <span className="tabular-nums font-mono">({complaint.status_history?.length || 0})</span>
             </button>
           </div>
 
           <span className="text-[11px] text-slate-500 font-medium">
-            Status: <strong className="text-teal font-bold">{complaint.status}</strong>
+            Status: <strong className="text-navy-900 font-bold">{complaint.status}</strong>
           </span>
         </div>
 
@@ -167,7 +167,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
               
               {/* Appealed Alert Banner if citizen appealed */}
               {complaint.is_appealed ? (
-                <div className="p-4 rounded-xl bg-rose-50 border border-rose-300 text-xs text-rose-900 space-y-1">
+                <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-900 space-y-1">
                   <div className="flex items-center gap-2 font-bold text-rose-800">
                     <AlertTriangle className="w-4 h-4 text-rose-600" />
                     <span>Citizen Reopen Request / Appeal Active</span>
@@ -177,39 +177,39 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
               ) : null}
 
               {/* AI Recommendation Snapshot */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-teal/5 to-slate-50 border border-teal-200 space-y-2">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-teal uppercase tracking-wider">
-                    <Sparkles className="w-4 h-4" />
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-navy-900 uppercase tracking-wider">
+                    <Sparkles className="w-3.5 h-3.5 text-saffron" />
                     <span>Civic AI Triage Telemetry</span>
                   </div>
                   {complaint.ai_confidence > 0 && (
-                    <span className="text-[11px] font-mono font-bold text-teal bg-white px-2 py-0.5 rounded border border-teal/20">
+                    <span className="text-[11px] font-mono font-bold text-navy-900 bg-white px-2 py-0.5 rounded border border-slate-200 tabular-nums">
                       Confidence: {Math.round(complaint.ai_confidence * 100)}%
                     </span>
                   )}
                 </div>
 
-                <p className="text-xs font-medium text-navy-900 italic">
+                <p className="text-xs font-medium text-slate-800 italic">
                   "{complaint.ai_summary || complaint.title}"
                 </p>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-teal/10 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-200/80 text-xs">
                   <div>
-                    <span className="text-[10px] text-slate-400 block uppercase">Recommended Dept</span>
+                    <span className="text-[10px] text-slate-500 block uppercase">Recommended Dept</span>
                     <strong className="text-slate-800 font-semibold">{complaint.ai_department || 'Roads & Highways'}</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 block uppercase">Assessed Severity</span>
-                    <strong className="text-amber-600 font-semibold">{complaint.ai_priority || complaint.priority}</strong>
+                    <span className="text-[10px] text-slate-500 block uppercase">Assessed Severity</span>
+                    <strong className="text-amber-700 font-semibold">{complaint.ai_priority || complaint.priority}</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 block uppercase">Target SLA</span>
-                    <strong className="text-slate-800 font-semibold">{complaint.sla_hours || 24}h</strong>
+                    <span className="text-[10px] text-slate-500 block uppercase">Target SLA</span>
+                    <strong className="text-slate-800 font-semibold tabular-nums">{complaint.sla_hours || 24}h</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 block uppercase">Safety Risk</span>
-                    <strong className="text-rose-600 font-semibold truncate block">{complaint.ai_safety_risk || 'None'}</strong>
+                    <span className="text-[10px] text-slate-500 block uppercase">Safety Risk</span>
+                    <strong className="text-rose-700 font-semibold truncate block">{complaint.ai_safety_risk || 'None'}</strong>
                   </div>
                 </div>
               </div>
@@ -218,12 +218,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Grievance Category <span className="text-teal">*</span>
+                    Grievance Category <span className="text-saffron-dark">*</span>
                   </label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-teal bg-white"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-navy-800 bg-white"
                   >
                     {ALL_CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>{cat}</option>
@@ -233,12 +233,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Nodal Department <span className="text-teal">*</span>
+                    Nodal Department <span className="text-saffron-dark">*</span>
                   </label>
                   <select
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-teal bg-white"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-navy-800 bg-white"
                   >
                     {ALL_DEPARTMENTS.map((dept) => (
                       <option key={dept} value={dept}>{dept}</option>
@@ -255,7 +255,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
                     value={assignedOfficer}
                     onChange={(e) => setAssignedOfficer(e.target.value)}
                     placeholder="e.g. AE M. Selvam - Ward 104"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-teal"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-navy-800"
                   />
                 </div>
               </div>
@@ -264,12 +264,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Workflow Status <span className="text-teal">*</span>
+                    Workflow Status <span className="text-saffron-dark">*</span>
                   </label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-teal bg-white"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-navy-800 bg-white"
                   >
                     {ALL_STATUSES.map((st) => (
                       <option key={st} value={st}>{st}</option>
@@ -279,12 +279,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Priority Level <span className="text-teal">*</span>
+                    Priority Level <span className="text-saffron-dark">*</span>
                   </label>
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-teal bg-white"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-navy-800 bg-white"
                   >
                     {ALL_PRIORITIES.map((pr) => (
                       <option key={pr} value={pr}>{pr}</option>
@@ -302,7 +302,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
                     max="168"
                     value={slaHours}
                     onChange={(e) => setSlaHours(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-teal"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-navy-800 tabular-nums"
                   />
                 </div>
               </div>
@@ -317,9 +317,9 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
                     <button
                       type="button"
                       onClick={handleQuickResolve}
-                      className="text-xs font-bold text-emerald-600 hover:text-emerald-700"
+                      className="text-xs font-bold text-emerald-700 hover:text-emerald-800"
                     >
-                      ⚡ Quick Certify & Resolve
+                      Quick Certify & Resolve
                     </button>
                   )}
                 </div>
@@ -328,7 +328,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
                   value={resolutionRemarks}
                   onChange={(e) => setResolutionRemarks(e.target.value)}
                   placeholder="Detail the field repair, materials used, inspection results, and date of completion..."
-                  className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-teal"
+                  className="w-full p-3 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-navy-800"
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -341,7 +341,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
                       value={resolutionEvidenceUrl}
                       onChange={(e) => setResolutionEvidenceUrl(e.target.value)}
                       placeholder="https://.../photo-repair.jpg"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-teal"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-navy-800"
                     />
                   </div>
 
@@ -354,7 +354,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
                       value={duplicateOfRefId}
                       onChange={(e) => setDuplicateOfRefId(e.target.value)}
                       placeholder="e.g. CR-TN-2026-1042"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-teal"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-navy-800"
                     />
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
                     value={internalNotes}
                     onChange={(e) => setInternalNotes(e.target.value)}
                     placeholder="Confidential notes for Zonal Commissioners and Department Engineers..."
-                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-teal bg-slate-50/50"
+                    className="w-full p-2.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-navy-800 bg-slate-50/50"
                   />
                 </div>
               </div>
@@ -379,7 +379,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
                   type="button"
                   onClick={onClose}
                   disabled={isSaving}
-                  className="px-4 py-2.5 rounded-xl text-slate-600 hover:text-navy-950 font-semibold text-xs"
+                  className="px-4 py-2 rounded-lg text-slate-600 hover:text-navy-950 font-semibold text-xs"
                 >
                   Cancel
                 </button>
@@ -387,7 +387,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-teal-dark hover:from-teal-light hover:to-teal text-white font-bold text-xs shadow-md shadow-teal-500/20 disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy-900 hover:bg-navy-950 text-white font-semibold text-xs shadow-sm disabled:opacity-50 transition-colors"
                 >
                   {isSaving ? (
                     <>

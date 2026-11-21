@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
-  X, UploadCloud, AlertTriangle, Sparkles, 
+  X, UploadCloud, AlertTriangle, FileText, 
   Trash2, Loader2, Compass, CheckCircle2, 
   Mic, MicOff, ArrowRight, ArrowLeft, Check
 } from 'lucide-react';
@@ -375,17 +375,17 @@ export default function ComplaintFormModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6">
-      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[95vh] sm:max-h-[90vh]">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6">
+      <div className="bg-white rounded-xl max-w-2xl w-full border border-slate-200 shadow-xl overflow-hidden my-auto animate-in fade-in duration-200 flex flex-col max-h-[95vh] sm:max-h-[90vh]">
         
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-[#0a1628] via-[#1a3c6e] to-[#2a5298] px-4 sm:px-6 py-3.5 sm:py-5 text-white flex items-center justify-between border-b-2 border-[#f47920] flex-shrink-0">
+        <div className="bg-navy-950 px-4 sm:px-6 py-3.5 sm:py-4 text-white flex items-center justify-between border-b border-navy-900 flex-shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-[#f47920] flex-shrink-0 shadow-sm">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-navy-900 border border-navy-800 flex items-center justify-center text-saffron flex-shrink-0 shadow-xs">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-lg font-bold">
+              <h2 className="text-sm sm:text-base font-bold">
                 {lang === 'ta' ? 'குறைதீர்ப்பு மனு பதிவு செய்க' : 'Register Civic Grievance'}
               </h2>
               <p className="text-[11px] sm:text-xs text-slate-300">
@@ -396,7 +396,7 @@ export default function ComplaintFormModal({
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="p-1.5 rounded-full text-slate-300 hover:text-white hover:bg-white/15 transition-colors disabled:opacity-50"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-900 transition-colors disabled:opacity-50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -404,13 +404,13 @@ export default function ComplaintFormModal({
 
         {/* Demo Fast-fill Bar */}
         <div className="bg-slate-50 px-4 sm:px-6 py-2 border-b border-slate-200 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs overflow-x-auto flex-nowrap sm:flex-wrap flex-shrink-0">
-          <span className="font-bold text-slate-500 flex-shrink-0">Quick Test Cases:</span>
+          <span className="font-semibold text-slate-500 flex-shrink-0">Quick Test Cases:</span>
           {demoPresets.map((preset, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => applyPreset(preset)}
-              className="px-3 py-1 rounded-full bg-orange-50 hover:bg-orange-100 text-[#f47920] font-bold border border-orange-200 transition-colors whitespace-nowrap"
+              className="px-2.5 py-1 rounded-md bg-white hover:bg-slate-100 text-slate-800 font-semibold border border-slate-300 shadow-xs transition-colors whitespace-nowrap"
             >
               {preset.label}
             </button>
@@ -428,11 +428,11 @@ export default function ComplaintFormModal({
             <div 
               key={s.num}
               className={`flex items-center gap-1 sm:gap-1.5 ${
-                step === s.num ? 'text-[#f47920] font-bold' : step > s.num ? 'text-[#138808]' : 'text-slate-400'
+                step === s.num ? 'text-saffron-dark font-bold' : step > s.num ? 'text-emerald-700' : 'text-slate-400'
               }`}
             >
-              <span className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-bold ${
-                step === s.num ? 'bg-[#f47920] text-white' : step > s.num ? 'bg-emerald-100 text-[#138808]' : 'bg-slate-100 text-slate-500'
+              <span className={`w-4 h-4 sm:w-5 sm:h-5 rounded-md flex items-center justify-center text-[9px] sm:text-[10px] font-bold ${
+                step === s.num ? 'bg-saffron text-white' : step > s.num ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' : 'bg-slate-100 text-slate-500'
               }`}>
                 {step > s.num ? '✓' : s.num}
               </span>
@@ -444,8 +444,8 @@ export default function ComplaintFormModal({
         {/* Form Body Scroll Area */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1">
           {validationError && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-600" />
               <span>{validationError}</span>
             </div>
           )}
@@ -453,13 +453,13 @@ export default function ComplaintFormModal({
           {/* STEP 1: LOCATION & JURISDICTION */}
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in">
-              <div className="p-3 bg-blue-50/60 border border-blue-200 rounded-xl text-xs text-blue-900">
+              <div className="p-3 bg-navy-50 border border-navy-100 rounded-lg text-xs text-navy-900">
                 <strong>Administrative Routing:</strong> Grievances are routed directly to the specific Municipal Corporation, Zone, and Ward field teams in Tamil Nadu.
               </div>
 
               {/* Auto-detected GPS notice banner */}
               {isGpsDetected && (
-                <div className="p-2.5 sm:p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center justify-between gap-2">
+                <div className="p-2.5 sm:p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                     <span><strong>Auto-Detected GPS:</strong> Lat {latitude}, Lng {longitude} (Verified Geotag)</span>
@@ -467,7 +467,7 @@ export default function ComplaintFormModal({
                   <button
                     type="button"
                     onClick={() => handleGetLocation(true)}
-                    className="text-[11px] font-bold text-teal hover:underline flex-shrink-0"
+                    className="text-[11px] font-semibold text-navy-800 hover:underline flex-shrink-0"
                   >
                     Refresh GPS
                   </button>
@@ -476,8 +476,8 @@ export default function ComplaintFormModal({
 
               {/* District */}
               <div>
-                <label htmlFor="modal-district-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  District <span className="text-teal">*</span>
+                <label htmlFor="modal-district-select" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  District <span className="text-saffron-dark">*</span>
                 </label>
                 <select
                   id="modal-district-select"
@@ -489,7 +489,7 @@ export default function ComplaintFormModal({
                       setSelectedLocalBody(matched.localBodies[0].id);
                     }
                   }}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-teal bg-white"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-navy-800 bg-white focus:outline-none"
                 >
                   {TAMIL_NADU_DISTRICTS.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -502,14 +502,14 @@ export default function ComplaintFormModal({
               {/* Local Body */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="modal-localbody-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Local Body / Corporation <span className="text-teal">*</span>
+                  <label htmlFor="modal-localbody-select" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Local Body / Corporation <span className="text-saffron-dark">*</span>
                   </label>
                   <select
                     id="modal-localbody-select"
                     value={selectedLocalBody}
                     onChange={(e) => setSelectedLocalBody(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-teal bg-white"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-navy-800 bg-white focus:outline-none"
                   >
                     {localBodies.map((lb) => (
                       <option key={lb.id} value={lb.id}>
@@ -520,14 +520,14 @@ export default function ComplaintFormModal({
                 </div>
 
                 <div>
-                  <label htmlFor="modal-zoneward-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label htmlFor="modal-zoneward-select" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                     Zone & Ward
                   </label>
                   <select
                     id="modal-zoneward-select"
                     value={selectedZoneWard}
                     onChange={(e) => setSelectedZoneWard(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-teal bg-white"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-navy-800 bg-white focus:outline-none"
                   >
                     {zones.length > 0 ? (
                       zones.map((z) => (
@@ -545,14 +545,14 @@ export default function ComplaintFormModal({
               {/* Street / Landmark Address */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label htmlFor="modal-street-address" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Street Address / Landmark <span className="text-teal">*</span>
+                  <label htmlFor="modal-street-address" className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    Street Address / Landmark <span className="text-saffron-dark">*</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => handleGetLocation(true)}
                     disabled={isGettingLocation}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-teal hover:text-teal-dark transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-navy-800 hover:text-navy-950 transition-colors"
                   >
                     {isGettingLocation ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -568,7 +568,7 @@ export default function ComplaintFormModal({
                   placeholder="e.g. 2nd Avenue, near Tower Park Gate 3, Anna Nagar"
                   value={streetAddress}
                   onChange={(e) => setStreetAddress(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-teal"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-navy-800 focus:outline-none"
                   aria-required="true"
                 />
               </div>
@@ -585,8 +585,8 @@ export default function ComplaintFormModal({
           {/* STEP 2: CATEGORY SELECTION */}
           {step === 2 && (
             <div className="space-y-3 animate-in fade-in">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Select Grievance Category <span className="text-teal">*</span>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Select Grievance Category <span className="text-saffron-dark">*</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {categories.map((cat) => (
@@ -594,15 +594,15 @@ export default function ComplaintFormModal({
                     key={cat.name}
                     type="button"
                     onClick={() => setCategory(cat.name)}
-                    className={`p-3.5 rounded-xl border text-left transition-all ${
+                    className={`p-3.5 rounded-lg border text-left transition-colors ${
                       category === cat.name
-                        ? 'border-teal bg-teal-50/40 ring-2 ring-teal shadow-sm'
+                        ? 'border-navy-900 bg-navy-50/50 ring-1 ring-navy-900 shadow-xs'
                         : 'border-slate-200 hover:border-slate-300 bg-white'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-navy-950">{cat.name}</span>
-                      {category === cat.name && <Check className="w-4 h-4 text-teal" />}
+                      <span className="font-semibold text-xs text-slate-900">{cat.name}</span>
+                      {category === cat.name && <Check className="w-4 h-4 text-navy-900" />}
                     </div>
                     <p className="text-[11px] text-slate-500 mt-1">{cat.desc}</p>
                   </button>
@@ -615,8 +615,8 @@ export default function ComplaintFormModal({
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in">
               <div>
-                <label htmlFor="modal-grievance-title" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Grievance Headline / Summary <span className="text-teal">*</span>
+                <label htmlFor="modal-grievance-title" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Grievance Headline / Summary <span className="text-saffron-dark">*</span>
                 </label>
                 <input
                   id="modal-grievance-title"
@@ -624,24 +624,24 @@ export default function ComplaintFormModal({
                   placeholder="e.g. Hazardous deep pothole in front of Anna Nagar metro station"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-teal"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-navy-800 focus:outline-none"
                   aria-required="true"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label htmlFor="modal-grievance-desc" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Detailed Description (Tamil, English, Tanglish) <span className="text-teal">*</span>
+                  <label htmlFor="modal-grievance-desc" className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    Detailed Description (Tamil, English, Tanglish) <span className="text-saffron-dark">*</span>
                   </label>
                   {speechSupported && (
                     <button
                       type="button"
                       onClick={handleToggleVoice}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
                         isListening
-                          ? 'bg-rose-500 text-white animate-pulse'
-                          : 'bg-teal/10 text-teal-dark hover:bg-teal/20'
+                          ? 'bg-rose-600 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
                       {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
@@ -655,18 +655,18 @@ export default function ComplaintFormModal({
                   placeholder="Describe the issue, its severity, and how it impacts traffic or public safety. You can speak or type in Tamil or English..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-teal"
+                  className="w-full p-3 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-navy-800 focus:outline-none"
                   aria-required="true"
                 />
               </div>
 
               {/* Photo Upload */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Photographic Evidence (Optional)
                 </label>
                 {imagePreview ? (
-                  <div className="relative rounded-xl overflow-hidden border border-slate-300 h-40 bg-slate-100 flex items-center justify-center">
+                  <div className="relative rounded-lg overflow-hidden border border-slate-300 h-40 bg-slate-100 flex items-center justify-center">
                     <img src={imagePreview} alt="Evidence preview" className="h-full w-full object-cover" />
                     <button
                       type="button"
@@ -680,7 +680,7 @@ export default function ComplaintFormModal({
                 ) : (
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-slate-300 hover:border-teal rounded-xl p-4 text-center cursor-pointer transition-colors bg-slate-50/50"
+                    className="border-2 border-dashed border-slate-300 hover:border-navy-800 rounded-lg p-4 text-center cursor-pointer transition-colors bg-slate-50/50"
                   >
                     <UploadCloud className="w-6 h-6 text-slate-400 mx-auto mb-1" />
                     <p className="text-xs font-semibold text-slate-700">Click to upload photo evidence</p>
@@ -702,11 +702,11 @@ export default function ComplaintFormModal({
           {/* STEP 4: CITIZEN DETAILS & REVIEW */}
           {step === 4 && (
             <div className="space-y-4 animate-in fade-in">
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
-                <span className="font-bold text-slate-600 block uppercase tracking-wider text-[10px]">
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2 text-xs">
+                <span className="font-semibold text-slate-600 block uppercase tracking-wider text-[10px]">
                   Grievance Summary Review
                 </span>
-                <p className="font-bold text-navy-950 text-sm">{title}</p>
+                <p className="font-bold text-slate-900 text-sm">{title}</p>
                 <div className="grid grid-cols-2 gap-2 text-slate-600 text-[11px] pt-1 border-t border-slate-200">
                   <div><strong>Category:</strong> {category}</div>
                   <div><strong>District:</strong> {currentDistrictObj.name}</div>
@@ -721,11 +721,11 @@ export default function ComplaintFormModal({
               {/* Citizen Contact Information */}
               <div className="space-y-3 pt-2 border-t border-slate-100">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-navy-950 block">
+                  <span className="text-xs font-semibold text-slate-900 block">
                     Citizen Contact for SMS & Resolution Slip (Optional)
                   </span>
                   {(citizenName || citizenPhone || citizenEmail) && (
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                       ✓ Session Pre-filled
                     </span>
                   )}
@@ -733,36 +733,36 @@ export default function ComplaintFormModal({
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label htmlFor="modal-citizen-name" className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Citizen Name</label>
+                    <label htmlFor="modal-citizen-name" className="text-[10px] uppercase font-semibold text-slate-500 block mb-1">Citizen Name</label>
                     <input
                       id="modal-citizen-name"
                       type="text"
                       placeholder="e.g. Kavitha R"
                       value={citizenName}
                       onChange={(e) => setCitizenName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-teal"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-navy-800 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label htmlFor="modal-citizen-phone" className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Mobile (SMS)</label>
+                    <label htmlFor="modal-citizen-phone" className="text-[10px] uppercase font-semibold text-slate-500 block mb-1">Mobile (SMS)</label>
                     <input
                       id="modal-citizen-phone"
                       type="tel"
                       placeholder="9840XXXXXX"
                       value={citizenPhone}
                       onChange={(e) => setCitizenPhone(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-teal"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-navy-800 focus:outline-none font-mono"
                     />
                   </div>
                   <div>
-                    <label htmlFor="modal-citizen-email" className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Email</label>
+                    <label htmlFor="modal-citizen-email" className="text-[10px] uppercase font-semibold text-slate-500 block mb-1">Email</label>
                     <input
                       id="modal-citizen-email"
                       type="email"
                       placeholder="citizen@mail.com"
                       value={citizenEmail}
                       onChange={(e) => setCitizenEmail(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-teal"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-navy-800 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -772,13 +772,13 @@ export default function ComplaintFormModal({
         </div>
 
         {/* Modal Footer Controls - Sticky Bottom Bar */}
-        <div className="sticky bottom-0 bg-slate-50 px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-200 flex items-center justify-between gap-2 sm:gap-3 flex-shrink-0 z-10">
+        <div className="sticky bottom-0 bg-slate-50 px-4 sm:px-6 py-3 border-t border-slate-200 flex items-center justify-between gap-2 sm:gap-3 flex-shrink-0 z-10">
           {step > 1 ? (
             <button
               type="button"
               onClick={() => setStep(step - 1)}
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back</span>
@@ -788,7 +788,7 @@ export default function ComplaintFormModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 sm:py-2.5 rounded-full text-slate-600 hover:text-[#1a3c6e] font-bold text-xs transition-colors"
+              className="px-4 py-2 rounded-lg text-slate-600 hover:text-slate-900 font-semibold text-xs transition-colors"
             >
               Cancel
             </button>
@@ -798,7 +798,7 @@ export default function ComplaintFormModal({
             <button
               type="button"
               onClick={handleNextStep}
-              className="flex items-center gap-2 px-6 sm:px-7 py-2.5 rounded-full bg-[#f47920] hover:bg-[#d96810] text-white font-bold text-xs shadow-md shadow-orange-500/25 active:scale-95 transition-all"
+              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-saffron hover:bg-saffron-dark text-white font-semibold text-xs shadow-sm transition-colors"
             >
               <span>Next Step</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -808,7 +808,7 @@ export default function ComplaintFormModal({
               type="button"
               onClick={handleSubmitFinal}
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 sm:px-7 py-2.5 rounded-full bg-[#f47920] hover:bg-[#d96810] text-white font-bold text-xs shadow-md shadow-orange-500/25 active:scale-95 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-saffron hover:bg-saffron-dark text-white font-semibold text-xs shadow-sm transition-colors disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Lock, Mail, Eye, EyeOff, 
-  ArrowRight, ArrowLeft, Loader2, AlertCircle, KeyRound, Sparkles 
+  ArrowRight, ArrowLeft, Loader2, AlertCircle, KeyRound 
 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 
@@ -56,31 +56,31 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200/90 shadow-lg overflow-hidden animate-in fade-in duration-200">
         {/* Card Header */}
-        <div className="bg-gradient-to-r from-navy-950 via-navy-900 to-navy-950 px-8 py-8 text-white text-center border-b border-navy-800 relative">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-teal-500 to-cyan-400 p-0.5 mx-auto mb-3 shadow-lg shadow-teal-500/30">
-            <div className="w-full h-full bg-navy-900 rounded-[14px] flex items-center justify-center">
-              <KeyRound className="w-7 h-7 text-teal-accent" />
-            </div>
+        <div className="bg-navy-950 px-8 py-8 text-white text-center border-b border-navy-900 relative">
+          <div className="w-12 h-12 rounded-xl bg-navy-900 border border-white/10 flex items-center justify-center mx-auto mb-3 shadow-sm text-saffron">
+            <KeyRound className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight">Admin Command Access</h2>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+            Municipal Admin Access
+          </h2>
           <p className="text-xs text-slate-300 mt-1">
-            Municipal Operations Directorate Authentication
+            Municipal Operations Directorate Authentication Portal
           </p>
         </div>
 
         {/* Evaluation Fast-Fill Pill */}
-        <div className="bg-teal/5 border-b border-teal/10 px-6 py-2.5 flex items-center justify-between text-xs flex-wrap gap-2">
+        <div className="bg-slate-50 border-b border-slate-200/80 px-6 py-2.5 flex items-center justify-between text-xs flex-wrap gap-2">
           <div className="flex items-center gap-1.5 text-slate-600">
-            <Sparkles className="w-3.5 h-3.5 text-teal" />
+            <Lock className="w-3.5 h-3.5 text-navy-800" />
             <span className="font-semibold text-slate-700">Quick Credentials:</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => handleQuickFill('admin@civicresolve.gov')}
-              className="text-[11px] font-bold text-teal hover:text-teal-dark hover:underline"
+              className="text-[11px] font-semibold text-navy-800 hover:text-navy-950 hover:underline"
             >
               Super Admin
             </button>
@@ -88,7 +88,7 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
             <button
               type="button"
               onClick={() => handleQuickFill('gcc.officer@civicresolve.gov')}
-              className="text-[11px] font-bold text-teal hover:text-teal-dark hover:underline"
+              className="text-[11px] font-semibold text-navy-800 hover:text-navy-950 hover:underline"
             >
               GCC Officer
             </button>
@@ -96,9 +96,9 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-8 space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-4">
           {error && (
-            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 animate-in fade-in">
+            <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 animate-in fade-in">
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
               <span>{error}</span>
             </div>
@@ -106,7 +106,7 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
 
           {/* Email */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
               Administrator Email
             </label>
             <div className="relative">
@@ -118,14 +118,14 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal transition-all disabled:bg-slate-100"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-navy-800 transition-colors disabled:bg-slate-100"
               />
             </div>
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
               Secure Password
             </label>
             <div className="relative">
@@ -136,7 +136,7 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal transition-all disabled:bg-slate-100 font-mono"
+                className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-navy-800 transition-colors disabled:bg-slate-100 font-mono"
               />
               <button
                 type="button"
@@ -153,7 +153,7 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-teal-500 to-teal-dark hover:from-teal-light hover:to-teal shadow-lg shadow-teal-500/25 active:scale-98 transition-all disabled:opacity-60 cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-sm text-white bg-navy-900 hover:bg-navy-950 shadow-sm transition-colors disabled:opacity-60 cursor-pointer mt-2"
           >
             {loading ? (
               <>
@@ -162,7 +162,7 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
               </>
             ) : (
               <>
-                <span>Authenticate & Access Command Center</span>
+                <span>Authenticate & Access Console</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
@@ -170,7 +170,7 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
 
           {/* Security Advisory */}
           <div className="pt-2 text-center">
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500">
               Restricted to authorized municipal duty supervisors. All login attempts and IP addresses are audited for security.
             </p>
           </div>

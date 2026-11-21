@@ -53,10 +53,10 @@ export default function AdminDashboard({
   const priorityData = stats?.priorityDistribution || [];
 
   const PRIORITY_COLORS = {
-    'Critical': '#EF4444',
-    'High': '#F59E0B',
-    'Medium': '#0D9488',
-    'Low': '#64748B'
+    'Critical': '#dc2626',
+    'High': '#f47920',
+    'Medium': '#2a5298',
+    'Low': '#64748b'
   };
 
   const fetchNotificationLogs = async () => {
@@ -154,27 +154,27 @@ export default function AdminDashboard({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-navy-950 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
               Municipal Administration Console
             </h1>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300">
               {adminUser?.designation || 'Zonal Officer Session'}
             </span>
             {adminUser?.district && (
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-navy-50 text-navy-800 border border-navy-200">
                 {adminUser.district}
               </span>
             )}
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Logged in as <strong className="text-navy-950">{adminUser?.name || 'Administrator'}</strong> ({adminUser?.email || 'admin@civicresolve.gov'})
+            Logged in as <strong className="text-slate-900 font-semibold">{adminUser?.name || 'Administrator'}</strong> ({adminUser?.email || 'admin@civicresolve.gov'})
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={onRefresh}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-all"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
             <span>Sync Telemetry</span>
@@ -183,7 +183,7 @@ export default function AdminDashboard({
           {onLogout && (
             <button
               onClick={onLogout}
-              className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold border border-slate-200 transition-all"
+              className="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold border border-slate-200 transition-colors"
             >
               Sign Out
             </button>
@@ -193,40 +193,40 @@ export default function AdminDashboard({
 
       {/* 6 KPI Metrics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Registered</span>
-          <p className="text-2xl font-extrabold text-navy-950">{total}</p>
-          <span className="text-[11px] text-teal font-semibold">100% Municipal AI Triaged</span>
+        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-sm space-y-1">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Registered</span>
+          <p className="text-2xl font-bold text-slate-900 tabular-nums tracking-tight">{total}</p>
+          <span className="text-[11px] text-navy-800 font-semibold">Municipal AI Triaged</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Pending Review</span>
-          <p className="text-2xl font-extrabold text-amber-600">{pending}</p>
-          <span className="text-[11px] text-slate-400">Awaiting Dispatch</span>
+        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-sm space-y-1">
+          <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Pending Review</span>
+          <p className="text-2xl font-bold text-amber-700 tabular-nums tracking-tight">{pending}</p>
+          <span className="text-[11px] text-slate-500">Awaiting Dispatch</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Critical Urgency</span>
-          <p className="text-2xl font-extrabold text-rose-600">{critical}</p>
-          <span className="text-[11px] text-rose-500 font-semibold">6h Emergency SLA Window</span>
+        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-sm space-y-1">
+          <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider">Critical Urgency</span>
+          <p className="text-2xl font-bold text-rose-700 tabular-nums tracking-tight">{critical}</p>
+          <span className="text-[11px] text-rose-600 font-semibold">6h Emergency Window</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wider">High Priority</span>
-          <p className="text-2xl font-extrabold text-orange-500">{highPriority}</p>
-          <span className="text-[11px] text-slate-400">24h SLA Window</span>
+        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-sm space-y-1">
+          <span className="text-[10px] font-bold text-saffron-dark uppercase tracking-wider">High Priority</span>
+          <p className="text-2xl font-bold text-saffron-dark tabular-nums tracking-tight">{highPriority}</p>
+          <span className="text-[11px] text-slate-500">24h Target SLA</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Field Squads Active</span>
-          <p className="text-2xl font-extrabold text-blue-600">{inProgress}</p>
-          <span className="text-[11px] text-blue-500 font-semibold">Under Repair</span>
+        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-sm space-y-1">
+          <span className="text-[10px] font-bold text-navy-800 uppercase tracking-wider">Field Squads Active</span>
+          <p className="text-2xl font-bold text-navy-800 tabular-nums tracking-tight">{inProgress}</p>
+          <span className="text-[11px] text-navy-700 font-semibold">Under Repair</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Certified Resolved</span>
-          <p className="text-2xl font-extrabold text-emerald-600">{resolved}</p>
-          <span className="text-[11px] text-emerald-600 font-semibold">Verified Redressals</span>
+        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-sm space-y-1">
+          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Certified Resolved</span>
+          <p className="text-2xl font-bold text-emerald-700 tabular-nums tracking-tight">{resolved}</p>
+          <span className="text-[11px] text-emerald-700 font-semibold">Verified Redressals</span>
         </div>
       </div>
 
@@ -234,65 +234,67 @@ export default function AdminDashboard({
       <div className="flex border-b border-slate-200 text-xs font-bold gap-2">
         <button
           onClick={() => setActiveAdminTab('inbox')}
-          className={`flex items-center gap-1.5 py-3 px-4 rounded-t-xl transition-all border-b-2 ${
+          className={`flex items-center gap-1.5 py-3 px-4 rounded-t-lg transition-colors border-b-2 ${
             activeAdminTab === 'inbox'
-              ? 'border-teal text-teal-dark bg-white shadow-sm'
-              : 'border-transparent text-slate-500 hover:text-navy-950'
+              ? 'border-navy-900 text-navy-950 bg-white shadow-sm font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
-          <Inbox className="w-4 h-4" />
-          <span>Grievance Inbox ({filteredComplaints.length})</span>
+          <Inbox className="w-4 h-4 text-navy-800" />
+          <span>Grievance Inbox <span className="tabular-nums">({filteredComplaints.length})</span></span>
         </button>
 
         <button
           onClick={() => setActiveAdminTab('analytics')}
-          className={`flex items-center gap-1.5 py-3 px-4 rounded-t-xl transition-all border-b-2 ${
+          className={`flex items-center gap-1.5 py-3 px-4 rounded-t-lg transition-colors border-b-2 ${
             activeAdminTab === 'analytics'
-              ? 'border-teal text-teal-dark bg-white shadow-sm'
-              : 'border-transparent text-slate-500 hover:text-navy-950'
+              ? 'border-navy-900 text-navy-950 bg-white shadow-sm font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
-          <BarChart3 className="w-4 h-4" />
+          <BarChart3 className="w-4 h-4 text-navy-800" />
           <span>Analytics & SLA</span>
         </button>
 
         <button
           onClick={() => setActiveAdminTab('map')}
-          className={`flex items-center gap-1.5 py-3 px-4 rounded-t-xl transition-all border-b-2 ${
+          className={`flex items-center gap-1.5 py-3 px-4 rounded-t-lg transition-colors border-b-2 ${
             activeAdminTab === 'map'
-              ? 'border-teal text-teal-dark bg-white shadow-sm'
-              : 'border-transparent text-slate-500 hover:text-navy-950'
+              ? 'border-navy-900 text-navy-950 bg-white shadow-sm font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
-          <MapIcon className="w-4 h-4" />
+          <MapIcon className="w-4 h-4 text-navy-800" />
           <span>Geotagged Incident Map</span>
         </button>
 
         <button
           onClick={() => setActiveAdminTab('notifications')}
-          className={`flex items-center gap-1.5 py-3 px-4 rounded-t-xl transition-all border-b-2 ${
+          className={`flex items-center gap-1.5 py-3 px-4 rounded-t-lg transition-colors border-b-2 ${
             activeAdminTab === 'notifications'
-              ? 'border-teal text-teal-dark bg-white shadow-sm'
-              : 'border-transparent text-slate-500 hover:text-navy-950'
+              ? 'border-navy-900 text-navy-950 bg-white shadow-sm font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
-          <Mail className="w-4 h-4" />
+          <Mail className="w-4 h-4 text-navy-800" />
           <span>Notification Engine & Logs</span>
         </button>
       </div>
 
       {/* 1. INBOX TAB */}
       {activeAdminTab === 'inbox' && (
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-5">
+        <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-5">
           {/* Filters Row */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-            <div className="flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-teal" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-navy-50 border border-navy-100 flex items-center justify-center text-navy-800">
+                <Wrench className="w-4 h-4" />
+              </div>
               <div>
-                <h2 className="font-bold text-lg text-navy-950">
+                <h2 className="font-bold text-base sm:text-lg text-slate-900">
                   Grievance Action Inbox
                 </h2>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 tabular-nums">
                   {filteredComplaints.length} incident cases matched
                 </p>
               </div>
@@ -306,14 +308,14 @@ export default function AdminDashboard({
                   placeholder="Search reference, title, ward..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-teal bg-slate-50"
+                  className="pl-8 pr-3 py-2 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-navy-800 focus:outline-none bg-slate-50 focus:bg-white"
                 />
               </div>
 
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white"
+                className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-navy-800 focus:outline-none"
               >
                 <option value="All">All Statuses</option>
                 <option value="Submitted">Submitted</option>
@@ -326,7 +328,7 @@ export default function AdminDashboard({
               <select
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white"
+                className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-navy-800 focus:outline-none"
                 aria-label="Filter by priority"
               >
                 <option value="All">All Priorities</option>
@@ -339,7 +341,7 @@ export default function AdminDashboard({
               <select
                 value={departmentFilter}
                 onChange={(e) => setDepartmentFilter(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white"
+                className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-navy-800 focus:outline-none"
                 aria-label="Filter by department"
               >
                 <option value="All">All Departments</option>
@@ -352,32 +354,32 @@ export default function AdminDashboard({
 
               <button
                 onClick={() => setOnlyAppealed(!onlyAppealed)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors border ${
                   onlyAppealed 
                     ? 'bg-rose-50 border-rose-300 text-rose-800' 
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                Appealed ({appealedCount})
+                Appealed <span className="tabular-nums font-mono">({appealedCount})</span>
               </button>
 
               <button
                 onClick={() => setOnlyOverdue(!onlyOverdue)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors border ${
                   onlyOverdue 
                     ? 'bg-rose-600 border-rose-700 text-white' 
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                Overdue ({overdueCount})
+                Overdue <span className="tabular-nums font-mono">({overdueCount})</span>
               </button>
             </div>
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-y border-slate-200">
+              <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider border-b border-slate-200 text-[11px]">
                 <tr>
                   <th className="py-3 px-4">Ref ID / Time</th>
                   <th className="py-3 px-4">Grievance Title</th>
@@ -398,17 +400,17 @@ export default function AdminDashboard({
                 ) : (
                   filteredComplaints.map((c) => (
                     <tr key={c.id || c.ref_id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <span className="font-mono font-bold text-navy-950 block">
+                      <td className="py-3 px-4">
+                        <span className="font-mono font-bold text-navy-950 block tabular-nums">
                           {c.ref_id}
                         </span>
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-slate-500 tabular-nums">
                           {new Date(c.created_at).toLocaleDateString('en-IN')}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 max-w-xs">
-                        <p className="font-bold text-navy-950 line-clamp-1">{c.title}</p>
+                      <td className="py-3 px-4 max-w-xs">
+                        <p className="font-semibold text-slate-900 line-clamp-1">{c.title}</p>
                         <span className="text-[11px] text-slate-500">{c.category}</span>
                         {c.is_appealed ? (
                           <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 text-[9px] font-bold border border-rose-200">
@@ -417,49 +419,49 @@ export default function AdminDashboard({
                         ) : null}
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-4">
                         <span className="font-semibold text-slate-800 block">
                           {c.district || 'Chennai'}
                         </span>
-                        <span className="text-[10px] text-slate-400 truncate block max-w-[140px]">
+                        <span className="text-[10px] text-slate-500 truncate block max-w-[140px]">
                           {c.ward || c.location || 'Municipal Ward'}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-4">
                         <span className="text-slate-800 font-semibold block truncate max-w-[180px]">
                           {c.department}
                         </span>
-                        <span className="text-[10px] text-teal font-medium">
+                        <span className="text-[10px] text-navy-700 font-medium">
                           {c.assigned_officer || 'Unassigned'}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold inline-block ${
-                          c.priority === 'Critical' ? 'bg-rose-100 text-rose-800' :
-                          c.priority === 'High' ? 'bg-amber-100 text-amber-800' :
-                          'bg-slate-100 text-slate-800'
+                          c.priority === 'Critical' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
+                          c.priority === 'High' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                          'bg-slate-100 text-slate-800 border border-slate-200'
                         }`}>
                           {c.priority}
                         </span>
-                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                        <span className="text-[10px] text-slate-500 block mt-0.5 tabular-nums">
                           {c.sla_hours || 24}h SLA
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
-                          c.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                          c.status === 'Assigned' ? 'bg-indigo-100 text-indigo-800' :
-                          'bg-amber-100 text-amber-800'
+                      <td className="py-3 px-4">
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-semibold ${
+                          c.status === 'Resolved' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                          c.status === 'In Progress' ? 'bg-blue-50 text-blue-800 border border-blue-200' :
+                          c.status === 'Assigned' ? 'bg-indigo-50 text-indigo-800 border border-indigo-200' :
+                          'bg-amber-50 text-amber-800 border border-amber-200'
                         }`}>
                           {c.status}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => onSelectComplaint && onSelectComplaint(c)}
@@ -470,7 +472,7 @@ export default function AdminDashboard({
                           </button>
                           <button
                             onClick={() => onManageComplaint && onManageComplaint(c)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-teal text-white font-bold text-xs hover:bg-teal-dark shadow-sm transition-all"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-navy-900 text-white font-semibold text-xs hover:bg-navy-950 shadow-sm transition-colors"
                             title="Action & Manage"
                           >
                             <Edit3 className="w-3 h-3" />
@@ -491,33 +493,33 @@ export default function AdminDashboard({
       {activeAdminTab === 'analytics' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm lg:col-span-2 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-sm text-navy-950 flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-teal" />
+            <div className="bg-white p-6 rounded-xl border border-slate-200/90 shadow-sm lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-navy-800" />
                   Grievance Inflow by Category
                 </h3>
-                <span className="text-xs text-slate-400 font-mono">Live SQLite Distribution</span>
+                <span className="text-xs text-slate-500 font-mono">SQLite Distribution</span>
               </div>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={categoryData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
                     <XAxis dataKey="category" angle={-25} textAnchor="end" tick={{ fontSize: 10, fill: '#64748b' }} interval={0} />
                     <YAxis tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '12px' }} />
-                    <Bar dataKey="count" fill="#0d9488" radius={[6, 6, 0, 0]} />
+                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', border: 'none', color: '#fff', fontSize: '12px' }} />
+                    <Bar dataKey="count" fill="#1a3c6e" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-sm text-navy-950 flex items-center gap-2">
-                  <PieIcon className="w-4 h-4 text-teal" />
+            <div className="bg-white p-6 rounded-xl border border-slate-200/90 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <PieIcon className="w-4 h-4 text-navy-800" />
                   Priority Distribution
                 </h3>
-                <span className="text-xs text-slate-400 font-mono">Severity Split</span>
+                <span className="text-xs text-slate-500 font-mono">Severity Split</span>
               </div>
               <div className="h-64 w-full flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
@@ -527,7 +529,7 @@ export default function AdminDashboard({
                         <Cell key={`cell-${entry.priority}`} fill={PRIORITY_COLORS[entry.priority] || '#94a3b8'} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '12px' }} />
+                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', border: 'none', color: '#fff', fontSize: '12px' }} />
                     <Legend verticalAlign="bottom" height={36} formatter={(value) => <span className="text-xs text-slate-600 font-medium">{value}</span>} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -539,17 +541,17 @@ export default function AdminDashboard({
 
       {/* 3. MAP TAB */}
       {activeAdminTab === 'map' && (
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold text-navy-950 flex items-center gap-2">
-                <MapIcon className="w-5 h-5 text-teal" />
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <MapIcon className="w-5 h-5 text-navy-800" />
                 Geotagged Civic Incident Map
               </h3>
               <p className="text-xs text-slate-500">Live coordinates captured from citizen GPS verification</p>
             </div>
           </div>
-          <div className="h-[500px] rounded-2xl overflow-hidden border border-slate-200">
+          <div className="h-[500px] rounded-lg overflow-hidden border border-slate-200">
             <ComplaintMap complaints={complaints} onSelectComplaint={onSelectComplaint} />
           </div>
         </div>
@@ -560,11 +562,11 @@ export default function AdminDashboard({
         <div className="space-y-6">
           
           {/* SMTP Live Testing Card */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+          <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <h3 className="text-base font-bold text-navy-950 flex items-center gap-2">
-                  <Mail className="w-5 h-5 text-teal" />
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-navy-800" />
                   Live Notification Engine & SMTP Verification
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -573,7 +575,7 @@ export default function AdminDashboard({
               </div>
               <button
                 onClick={fetchNotificationLogs}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loadingLogs ? 'animate-spin' : ''}`} />
                 <span>Refresh Logs</span>
@@ -587,12 +589,12 @@ export default function AdminDashboard({
                 value={testEmailTo}
                 onChange={(e) => setTestEmailTo(e.target.value)}
                 placeholder="Enter destination email (e.g. admin@civicresolve.gov)..."
-                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-teal"
+                className="flex-1 w-full px-3.5 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-navy-800 focus:outline-none"
               />
               <button
                 type="submit"
                 disabled={testingSmtp || !testEmailTo}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-teal hover:bg-teal-dark text-white font-bold text-xs shadow-md shadow-teal/20 disabled:opacity-50 transition-all"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-navy-900 hover:bg-navy-950 text-white font-semibold text-xs shadow-sm disabled:opacity-50 transition-colors"
               >
                 {testingSmtp ? (
                   <>
@@ -609,7 +611,7 @@ export default function AdminDashboard({
             </form>
 
             {smtpTestResult && (
-              <div className={`p-4 rounded-xl border text-xs flex items-start gap-3 ${
+              <div className={`p-4 rounded-lg border text-xs flex items-start gap-3 ${
                 smtpTestResult.status === 'sent' 
                   ? 'bg-emerald-50 border-emerald-300 text-emerald-900' 
                   : 'bg-amber-50 border-amber-300 text-amber-900'
@@ -635,14 +637,14 @@ export default function AdminDashboard({
           </div>
 
           {/* Real Notification Delivery Logs Table */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
-            <h3 className="text-base font-bold text-navy-950">
-              Notification Audit & Delivery History ({notificationLogs.length})
+          <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+            <h3 className="text-base font-bold text-slate-900">
+              Notification Audit & Delivery History <span className="tabular-nums">({notificationLogs.length})</span>
             </h3>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-y border-slate-200">
+                <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider border-b border-slate-200 text-[11px]">
                   <tr>
                     <th className="py-2.5 px-3">Timestamp</th>
                     <th className="py-2.5 px-3">Channel</th>
@@ -666,7 +668,7 @@ export default function AdminDashboard({
                   ) : (
                     notificationLogs.map((log) => (
                       <tr key={log.id} className="hover:bg-slate-50/80">
-                        <td className="py-2.5 px-3 text-slate-500">
+                        <td className="py-2.5 px-3 text-slate-500 tabular-nums">
                           {new Date(log.created_at).toLocaleString('en-IN', { timeStyle: 'short', dateStyle: 'short' })}
                         </td>
                         <td className="py-2.5 px-3 font-semibold uppercase text-slate-700">
@@ -678,14 +680,14 @@ export default function AdminDashboard({
                         <td className="py-2.5 px-3 text-slate-600">
                           {log.event_type}
                         </td>
-                        <td className="py-2.5 px-3 font-mono font-bold text-teal">
+                        <td className="py-2.5 px-3 font-mono font-semibold text-navy-800 tabular-nums">
                           {log.ref_id || '-'}
                         </td>
                         <td className="py-2.5 px-3">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            log.status === 'sent' ? 'bg-emerald-100 text-emerald-800' :
-                            log.status === 'sending' ? 'bg-blue-100 text-blue-800' :
-                            'bg-rose-100 text-rose-800'
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                            log.status === 'sent' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                            log.status === 'sending' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                            'bg-rose-100 text-rose-800 border border-rose-200'
                           }`}>
                             {log.status}
                           </span>
@@ -698,7 +700,7 @@ export default function AdminDashboard({
                             <button
                               onClick={() => handleRetryLog(log.id)}
                               disabled={retryingLogId === log.id}
-                              className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] inline-flex items-center gap-1"
+                              className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] inline-flex items-center gap-1 transition-colors"
                             >
                               <RotateCcw className={`w-3 h-3 ${retryingLogId === log.id ? 'animate-spin' : ''}`} />
                               <span>Retry</span>

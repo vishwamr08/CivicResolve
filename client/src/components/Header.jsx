@@ -55,19 +55,19 @@ export default function Header({
   });
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b-[3px] border-[#f47920] shadow-md font-sans">
+    <header className="sticky top-0 z-50 bg-white border-b border-slate-200/90 shadow-sm font-sans">
       
-      {/* Top Official Helpline, Date & Accessibility Bar (CivicLens Govt Navy) */}
-      <div className="bg-[#1a3c6e] text-white text-[11px] py-1.5 px-4 sm:px-6 lg:px-8 border-b border-[#15305a]">
+      {/* Top Official Helpline, Date & Accessibility Bar */}
+      <div className="bg-[#1a3c6e] text-white text-[11px] py-1.5 px-4 sm:px-6 lg:px-8 border-b border-navy-900">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
           
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-200">
-            <span className="inline-flex items-center gap-1 font-bold text-[#f47920]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#f47920] animate-pulse"></span>
+            <span className="inline-flex items-center gap-1.5 font-semibold text-[#f47920]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#f47920]"></span>
               Helpline: 1800-425-1100
             </span>
             <span className="text-white/30 hidden sm:inline">|</span>
-            <span className="text-white/80 hidden sm:inline">{currentDateStr}</span>
+            <span className="text-white/80 hidden sm:inline tabular-nums">{currentDateStr}</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -78,7 +78,7 @@ export default function Header({
                 type="button"
                 onClick={() => handleFontSize(0)}
                 aria-label="Decrease font size"
-                className={`px-1.5 py-0.5 rounded border border-white/20 transition-colors ${fontSizeLevel === 0 ? 'bg-[#f47920] text-white font-bold' : 'bg-white/10 hover:bg-white/20'}`}
+                className={`px-1.5 py-0.5 rounded border border-white/20 transition-colors ${fontSizeLevel === 0 ? 'bg-[#f47920] text-white font-semibold' : 'bg-white/10 hover:bg-white/20'}`}
               >
                 A-
               </button>
@@ -86,7 +86,7 @@ export default function Header({
                 type="button"
                 onClick={() => handleFontSize(1)}
                 aria-label="Default font size"
-                className={`px-1.5 py-0.5 rounded border border-white/20 transition-colors ${fontSizeLevel === 1 ? 'bg-[#f47920] text-white font-bold' : 'bg-white/10 hover:bg-white/20'}`}
+                className={`px-1.5 py-0.5 rounded border border-white/20 transition-colors ${fontSizeLevel === 1 ? 'bg-[#f47920] text-white font-semibold' : 'bg-white/10 hover:bg-white/20'}`}
               >
                 A
               </button>
@@ -94,7 +94,7 @@ export default function Header({
                 type="button"
                 onClick={() => handleFontSize(2)}
                 aria-label="Increase font size"
-                className={`px-1.5 py-0.5 rounded border border-white/20 transition-colors ${fontSizeLevel === 2 ? 'bg-[#f47920] text-white font-bold' : 'bg-white/10 hover:bg-white/20'}`}
+                className={`px-1.5 py-0.5 rounded border border-white/20 transition-colors ${fontSizeLevel === 2 ? 'bg-[#f47920] text-white font-semibold' : 'bg-white/10 hover:bg-white/20'}`}
               >
                 A+
               </button>
@@ -103,13 +103,13 @@ export default function Header({
             <span className="text-white/30 hidden sm:inline">|</span>
 
             {/* Language Switcher */}
-            <div className="flex items-center gap-1 bg-[#0f2040] px-2 py-0.5 rounded-full border border-white/15">
+            <div className="flex items-center gap-1 bg-[#0f2040] px-2 py-0.5 rounded-md border border-white/15">
               <Globe className="w-3 h-3 text-[#f47920]" />
               <button
                 type="button"
                 onClick={() => setLang && setLang('en')}
-                className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold transition-all ${
-                  lang === 'en' ? 'bg-[#f47920] text-white shadow-sm' : 'text-slate-300 hover:text-white'
+                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                  lang === 'en' ? 'bg-[#f47920] text-white' : 'text-slate-300 hover:text-white'
                 }`}
               >
                 English
@@ -118,8 +118,8 @@ export default function Header({
               <button
                 type="button"
                 onClick={() => setLang && setLang('ta')}
-                className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold transition-all ${
-                  lang === 'ta' ? 'bg-[#f47920] text-white shadow-sm' : 'text-slate-300 hover:text-white'
+                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                  lang === 'ta' ? 'bg-[#f47920] text-white' : 'text-slate-300 hover:text-white'
                 }`}
               >
                 தமிழ்
@@ -132,33 +132,33 @@ export default function Header({
 
       {/* Main Brand & Navigation Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-18 py-3">
           
           {/* Brand Identity */}
           <div 
             onClick={() => handleNavClick('landing')}
-            className="flex items-center gap-3.5 cursor-pointer select-none group"
+            className="flex items-center gap-3 cursor-pointer select-none group"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1a3c6e] to-[#0f2040] border-2 border-[#f47920] flex items-center justify-center shadow-md shadow-navy-950/15 group-hover:scale-105 transition-all">
-              <ShieldCheck className="w-7 h-7 text-[#f47920]" />
+            <div className="w-10 h-10 rounded-xl bg-[#1a3c6e] border border-[#2a5298] flex items-center justify-center text-white shadow-sm flex-shrink-0">
+              <ShieldCheck className="w-6 h-6 text-[#f47920]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-2xl tracking-tight text-[#1a3c6e]">
+                <span className="font-bold text-xl tracking-tight text-[#1a3c6e]">
                   Civic<span className="text-[#f47920]">Resolve</span>
                 </span>
-                <span className="text-[10px] font-extrabold uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-orange-50 text-[#f47920] border border-orange-200">
+                <span className="text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded bg-orange-50 text-[#d96810] border border-orange-200/80">
                   Govt of Tamil Nadu
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium tracking-tight">
-                {lang === 'ta' ? 'குடிமக்கள் குறைதீர்க்கும் தளம்' : 'Citizen Grievance Tracking Platform'}
+              <p className="text-[11px] text-slate-500 font-normal">
+                {lang === 'ta' ? 'குடிமக்கள் குறைதீர்க்கும் தளம்' : 'Citizen Grievance Redressal Platform'}
               </p>
             </div>
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1">
+          <nav className="hidden lg:flex items-center gap-1">
             {navLinks.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -166,33 +166,33 @@ export default function Header({
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`flex items-center gap-1 xl:gap-1.5 px-2.5 py-1.5 xl:px-3 xl:py-2 rounded-full text-[11px] xl:text-xs font-bold transition-all relative ${
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                     isActive
-                      ? 'bg-[#1a3c6e] text-white shadow-sm'
-                      : 'text-slate-700 hover:text-[#1a3c6e] hover:bg-slate-100'
+                      ? 'bg-slate-100 text-[#1a3c6e] font-semibold border border-slate-200/80'
+                      : 'text-slate-600 hover:text-[#1a3c6e] hover:bg-slate-50'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon className="w-3.5 h-3.5 text-slate-500" />
                   <span>{item.label}</span>
-                  {item.badge && (
-                    <span className="ml-1 w-4 h-4 rounded-full bg-[#f47920] text-white text-[9px] font-extrabold flex items-center justify-center">
+                  {item.badge ? (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-[#f47920] text-white text-[9px] font-bold tabular-nums">
                       {item.badge}
                     </span>
-                  )}
+                  ) : null}
                 </button>
               );
             })}
           </nav>
 
-          {/* Action CTAs - Pill Shaped Buttons (CivicLens Style) */}
-          <div className="hidden sm:flex items-center gap-2 xl:gap-2.5">
+          {/* Action CTAs */}
+          <div className="hidden sm:flex items-center gap-2">
             
             {/* Primary Submit Grievance CTA */}
             <button
               onClick={() => onOpenSubmit && onOpenSubmit('Road Damage')}
-              className="flex items-center gap-1.5 px-4 xl:px-5 py-2 xl:py-2.5 rounded-full font-bold text-[11px] xl:text-xs text-white bg-[#f47920] hover:bg-[#d96810] shadow-md shadow-orange-500/25 active:scale-95 transition-all"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#f47920] hover:bg-[#d96810] transition-colors shadow-sm"
             >
-              <PlusCircle className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-white" />
+              <PlusCircle className="w-3.5 h-3.5 text-white" />
               <span>{lang === 'ta' ? 'மனு பதிவு' : 'File Complaint'}</span>
             </button>
 
@@ -201,19 +201,19 @@ export default function Header({
               <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
                 <button
                   onClick={() => handleNavClick('citizen-portal')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 xl:py-2 rounded-full text-[11px] xl:text-xs font-bold border transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
                     activeTab === 'citizen-portal'
-                      ? 'bg-orange-50 border-[#f47920] text-[#f47920]'
-                      : 'border-[#1a3c6e] text-[#1a3c6e] bg-white hover:bg-slate-50'
+                      ? 'bg-orange-50 border-orange-200 text-[#d96810]'
+                      : 'border-slate-300 text-[#1a3c6e] bg-white hover:bg-slate-50'
                   }`}
                 >
                   <User className="w-3.5 h-3.5 text-[#1a3c6e]" />
-                  <span className="max-w-[80px] xl:max-w-[100px] truncate">{citizenUser.name.split(' ')[0]}</span>
+                  <span className="max-w-[90px] truncate">{citizenUser.name.split(' ')[0]}</span>
                 </button>
                 <button
                   onClick={onLogoutCitizen}
                   title="Logout Citizen"
-                  className="p-1.5 xl:p-2 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                  className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -221,9 +221,9 @@ export default function Header({
             ) : (
               <button
                 onClick={onOpenCitizenAuth}
-                className="flex items-center gap-1.5 px-3.5 xl:px-4 py-1.5 xl:py-2 rounded-full text-[11px] xl:text-xs font-bold text-[#1a3c6e] border-2 border-[#1a3c6e] hover:bg-[#1a3c6e] hover:text-white transition-all"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-[#1a3c6e] bg-white border border-slate-300 hover:bg-slate-50 transition-colors shadow-sm"
               >
-                <User className="w-3.5 h-3.5" />
+                <User className="w-3.5 h-3.5 text-slate-600" />
                 <span>{lang === 'ta' ? 'குடிமக்கள்' : 'Login'}</span>
               </button>
             )}
@@ -233,9 +233,9 @@ export default function Header({
               <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
                 <button
                   onClick={() => handleNavClick('admin')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 xl:py-2 rounded-full text-[11px] xl:text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
                     activeTab === 'admin' || activeTab === 'officer-portal'
-                      ? 'bg-[#1a3c6e] text-white'
+                      ? 'bg-[#1a3c6e] text-white shadow-sm'
                       : 'bg-slate-100 text-[#1a3c6e] hover:bg-slate-200'
                   }`}
                 >
@@ -245,7 +245,7 @@ export default function Header({
                 <button
                   onClick={onLogoutAdmin}
                   title="Sign Out Officer"
-                  className="p-1.5 xl:p-2 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                  className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -253,7 +253,7 @@ export default function Header({
             ) : (
               <button
                 onClick={() => handleNavClick('admin-login')}
-                className="flex items-center gap-1.5 px-3 py-1.5 xl:py-2 rounded-full text-[11px] xl:text-xs font-bold text-slate-600 hover:text-[#1a3c6e] hover:bg-slate-100 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-[#1a3c6e] hover:bg-slate-100 transition-colors"
               >
                 <Lock className="w-3.5 h-3.5 text-slate-500" />
                 <span className="hidden xl:inline">{lang === 'ta' ? 'அதிகாரி' : 'Officer'}</span>
@@ -266,18 +266,18 @@ export default function Header({
           <div className="flex lg:hidden items-center gap-2">
             <button
               onClick={() => onOpenSubmit && onOpenSubmit('Road Damage')}
-              className="p-2 rounded-full bg-[#f47920] text-white font-bold text-xs shadow-md shadow-orange-500/20"
+              className="p-2 rounded-lg bg-[#f47920] text-white font-semibold text-xs shadow-sm"
               title="Report Issue"
             >
-              <PlusCircle className="w-5 h-5" />
+              <PlusCircle className="w-4 h-4" />
             </button>
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors"
+              className="p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
               aria-label="Toggle Navigation Menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
 
@@ -286,23 +286,23 @@ export default function Header({
 
       {/* Mobile Responsive Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-slate-200 shadow-xl px-4 pt-3 pb-6 space-y-4 animate-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden bg-white border-b border-slate-200 shadow-lg px-4 pt-3 pb-5 space-y-3">
           
           <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-100">
             {citizenUser ? (
               <button
                 onClick={() => handleNavClick('citizen-portal')}
-                className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold"
+                className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-orange-50 border border-orange-200 text-[#d96810] text-xs font-semibold"
               >
-                <User className="w-4 h-4 text-teal-600" />
+                <User className="w-3.5 h-3.5 text-[#f47920]" />
                 <span>Citizen Portal</span>
               </button>
             ) : (
               <button
                 onClick={() => { setMobileMenuOpen(false); onOpenCitizenAuth(); }}
-                className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold"
+                className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-slate-100 text-slate-800 text-xs font-semibold hover:bg-slate-200"
               >
-                <User className="w-4 h-4 text-slate-600" />
+                <User className="w-3.5 h-3.5 text-slate-600" />
                 <span>Citizen Login</span>
               </button>
             )}
@@ -310,17 +310,17 @@ export default function Header({
             {adminUser ? (
               <button
                 onClick={() => handleNavClick('admin')}
-                className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-900 text-white text-xs font-bold"
+                className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[#1a3c6e] text-white text-xs font-semibold"
               >
-                <ShieldCheck className="w-4 h-4 text-teal-400" />
+                <ShieldCheck className="w-3.5 h-3.5 text-[#f47920]" />
                 <span>Admin Console</span>
               </button>
             ) : (
               <button
                 onClick={() => handleNavClick('admin-login')}
-                className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold"
+                className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
               >
-                <Lock className="w-4 h-4 text-slate-600" />
+                <Lock className="w-3.5 h-3.5 text-slate-600" />
                 <span>Officer Login</span>
               </button>
             )}
@@ -334,18 +334,18 @@ export default function Header({
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`w-full flex items-center justify-between p-2.5 rounded-lg text-xs font-medium transition-colors ${
                     isActive
-                      ? 'bg-slate-900 text-white'
+                      ? 'bg-[#1a3c6e] text-white font-semibold'
                       : 'text-slate-700 hover:bg-slate-100'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-4 h-4 text-slate-500" />
                     <span>{item.label}</span>
                   </div>
                   {item.badge ? (
-                    <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    <span className="px-1.5 py-0.2 rounded-full bg-[#f47920] text-white text-[9px] font-bold tabular-nums">
                       {item.badge}
                     </span>
                   ) : (
@@ -360,7 +360,7 @@ export default function Header({
           <div className="pt-2">
             <button
               onClick={() => handleNavClick('tracker')}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold hover:bg-slate-200"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-slate-100 text-slate-800 text-xs font-semibold hover:bg-slate-200 transition-colors"
             >
               <span>{lang === 'ta' ? 'மனு நிலை அறிய' : 'Track Existing Grievance'}</span>
             </button>

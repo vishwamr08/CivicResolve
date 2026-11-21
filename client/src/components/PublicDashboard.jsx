@@ -7,7 +7,7 @@ import {
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
 import { getApiUrl } from '../config/api';
 
-const COLORS = ['#0D9488', '#3B82F6', '#6366F1', '#EC4899', '#F59E0B', '#10B981', '#8B5CF6', '#64748B'];
+const COLORS = ['#1a3c6e', '#f47920', '#138808', '#2a5298', '#64748b', '#0d9488', '#d97706', '#475569'];
 
 export default function PublicDashboard({ 
   onBack, 
@@ -51,11 +51,11 @@ export default function PublicDashboard({
 
   // Prepare Category Data for Chart
   const defaultCategoryData = [
-    { name: 'Road Damage', count: 12, color: '#0D9488' },
-    { name: 'Drainage', count: 9, color: '#0284C7' },
-    { name: 'Garbage & Sanitation', count: 7, color: '#F59E0B' },
-    { name: 'Streetlight', count: 5, color: '#10B981' },
-    { name: 'Water Leakage', count: 4, color: '#6366F1' }
+    { name: 'Road Damage', count: 12, color: '#1a3c6e' },
+    { name: 'Drainage', count: 9, color: '#2a5298' },
+    { name: 'Garbage & Sanitation', count: 7, color: '#f47920' },
+    { name: 'Streetlight', count: 5, color: '#138808' },
+    { name: 'Water Leakage', count: 4, color: '#64748b' }
   ];
 
   const categoryData = (stats?.categoryDistribution?.length > 0)
@@ -85,46 +85,46 @@ export default function PublicDashboard({
 
   // Prepare Status Distribution
   const statusData = [
-    { name: 'Resolved', count: resolved, color: '#10B981' },
-    { name: 'In Progress', count: inProgress, color: '#3B82F6' },
-    { name: 'Pending Review', count: pending, color: '#F59E0B' },
+    { name: 'Resolved', count: resolved, color: '#138808' },
+    { name: 'In Progress', count: inProgress, color: '#2a5298' },
+    { name: 'Pending Review', count: pending, color: '#f47920' },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 pb-20">
+    <div className="min-h-screen bg-slate-50 text-slate-800 pb-16 font-sans">
       
       {/* Top Banner */}
-      <section className="bg-slate-900 text-white pt-10 pb-16 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
+      <section className="bg-gradient-to-b from-[#0a1628] to-[#1a3c6e] text-white pt-8 pb-14 px-4 sm:px-6 lg:px-8 border-b border-navy-900">
         <div className="max-w-7xl mx-auto space-y-6">
           
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <button
                 onClick={onBack}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white transition-colors"
                 title="Return to Home"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-                    Tamil Nadu Public Grievance Transparency Portal
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                    Public Grievance Transparency Portal
                   </h1>
-                  <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                  <span className="hidden sm:inline text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded bg-white/15 text-slate-200 border border-white/20">
                     Open Data
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-400 mt-1">
-                  Aggregated civic resolution statistics across 38 districts and 25 Municipal Corporations.
+                <p className="text-xs sm:text-sm text-slate-300 mt-1">
+                  Aggregated civic resolution statistics across 38 districts and 25 Municipal Corporations in Tamil Nadu.
                 </p>
               </div>
             </div>
 
             {/* District Filter & Refresh */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl text-xs">
-                <Filter className="w-3.5 h-3.5 text-teal-400" />
+              <div className="flex items-center gap-1.5 bg-white/10 border border-white/20 px-3 py-1.5 rounded-lg text-xs">
+                <Filter className="w-3.5 h-3.5 text-[#f47920]" />
                 <select
                   value={selectedDistrict}
                   onChange={(e) => setSelectedDistrict(e.target.value)}
@@ -139,39 +139,39 @@ export default function PublicDashboard({
 
               <button
                 onClick={() => fetchStats(selectedDistrict)}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700"
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white transition-colors border border-white/20"
                 title="Refresh Statistics"
               >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-teal-400' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#f47920]' : ''}`} />
               </button>
             </div>
           </div>
 
           {/* Quick Metrics KPI Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-            <div className="bg-slate-800/80 border border-slate-700/80 p-5 rounded-2xl space-y-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Grievances</span>
-              <p className="text-3xl font-black text-white">{total}</p>
-              <span className="text-[10px] text-teal-400 font-semibold">100% Real SQLite Database</span>
+            <div className="bg-white/10 border border-white/15 p-4 rounded-xl space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">Total Grievances</span>
+              <p className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{total}</p>
+              <span className="text-[10px] text-slate-300 font-medium">Registered Database Records</span>
             </div>
 
-            <div className="bg-slate-800/80 border border-slate-700/80 p-5 rounded-2xl space-y-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Active Field Action</span>
-              <p className="text-3xl font-black text-blue-400">{inProgress}</p>
-              <span className="text-[10px] text-slate-400 font-semibold">Under Investigation / Repair</span>
+            <div className="bg-white/10 border border-white/15 p-4 rounded-xl space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">Active Field Action</span>
+              <p className="text-2xl sm:text-3xl font-bold text-orange-200 tabular-nums">{inProgress}</p>
+              <span className="text-[10px] text-slate-300 font-medium">Under Investigation / Repair</span>
             </div>
 
-            <div className="bg-slate-800/80 border border-slate-700/80 p-5 rounded-2xl space-y-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Certified Resolved</span>
-              <p className="text-3xl font-black text-emerald-400">{resolved}</p>
-              <span className="text-[10px] text-emerald-400 font-semibold">Verified with Photo Proof</span>
+            <div className="bg-white/10 border border-white/15 p-4 rounded-xl space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">Certified Resolved</span>
+              <p className="text-2xl sm:text-3xl font-bold text-emerald-300 tabular-nums">{resolved}</p>
+              <span className="text-[10px] text-emerald-300 font-medium">Verified with Photo Proof</span>
             </div>
 
-            <div className="bg-slate-800/80 border border-slate-700/80 p-5 rounded-2xl space-y-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Resolution SLA Rate</span>
-              <p className="text-3xl font-black text-teal-300">{resolutionRate}%</p>
-              <span className="text-[10px] text-slate-400 font-semibold">
-                {overdue > 0 ? `${overdue} cases escalated` : '100% On-Time Adherence'}
+            <div className="bg-white/10 border border-white/15 p-4 rounded-xl space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">Resolution SLA Rate</span>
+              <p className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{resolutionRate}%</p>
+              <span className="text-[10px] text-slate-300 font-medium">
+                {overdue > 0 ? `${overdue} cases escalated` : 'On-Time Adherence'}
               </span>
             </div>
           </div>
@@ -180,26 +180,25 @@ export default function PublicDashboard({
       </section>
 
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 space-y-6">
         
         {/* Row 1: Charts (Category Pie & Department Bar) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           {/* Chart 1: Grievance Categories Breakdown */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-extrabold text-base text-slate-900">Grievances by Civic Category</h3>
+                <h3 className="font-semibold text-base text-slate-900">Grievances by Civic Category</h3>
                 <p className="text-xs text-slate-500">Distribution across major municipal operational divisions</p>
               </div>
-              <span className="text-xs font-bold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-lg">
+              <span className="text-xs font-semibold text-[#1a3c6e] bg-navy-50 px-2.5 py-1 rounded-md border border-navy-100">
                 {categoryData.length} Categories
               </span>
             </div>
 
             {categoryData.length > 0 ? (
               <div className="h-64 sm:h-72">
-                {/* Accessible screen reader data representation */}
                 <table className="sr-only">
                   <caption>Grievance distribution by category</caption>
                   <thead>
@@ -238,7 +237,7 @@ export default function PublicDashboard({
                     </Pie>
                     <Tooltip 
                       formatter={(val, name) => [`${val} grievances`, name]}
-                      contentStyle={{ borderRadius: '12px', fontSize: '12px', borderColor: '#e2e8f0' }}
+                      contentStyle={{ borderRadius: '8px', fontSize: '12px', borderColor: '#e2e8f0', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -251,20 +250,19 @@ export default function PublicDashboard({
           </div>
 
           {/* Chart 2: Department Workload & Performance */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-extrabold text-base text-slate-900">Department Caseload</h3>
-                <p className="text-xs text-slate-500">Volume routed by municipal AI triage to nodal municipal wings</p>
+                <h3 className="font-semibold text-base text-slate-900">Department Caseload</h3>
+                <p className="text-xs text-slate-500">Volume routed by municipal AI triage to nodal wings</p>
               </div>
-              <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg">
+              <span className="text-xs font-semibold text-[#1a3c6e] bg-navy-50 px-2.5 py-1 rounded-md border border-navy-100">
                 Nodal Wings
               </span>
             </div>
 
             {departmentData.length > 0 ? (
               <div className="h-64 sm:h-72">
-                {/* Accessible screen reader data representation */}
                 <table className="sr-only">
                   <caption>Grievance volume by municipal department</caption>
                   <thead>
@@ -295,9 +293,9 @@ export default function PublicDashboard({
                     <YAxis tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
                     <Tooltip 
                       formatter={(val, name, item) => [`${val} grievances`, item.payload.fullName]}
-                      contentStyle={{ borderRadius: '12px', fontSize: '12px', borderColor: '#e2e8f0' }}
+                      contentStyle={{ borderRadius: '8px', fontSize: '12px', borderColor: '#e2e8f0', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}
                     />
-                    <Bar dataKey="complaints" fill="#0D9488" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="complaints" fill="#1a3c6e" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -314,22 +312,22 @@ export default function PublicDashboard({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Resolution Pipeline Card */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 lg:col-span-1">
+          <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 lg:col-span-1">
             <div>
-              <h3 className="font-extrabold text-base text-slate-900">Resolution Pipeline</h3>
+              <h3 className="font-semibold text-base text-slate-900">Resolution Pipeline</h3>
               <p className="text-xs text-slate-500">Real-time status breakdown</p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {statusData.map((st, i) => (
-                <div key={i} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: st.color }}></span>
-                    <span className="text-xs font-bold text-slate-800">{st.name}</span>
+                <div key={i} className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: st.color }}></span>
+                    <span className="text-xs font-medium text-slate-800">{st.name}</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-base font-extrabold text-slate-900">{st.count}</span>
-                    <span className="text-[10px] text-slate-400 block">
+                    <span className="text-sm font-bold text-slate-900 tabular-nums">{st.count}</span>
+                    <span className="text-[10px] text-slate-400 block tabular-nums">
                       {total > 0 ? `${Math.round((st.count / total) * 100)}%` : '0%'}
                     </span>
                   </div>
@@ -337,47 +335,47 @@ export default function PublicDashboard({
               ))}
             </div>
 
-            <div className="p-4 rounded-2xl bg-teal-50 border border-teal-200 text-teal-900 text-xs space-y-1">
-              <span className="font-bold flex items-center gap-1.5 text-teal-800">
-                <ShieldCheck className="w-4 h-4 text-teal-600" />
+            <div className="p-3.5 rounded-lg bg-orange-50 border border-orange-200 text-slate-800 text-xs space-y-1">
+              <span className="font-semibold flex items-center gap-1.5 text-[#d96810]">
+                <ShieldCheck className="w-4 h-4 text-[#f47920]" />
                 Guaranteed Citizen Rights
               </span>
-              <p className="text-[11px] text-teal-700 leading-relaxed">
+              <p className="text-[11px] text-slate-600 leading-relaxed">
                 Cases not resolved within the standardized SLA window are automatically flagged for review by the Zonal Municipal Commissioner.
               </p>
             </div>
           </div>
 
           {/* Active Announcements & Public Notices */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 lg:col-span-2">
+          <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 lg:col-span-2">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-extrabold text-base text-slate-900">Official Municipal Notices & Advisories</h3>
+                <h3 className="font-semibold text-base text-slate-900">Official Municipal Notices & Advisories</h3>
                 <p className="text-xs text-slate-500">Live announcements from state and district administration</p>
               </div>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-orange-50 text-[#d96810] border border-orange-200">
                 {announcements.length} Active
               </span>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {announcements.map((a) => (
-                <div key={a.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 hover:border-teal-500 transition-colors">
+                <div key={a.id} className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5 hover:border-slate-300 transition-colors">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-900 text-teal-300 font-mono">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-navy-50 text-[#1a3c6e] font-mono">
                       {a.category}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {new Date(a.created_at).toLocaleDateString()}
+                    <span className="text-[10px] text-slate-500 font-mono tabular-nums">
+                      {new Date(a.created_at).toLocaleDateString('en-IN')}
                     </span>
                   </div>
-                  <h4 className="font-bold text-sm text-slate-900">
+                  <h4 className="font-semibold text-sm text-slate-900">
                     {lang === 'ta' ? (a.title_ta || a.title) : a.title}
                   </h4>
                   <p className="text-xs text-slate-600 leading-relaxed">
                     {lang === 'ta' ? (a.content_ta || a.content) : a.content}
                   </p>
-                  <div className="text-[10px] text-slate-400 font-semibold pt-1">
+                  <div className="text-[10px] text-slate-500 font-medium pt-0.5">
                     Issued by: {a.department || 'Municipal Administration Desk'}
                   </div>
                 </div>
@@ -388,9 +386,9 @@ export default function PublicDashboard({
         </div>
 
         {/* Privacy & Open Data Statement Footer */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 text-center space-y-2">
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
-            <ShieldCheck className="w-4 h-4 text-teal-600" />
+        <div className="bg-white p-5 rounded-xl border border-slate-200 text-center space-y-1.5">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1a3c6e] bg-navy-50 px-2.5 py-0.5 rounded border border-navy-100">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#f47920]" />
             Institutional Privacy & Data Protection Standard
           </span>
           <p className="text-xs text-slate-500 max-w-2xl mx-auto leading-relaxed">

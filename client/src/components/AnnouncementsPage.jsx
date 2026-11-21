@@ -132,21 +132,19 @@ export default function AnnouncementsPage({
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-16">
       
       {/* Hero Banner */}
-      <div className="bg-slate-900 text-white border-b border-slate-800 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-teal-950/40 via-slate-900/60 to-slate-950 pointer-events-none" />
-        
-        <div className="max-w-7xl mx-auto relative z-10 space-y-4">
+      <div className="bg-navy-950 text-white border-b border-navy-900 py-10 px-4 sm:px-6 lg:px-8 relative">
+        <div className="max-w-7xl mx-auto space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-bold tracking-wide">
-                <Bell className="w-4 h-4 text-teal-400" />
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded text-xs font-semibold bg-navy-900 text-slate-300 border border-navy-800 tracking-wide">
+                <Bell className="w-4 h-4 text-saffron-400" />
                 <span>{lang === 'ta' ? 'அதிகாரப்பூர்வ அறிவிப்புகள் பலகை' : 'Official Municipal Gazette & Notices'}</span>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                 {lang === 'ta' ? 'பொது அறிவிப்புகள் & விழிப்புணர்வு' : 'Civic Notices & Municipal Updates'}
               </h1>
-              <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
+              <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
                 {lang === 'ta'
                   ? 'பராமரிப்புப் பணிகள், வானிலை எச்சரிக்கைகள் மற்றும் பொதுக் குடிமைச் சேவைகள் குறித்த நேரடி அதிகாரப்பூர்வ தகவல்கள்.'
                   : 'Real-time advisories regarding scheduled maintenance, monsoon mitigation operations, electrical shutdowns, and public civic guidelines.'}
@@ -157,9 +155,9 @@ export default function AnnouncementsPage({
             {adminUser && adminToken && (
               <button
                 onClick={() => setIsPublishModalOpen(true)}
-                className="px-5 py-3 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-xs shadow-lg transition-all flex items-center gap-2 active:scale-95"
+                className="px-4 py-2.5 rounded-lg bg-saffron-500 hover:bg-saffron-600 text-navy-950 font-semibold text-xs shadow-xs transition-colors flex items-center gap-2"
               >
-                <PlusCircle className="w-4 h-4 text-slate-950" />
+                <PlusCircle className="w-4 h-4 text-navy-950" />
                 <span>Publish Official Notice</span>
               </button>
             )}
@@ -175,7 +173,7 @@ export default function AnnouncementsPage({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={lang === 'ta' ? 'அறிவிப்புகளைத் தேடுக...' : 'Search notices by title, department, or keyword...'}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full pl-10 pr-4 py-2 rounded-lg bg-navy-900/90 border border-navy-800 text-white placeholder-slate-400 text-xs focus:outline-none focus:ring-1 focus:ring-saffron-500 shadow-xs"
               />
             </div>
           </div>
@@ -184,18 +182,18 @@ export default function AnnouncementsPage({
       </div>
 
       {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         
         {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-none">
+        <div className="flex items-center gap-2 overflow-x-auto pb-3 scrollbar-none">
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                 selectedCategory === cat
-                  ? 'bg-slate-900 text-white shadow-md'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  ? 'bg-navy-900 text-white shadow-xs font-semibold'
+                  : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
               }`}
             >
               {cat}
@@ -206,24 +204,24 @@ export default function AnnouncementsPage({
         {/* Loading / Error States */}
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
-            <p className="text-xs font-semibold text-slate-600">Loading Official Gazettes...</p>
+            <Loader2 className="w-7 h-7 animate-spin text-navy-900" />
+            <p className="text-xs font-medium text-slate-600">Loading Official Gazettes...</p>
           </div>
         ) : error ? (
-          <div className="max-w-md mx-auto my-12 p-6 bg-rose-50 border border-rose-200 rounded-2xl text-center space-y-2">
-            <AlertTriangle className="w-8 h-8 text-rose-500 mx-auto" />
-            <p className="text-xs text-rose-700 font-semibold">{error}</p>
+          <div className="max-w-md mx-auto my-10 p-5 bg-rose-50 border border-rose-200 rounded-xl text-center space-y-2">
+            <AlertTriangle className="w-7 h-7 text-rose-500 mx-auto" />
+            <p className="text-xs text-rose-700 font-medium">{error}</p>
             <button
               onClick={fetchAnnouncements}
-              className="px-4 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold"
+              className="px-3.5 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-medium hover:bg-rose-700 transition-colors"
             >
               Retry
             </button>
           </div>
         ) : filteredAnnouncements.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto my-8 space-y-3">
-            <Bell className="w-12 h-12 text-slate-300 mx-auto" />
-            <h3 className="font-extrabold text-base text-slate-900">No Announcements Found</h3>
+          <div className="bg-white rounded-xl border border-slate-200 p-10 text-center max-w-lg mx-auto my-8 space-y-2.5">
+            <Bell className="w-10 h-10 text-slate-300 mx-auto" />
+            <h3 className="font-bold text-sm text-slate-900">No Announcements Found</h3>
             <p className="text-xs text-slate-500">
               There are currently no active public notices matching your selected category or filter.
             </p>
@@ -235,27 +233,27 @@ export default function AnnouncementsPage({
               return (
                 <div 
                   key={item.id}
-                  className={`bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-all ${
+                  className={`bg-white rounded-xl border p-5 shadow-xs transition-all ${
                     isUrgent ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200'
                   }`}
                 >
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
                         isUrgent 
-                          ? 'bg-rose-100 text-rose-800 border border-rose-200' 
-                          : 'bg-teal-50 text-teal-800 border border-teal-200'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-200' 
+                          : 'bg-slate-100 text-slate-800 border border-slate-200'
                       }`}>
                         {item.category || 'Public Notice'}
                       </span>
                       
                       {item.priority && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
                           Priority: {item.priority}
                         </span>
                       )}
 
-                      <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                      <span className="text-[11px] text-slate-400 flex items-center gap-1 font-mono tabular-nums">
                         <Calendar className="w-3 h-3 text-slate-400" />
                         <span>{item.created_at ? new Date(item.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent'}</span>
                       </span>
@@ -265,7 +263,7 @@ export default function AnnouncementsPage({
                     {adminUser && adminToken && (
                       <button
                         onClick={() => handleDeleteAnnouncement(item.id, item.title)}
-                        className="text-xs text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 p-1 hover:bg-rose-50 rounded"
+                        className="text-xs text-rose-600 hover:text-rose-800 font-medium flex items-center gap-1 px-2 py-0.5 hover:bg-rose-50 rounded transition-colors"
                         title="Delete Announcement"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -275,8 +273,8 @@ export default function AnnouncementsPage({
                   </div>
 
                   {/* Body Content */}
-                  <div className="pt-4 space-y-2">
-                    <h3 className="font-extrabold text-base text-slate-900">
+                  <div className="pt-3 space-y-1.5">
+                    <h3 className="font-bold text-sm text-slate-900">
                       {lang === 'ta' && item.title_ta ? item.title_ta : item.title}
                     </h3>
                     <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">
@@ -286,13 +284,13 @@ export default function AnnouncementsPage({
 
                   {/* Footer Department */}
                   <div className="mt-4 pt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 border-t border-slate-100">
-                    <div className="flex items-center gap-1.5 font-semibold text-slate-700">
-                      <Building2 className="w-3.5 h-3.5 text-teal-600" />
+                    <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400" />
                       <span>Issued by: {item.department || 'Municipal Operations Department'}</span>
                     </div>
                     <button
                       onClick={() => onOpenSubmit && onOpenSubmit('Road Damage')}
-                      className="text-teal-600 hover:text-teal-800 font-bold flex items-center gap-1"
+                      className="text-navy-900 hover:underline font-semibold flex items-center gap-1"
                     >
                       <span>Report related civic issue</span>
                       <ArrowRight className="w-3 h-3" />
@@ -308,65 +306,65 @@ export default function AnnouncementsPage({
 
       {/* Admin Publish Modal */}
       {isPublishModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
             
-            <div className="bg-slate-900 text-white p-6 relative">
+            <div className="bg-navy-950 text-white p-5 border-b border-navy-900 relative">
               <button 
                 onClick={() => setIsPublishModalOpen(false)}
-                className="absolute top-5 right-5 p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white"
+                className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-900 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
-              <h2 className="text-lg font-extrabold">Publish Official Civic Gazette</h2>
+              <h2 className="text-base font-bold">Publish Official Civic Gazette</h2>
               <p className="text-xs text-slate-400">Post municipal announcements directly to citizens across Tamil Nadu.</p>
             </div>
 
-            <form onSubmit={handlePublishSubmit} className="p-6 overflow-y-auto space-y-4 text-xs">
+            <form onSubmit={handlePublishSubmit} className="p-5 overflow-y-auto space-y-3.5 text-xs">
               
               {publishError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">
+                <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700">
                   {publishError}
                 </div>
               )}
 
               {publishSuccess && (
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-2">
+                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   <span>{publishSuccess}</span>
                 </div>
               )}
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Notice Title (English) *</label>
+                <label className="font-semibold text-slate-700 block">Notice Title (English) *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Scheduled Water Pipeline Maintenance in Anna Nagar"
                   value={newNotice.title}
                   onChange={(e) => setNewNotice({ ...newNotice, title: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Notice Title (Tamil)</label>
+                <label className="font-semibold text-slate-700 block">Notice Title (Tamil)</label>
                 <input
                   type="text"
                   placeholder="அண்ணா நகர் பகுதியில் குடிநீர் குழாய் பராமரிப்பு பணி"
                   value={newNotice.title_ta}
                   onChange={(e) => setNewNotice({ ...newNotice, title_ta: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700 block">Category</label>
+                  <label className="font-semibold text-slate-700 block">Category</label>
                   <select
                     value={newNotice.category}
                     onChange={(e) => setNewNotice({ ...newNotice, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                    className="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900 bg-white"
                   >
                     <option value="Public Notice">Public Notice</option>
                     <option value="Emergency Alert">Emergency Alert</option>
@@ -376,11 +374,11 @@ export default function AnnouncementsPage({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700 block">Priority Level</label>
+                  <label className="font-semibold text-slate-700 block">Priority Level</label>
                   <select
                     value={newNotice.priority}
                     onChange={(e) => setNewNotice({ ...newNotice, priority: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                    className="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900 bg-white"
                   >
                     <option value="Normal">Normal</option>
                     <option value="High">High</option>
@@ -390,35 +388,35 @@ export default function AnnouncementsPage({
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Issuing Department</label>
+                <label className="font-semibold text-slate-700 block">Issuing Department</label>
                 <input
                   type="text"
                   value={newNotice.department}
                   onChange={(e) => setNewNotice({ ...newNotice, department: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Notice Content (English) *</label>
+                <label className="font-semibold text-slate-700 block">Notice Content (English) *</label>
                 <textarea
                   rows="4"
                   required
                   placeholder="Details of the civic advisory, affected wards, and alternative helplines..."
                   value={newNotice.content}
                   onChange={(e) => setNewNotice({ ...newNotice, content: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Notice Content (Tamil)</label>
+                <label className="font-semibold text-slate-700 block">Notice Content (Tamil)</label>
                 <textarea
                   rows="3"
                   placeholder="அறிவிப்பின் விவரங்கள்..."
                   value={newNotice.content_ta}
                   onChange={(e) => setNewNotice({ ...newNotice, content_ta: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900"
                 />
               </div>
 
@@ -426,14 +424,14 @@ export default function AnnouncementsPage({
                 <button
                   type="button"
                   onClick={() => setIsPublishModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-100"
+                  className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={publishLoading}
-                  className="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold flex items-center gap-1.5 shadow"
+                  className="px-4 py-1.5 rounded-lg bg-navy-900 hover:bg-navy-950 text-white font-medium flex items-center gap-1.5 shadow-xs transition-colors"
                 >
                   {publishLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   <span>Publish Notice</span>

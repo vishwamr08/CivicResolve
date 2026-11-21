@@ -15,10 +15,6 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
       title: 'Roads, Potholes & Footpaths',
       title_ta: 'சாலைகள், பள்ளங்கள் & நடைபாதைகள்',
       icon: AlertTriangle,
-      color: 'amber',
-      bgLight: 'bg-amber-500/10',
-      borderLight: 'border-amber-500/20',
-      textColor: 'text-amber-600',
       department: 'Tamil Nadu Highways & Municipal Works Dept',
       department_ta: 'நெடுஞ்சாலை & நகராட்சி பணிகள் துறை',
       slaHours: 48,
@@ -32,10 +28,6 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
       title: 'Garbage, Waste & Sanitation',
       title_ta: 'குப்பை, திடக்கழிவு & சுகாதாரம்',
       icon: Trash2,
-      color: 'emerald',
-      bgLight: 'bg-emerald-500/10',
-      borderLight: 'border-emerald-500/20',
-      textColor: 'text-emerald-600',
       department: 'Municipal Solid Waste & Public Health Division',
       department_ta: 'திடக்கழிவு மேலாண்மை & பொது சுகாதார பிரிவு',
       slaHours: 12,
@@ -49,10 +41,6 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
       title: 'Drinking Water Supply & Pipelines',
       title_ta: 'குடிநீர் வழங்கல் & குழாய் உடைப்பு',
       icon: Droplets,
-      color: 'cyan',
-      bgLight: 'bg-cyan-500/10',
-      borderLight: 'border-cyan-500/20',
-      textColor: 'text-cyan-600',
       department: 'Chennai Metro Water (CMWSSB) & TWAD Board',
       department_ta: 'சென்னை பெருநகர குடிநீர் & வடிகால் வாரியம் (CMWSSB)',
       slaHours: 24,
@@ -66,10 +54,6 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
       title: 'Stormwater Drains, Sewage & Flooding',
       title_ta: 'மழைநீர் வடிகால், கழிவுநீர் & வெள்ளம்',
       icon: Waves,
-      color: 'blue',
-      bgLight: 'bg-blue-500/10',
-      borderLight: 'border-blue-500/20',
-      textColor: 'text-blue-600',
       department: 'Municipal Drainage & Sewerage Operations',
       department_ta: 'நகராட்சி வடிகால் மற்றும் கழிவுநீரகப் பிரிவு',
       slaHours: 24,
@@ -83,10 +67,6 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
       title: 'Streetlights & Public Luminaire',
       title_ta: 'தெருவிளக்குகள் & பொது மின்விளக்கு',
       icon: Lightbulb,
-      color: 'amber',
-      bgLight: 'bg-yellow-500/10',
-      borderLight: 'border-yellow-500/20',
-      textColor: 'text-yellow-600',
       department: 'Electrical Works Division & Municipal Corporation',
       department_ta: 'மின் பணிகள் பிரிவு & மாநகராட்சி',
       slaHours: 24,
@@ -100,10 +80,6 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
       title: 'TANGEDCO Power Cables & Transformers',
       title_ta: 'மின்சார வயர்கள் & மின்மாற்றிகள் (TANGEDCO)',
       icon: Zap,
-      color: 'rose',
-      bgLight: 'bg-rose-500/10',
-      borderLight: 'border-rose-500/20',
-      textColor: 'text-rose-600',
       department: 'TANGEDCO (Tamil Nadu Generation & Distribution)',
       department_ta: 'தமிழ்நாடு மின் உற்பத்தி மற்றும் பகிர்மான கழகம்',
       slaHours: 8,
@@ -117,10 +93,6 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
       title: 'Parks, Bus Shelters & Public Buildings',
       title_ta: 'பூங்காக்கள், பேருந்து நிழற்குடைகள் & பொது கட்டடங்கள்',
       icon: Landmark,
-      color: 'purple',
-      bgLight: 'bg-purple-500/10',
-      borderLight: 'border-purple-500/20',
-      textColor: 'text-purple-600',
       department: 'Town Planning, Parks & Public Infrastructure',
       department_ta: 'நகரமைப்பு, பூங்காக்கள் & பொது உள்கட்டமைப்பு',
       slaHours: 72,
@@ -134,10 +106,6 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
       title: 'Other Civic Grievances',
       title_ta: 'பிற குடிமை குறைபாடுகள்',
       icon: HelpCircle,
-      color: 'indigo',
-      bgLight: 'bg-indigo-500/10',
-      borderLight: 'border-indigo-500/20',
-      textColor: 'text-indigo-600',
       department: 'Citizen Grievance Triage Desk & District Collectorate',
       department_ta: 'பொது மக்கள் குறைதீர்ப்பு பிரிவு & மாவட்ட ஆட்சியர் அலுவலகம்',
       slaHours: 48,
@@ -171,42 +139,40 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-16">
       
       {/* Hero Section */}
-      <div className="bg-slate-900 text-white border-b border-slate-800 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-teal-950/40 via-slate-900/60 to-slate-950 pointer-events-none" />
-        
-        <div className="max-w-7xl mx-auto relative z-10 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-bold tracking-wide">
-            <ShieldCheck className="w-4 h-4 text-teal-400" />
+      <div className="bg-navy-950 text-white border-b border-navy-900 py-10 px-4 sm:px-6 lg:px-8 relative">
+        <div className="max-w-7xl mx-auto space-y-4">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded text-xs font-semibold bg-navy-900 text-slate-300 border border-navy-800 tracking-wide">
+            <ShieldCheck className="w-4 h-4 text-saffron-400" />
             <span>{lang === 'ta' ? 'தமிழ்நாடு நகராட்சி சேவைகள்' : 'Tamil Nadu Citizen Services Directory'}</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white max-w-3xl">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white max-w-3xl">
             {lang === 'ta' 
               ? 'நகராட்சி சேவைகள் & தீர்வு கால அவகாசங்கள்' 
               : 'Municipal Public Services & Guaranteed SLAs'}
           </h1>
 
-          <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
+          <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
             {lang === 'ta'
               ? 'அனைத்து குடிமைப் பிரிவுகளின் பொறுப்பு துறைகள் மற்றும் தீர்வுக்கான கால வரம்புகளைப் பார்க்கவும். உடனடி நடவடிக்கைக்காக உங்கள் குறையை நேரடியாக பதிவு செய்யவும்.'
               : 'Every civic service is backed by guaranteed Citizen Charter turnaround timelines, automated AI triage, and real-time municipal ward officer dispatch across Tamil Nadu.'}
           </p>
 
           {/* Quick Search Bar */}
-          <div className="pt-4 max-w-xl">
+          <div className="pt-2 max-w-xl">
             <div className="relative">
-              <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={lang === 'ta' ? 'சேவை அல்லது துறை தேடவும் (எ.கா. குப்பை, குடிநீர், சாலை)...' : 'Search service, department, or keyword (e.g. pothole, sewage, streetlight)...'}
-                className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-lg"
+                className="w-full pl-10 pr-12 py-2 rounded-lg bg-navy-900/90 border border-navy-800 text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-saffron-500 focus:border-saffron-500 shadow-xs"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400 hover:text-white"
                 >
                   Clear
                 </button>
@@ -217,17 +183,17 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
       </div>
 
       {/* Filter Tabs & Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         
         {/* Category Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-none">
+        <div className="flex items-center gap-2 overflow-x-auto pb-3 scrollbar-none">
           {filterTabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setSelectedFilter(tab.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                 selectedFilter === tab.id
-                  ? 'bg-slate-900 text-white shadow-md'
+                  ? 'bg-navy-900 text-white shadow-xs font-semibold'
                   : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
               }`}
             >
@@ -237,49 +203,49 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
         </div>
 
         {/* Results Counter */}
-        <div className="py-2 flex items-center justify-between text-xs text-slate-500">
+        <div className="py-2 flex items-center justify-between text-xs text-slate-500 border-b border-slate-200/60 pb-3">
           <span>
             {lang === 'ta' 
               ? `${filteredServices.length} சேவைகள் காண்பிக்கப்படுகின்றன` 
               : `Showing ${filteredServices.length} of ${servicesDetails.length} Municipal Services`}
           </span>
-          <span className="flex items-center gap-1 font-semibold text-teal-700">
-            <Clock className="w-3.5 h-3.5" />
-            <span>Guaranteed Resolution SLAs: 8h - 72h</span>
+          <span className="flex items-center gap-1 font-medium text-navy-900 font-mono text-[11px]">
+            <Clock className="w-3.5 h-3.5 text-saffron-600" />
+            <span>Guaranteed Resolution SLAs: 8h – 72h</span>
           </span>
         </div>
 
         {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-5">
           {filteredServices.map(srv => {
             const Icon = srv.icon;
             return (
               <div 
                 key={srv.id}
-                className="bg-white rounded-2xl border border-slate-200 hover:border-teal-500/40 p-6 shadow-sm hover:shadow-xl transition-all duration-200 flex flex-col justify-between group"
+                className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex flex-col justify-between"
               >
-                <div className="space-y-4">
+                <div className="space-y-3.5">
                   
                   {/* Card Header */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className={`w-12 h-12 rounded-xl ${srv.bgLight} border ${srv.borderLight} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>
-                      <Icon className={`w-6 h-6 ${srv.textColor}`} />
+                    <div className="w-10 h-10 rounded-lg bg-navy-50 text-navy-900 border border-navy-100 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-5 h-5 text-navy-900" />
                     </div>
                     
                     {/* SLA Badge */}
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-extrabold text-[11px]">
-                      <Clock className="w-3.5 h-3.5 text-teal-600" />
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 font-mono text-[11px] tabular-nums">
+                      <Clock className="w-3 h-3 text-slate-500" />
                       <span>{srv.slaHours}h Target SLA</span>
                     </div>
                   </div>
 
                   {/* Title & Department */}
                   <div>
-                    <h3 className="font-extrabold text-base text-slate-900 group-hover:text-teal-700 transition-colors">
+                    <h3 className="font-semibold text-sm text-slate-900">
                       {lang === 'ta' ? srv.title_ta : srv.title}
                     </h3>
-                    <p className="text-[11px] font-semibold text-slate-500 mt-1 flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                    <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+                      <Building2 className="w-3 h-3 text-slate-400 flex-shrink-0" />
                       <span className="truncate">{lang === 'ta' ? srv.department_ta : srv.department}</span>
                     </p>
                   </div>
@@ -290,15 +256,15 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
                   </p>
 
                   {/* Typical Issues Tags */}
-                  <div className="space-y-1.5 pt-2">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">
                       {lang === 'ta' ? 'பொதுவான குறைகள்:' : 'Common Report Types:'}
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {srv.sampleIssues.map((issue, idx) => (
                         <span 
                           key={idx}
-                          className="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-slate-600 text-[10px] font-medium"
+                          className="px-2 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-600 text-[10px] font-medium"
                         >
                           {issue}
                         </span>
@@ -309,13 +275,13 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
                 </div>
 
                 {/* Working CTA Button */}
-                <div className="pt-6 mt-6 border-t border-slate-100">
+                <div className="pt-4 mt-4 border-t border-slate-100">
                   <button
                     onClick={() => onOpenSubmit && onOpenSubmit(srv.id)}
-                    className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-white bg-slate-900 hover:bg-teal-600 shadow-sm flex items-center justify-center gap-2 group-hover:shadow-md transition-all active:scale-[0.98]"
+                    className="w-full py-2 px-3 rounded-lg font-medium text-xs text-white bg-navy-900 hover:bg-navy-950 shadow-xs flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <span>{lang === 'ta' ? 'இக்குறையை பதிவு செய்' : 'Report This Issue'}</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
@@ -325,9 +291,9 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
         </div>
 
         {/* Bottom SLA Assurance Banner */}
-        <div className="mt-12 p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl text-center md:text-left">
-            <h3 className="font-extrabold text-xl text-white">
+        <div className="mt-10 p-6 md:p-8 rounded-xl bg-navy-950 text-white border border-navy-900 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+          <div className="space-y-1.5 max-w-xl text-center md:text-left">
+            <h3 className="font-bold text-lg text-white">
               {lang === 'ta' ? 'குடிமக்கள் உரிமை சாசனம் & கண்காணிப்பு' : 'Citizen Charter & SLA Guarantee'}
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed">
@@ -338,7 +304,7 @@ export default function ServicesPage({ onOpenSubmit, lang = 'en' }) {
           </div>
           <button
             onClick={() => onOpenSubmit && onOpenSubmit('Road Damage')}
-            className="px-6 py-3.5 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-xs shadow-lg transition-all flex items-center gap-2 whitespace-nowrap active:scale-95"
+            className="px-5 py-2.5 rounded-lg bg-saffron-500 hover:bg-saffron-600 text-navy-950 font-semibold text-xs shadow-xs transition-colors flex items-center gap-2 whitespace-nowrap"
           >
             <span>{lang === 'ta' ? 'பொது மனு பதிவு செய்க' : 'File a New Grievance'}</span>
             <ChevronRight className="w-4 h-4" />
