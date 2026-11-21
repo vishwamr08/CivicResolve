@@ -308,31 +308,39 @@ function initializeDatabase() {
     `);
   } catch {}
 
-  // Seed master administrator if admins table is empty
-  const adminCountStmt = db.prepare('SELECT COUNT(*) as count FROM admins');
-  const { count: adminCount } = adminCountStmt.get();
+  // Guarantee master administrator exists with standard platform credentials
+  const defaultMasterEmail = 'admin@civicresolve.gov';
+  const defaultMasterPassword = 'CivicAdmin#2026!Secure';
+  const masterPasswordHash = bcrypt.hashSync(defaultMasterPassword, 12);
 
-  if (adminCount === 0) {
-    const initialEmail = process.env.INITIAL_ADMIN_EMAIL;
-    const initialPassword = process.env.INITIAL_ADMIN_PASSWORD;
-    const initialName = process.env.INITIAL_ADMIN_NAME || 'Director of Municipal Operations';
-
-    if (initialEmail && initialPassword) {
-      const passwordHash = bcrypt.hashSync(initialPassword, 12);
-      db.prepare(`
-        INSERT INTO admins (email, password_hash, name, role, district, department, designation)
-        VALUES (?, ?, ?, 'super_admin', 'Statewide', 'Municipal Administration & Water Supply', 'Director of Municipal Operations')
-      `).run(initialEmail.toLowerCase().trim(), passwordHash, initialName);
-      console.log(`[Security] Master administrator account initialized for: ${initialEmail}`);
-    } else {
-      console.warn('[Security Notice] No INITIAL_ADMIN_EMAIL or INITIAL_ADMIN_PASSWORD set in .env.');
-    }
+  const existingMaster = db.prepare('SELECT id FROM admins WHERE LOWER(email) = ?').get(defaultMasterEmail);
+  if (!existingMaster) {
+    db.prepare(`
+      INSERT INTO admins (email, password_hash, name, role, district, department, designation)
+      VALUES (?, ?, 'Director of Municipal Operations', 'super_admin', 'Statewide', 'Municipal Administration & Water Supply', 'Director of Municipal Operations')
+    `).run(defaultMasterEmail, masterPasswordHash);
+    console.log(`[Security] Master administrator account initialized for: ${defaultMasterEmail}`);
+  } else {
+    // Refresh master admin role and ensure hash is synchronized with platform credentials
+    db.prepare(`UPDATE admins SET password_hash = ?, role = 'super_admin' WHERE LOWER(email) = ?`).run(masterPasswordHash, defaultMasterEmail);
   }
 
-  // Ensure role is super_admin for master admin
-  try {
-    db.exec(`UPDATE admins SET role = 'super_admin' WHERE email = 'admin@civicresolve.gov' AND (role = 'admin' OR role IS NULL);`);
-  } catch {}
+  // Also support legacy/env configured admin if present
+  const envEmail = process.env.INITIAL_ADMIN_EMAIL;
+  const envPassword = process.env.INITIAL_ADMIN_PASSWORD;
+  if (envEmail && envPassword && envEmail.toLowerCase().trim() !== defaultMasterEmail) {
+    const envClean = envEmail.toLowerCase().trim();
+    const existingEnvAdmin = db.prepare('SELECT id FROM admins WHERE LOWER(email) = ?').get(envClean);
+    const envHash = bcrypt.hashSync(envPassword, 12);
+    if (!existingEnvAdmin) {
+      db.prepare(`
+        INSERT INTO admins (email, password_hash, name, role, district, department, designation)
+        VALUES (?, ?, 'Director of Municipal Operations', 'super_admin', 'Statewide', 'Municipal Administration & Water Supply', 'Director of Municipal Operations')
+      `).run(envClean, envHash);
+    } else {
+      db.prepare(`UPDATE admins SET password_hash = ? WHERE LOWER(email) = ?`).run(envHash, envClean);
+    }
+  }
 
   // Seed departmental and municipal officers if not present
   const demoOfficers = [
@@ -367,12 +375,14 @@ function initializeDatabase() {
 
   for (const off of demoOfficers) {
     const existing = db.prepare('SELECT id FROM admins WHERE email = ?').get(off.email);
+    const hash = bcrypt.hashSync(off.password, 12);
     if (!existing) {
-      const hash = bcrypt.hashSync(off.password, 12);
       db.prepare(`
         INSERT INTO admins (email, password_hash, name, role, district, department, designation)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(off.email, hash, off.name, off.role, off.district, off.department, off.designation);
+    } else {
+      db.prepare('UPDATE admins SET password_hash = ? WHERE email = ?').run(hash, off.email);
     }
   }
 

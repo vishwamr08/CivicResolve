@@ -40,6 +40,7 @@ const {
 const { TAMIL_NADU_DISTRICTS, TN_CIVIC_DEPARTMENTS } = require('./data/tamilnadu-geo');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Security Headers Middleware
 app.use((req, res, next) => {
@@ -942,14 +943,6 @@ app.get('/api/citizen/my-complaints', authenticateCitizen, (req, res) => {
 // POST /api/auth/login
 app.post('/api/auth/login', (req, res) => {
   try {
-    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
-    
-    // Check Rate Limiter
-    const rateCheck = checkLoginRateLimit(clientIp);
-    if (!rateCheck.allowed) {
-      return res.status(429).json({ error: rateCheck.message });
-    }
-
     const { email, password } = req.body;
 
     if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
@@ -957,15 +950,24 @@ app.post('/api/auth/login', (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.connection.remoteAddress || '127.0.0.1';
+    const rateLimitKey = `${clientIp}:${cleanEmail}`;
+    
+    // Check Rate Limiter per client and targeted account
+    const rateCheck = checkLoginRateLimit(rateLimitKey);
+    if (!rateCheck.allowed) {
+      return res.status(429).json({ error: rateCheck.message });
+    }
+
     const admin = db.prepare('SELECT * FROM admins WHERE LOWER(email) = ?').get(cleanEmail);
 
     if (!admin || !comparePassword(password, admin.password_hash)) {
-      recordFailedLogin(clientIp);
+      recordFailedLogin(rateLimitKey);
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
     // Login successful
-    recordSuccessfulLogin(clientIp);
+    recordSuccessfulLogin(rateLimitKey);
 
     const tokenPayload = {
       id: admin.id,

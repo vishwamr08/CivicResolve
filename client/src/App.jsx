@@ -168,8 +168,11 @@ export default function App() {
     setAdminUser(admin);
     localStorage.setItem('civic_admin_token', token);
     localStorage.setItem('civic_admin_user', JSON.stringify(admin));
-    setActiveTab('admin');
-    showToast(`Welcome, ${admin.name}! Command Center access granted.`, 'success');
+    const targetTab = (admin.role === 'field_officer' || admin.role === 'department_officer') 
+      ? 'officer-portal' 
+      : 'admin';
+    setActiveTab(targetTab);
+    showToast(`Welcome, ${admin.name}! Access granted.`, 'success');
   };
 
   // Handle Admin Logout

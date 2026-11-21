@@ -48,8 +48,8 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
     }
   };
 
-  const handleQuickFill = () => {
-    setEmail('admin@civicresolve.gov');
+  const handleQuickFill = (roleEmail = 'admin@civicresolve.gov') => {
+    setEmail(roleEmail);
     setPassword('CivicAdmin#2026!Secure');
     setError(null);
   };
@@ -71,18 +71,28 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
         </div>
 
         {/* Evaluation Fast-Fill Pill */}
-        <div className="bg-teal/5 border-b border-teal/10 px-6 py-2.5 flex items-center justify-between text-xs">
+        <div className="bg-teal/5 border-b border-teal/10 px-6 py-2.5 flex items-center justify-between text-xs flex-wrap gap-2">
           <div className="flex items-center gap-1.5 text-slate-600">
             <Sparkles className="w-3.5 h-3.5 text-teal" />
-            <span className="font-semibold text-slate-700">Evaluation Demo Admin:</span>
+            <span className="font-semibold text-slate-700">Quick Credentials:</span>
           </div>
-          <button
-            type="button"
-            onClick={handleQuickFill}
-            className="text-[11px] font-bold text-teal hover:text-teal-dark hover:underline"
-          >
-            Auto-fill Credentials
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleQuickFill('admin@civicresolve.gov')}
+              className="text-[11px] font-bold text-teal hover:text-teal-dark hover:underline"
+            >
+              Super Admin
+            </button>
+            <span className="text-slate-300">•</span>
+            <button
+              type="button"
+              onClick={() => handleQuickFill('gcc.officer@civicresolve.gov')}
+              className="text-[11px] font-bold text-teal hover:text-teal-dark hover:underline"
+            >
+              GCC Officer
+            </button>
+          </div>
         </div>
 
         {/* Form Body */}

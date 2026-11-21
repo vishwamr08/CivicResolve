@@ -44,28 +44,35 @@ function verifyToken(token) {
   }
 }
 
-// In-Memory Login Rate Limiter (Max 5 failed attempts per 15 mins per IP)
+// In-Memory Login Rate Limiter (Max 5 failed attempts per 15 mins per IP + account target)
 const loginAttempts = new Map();
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 mins
 const MAX_ATTEMPTS = 5;
 
-function checkLoginRateLimit(ip) {
+function checkLoginRateLimit(key) {
   const now = Date.now();
-  const record = loginAttempts.get(ip);
+  const record = loginAttempts.get(key);
 
   if (!record) return { allowed: true };
 
-  if (record.lockedUntil && now < record.lockedUntil) {
-    const remainingSeconds = Math.ceil((record.lockedUntil - now) / 1000);
-    return {
-      allowed: false,
-      message: `Account locked due to consecutive failed attempts. Please retry in ${remainingSeconds} seconds.`
-    };
+  // If locked, check if lockout period has expired
+  if (record.lockedUntil) {
+    if (now < record.lockedUntil) {
+      const remainingSeconds = Math.max(1, Math.ceil((record.lockedUntil - now) / 1000));
+      return {
+        allowed: false,
+        message: `Too many failed login attempts. Login locked. Please retry in ${remainingSeconds} seconds.`
+      };
+    } else {
+      // Lockout duration expired -> automatically clear and allow attempt
+      loginAttempts.delete(key);
+      return { allowed: true };
+    }
   }
 
-  // Window expired
+  // Window expired -> reset
   if (now - record.firstAttempt > RATE_LIMIT_WINDOW_MS) {
-    loginAttempts.delete(ip);
+    loginAttempts.delete(key);
     return { allowed: true };
   }
 
@@ -80,15 +87,18 @@ function checkLoginRateLimit(ip) {
   return { allowed: true };
 }
 
-function recordFailedLogin(ip) {
+function recordFailedLogin(key) {
   const now = Date.now();
-  const record = loginAttempts.get(ip) || { count: 0, firstAttempt: now, lockedUntil: null };
+  const record = loginAttempts.get(key) || { count: 0, firstAttempt: now, lockedUntil: null };
   record.count += 1;
-  loginAttempts.set(ip, record);
+  if (record.count >= MAX_ATTEMPTS && !record.lockedUntil) {
+    record.lockedUntil = now + RATE_LIMIT_WINDOW_MS;
+  }
+  loginAttempts.set(key, record);
 }
 
-function recordSuccessfulLogin(ip) {
-  loginAttempts.delete(ip);
+function recordSuccessfulLogin(key) {
+  loginAttempts.delete(key);
 }
 
 const ADMIN_ROLES = ['admin', 'super_admin', 'district_admin', 'municipal_admin', 'department_officer', 'field_officer'];
