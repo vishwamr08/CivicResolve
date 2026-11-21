@@ -39,7 +39,7 @@ function generateToken(payload) {
 function verifyToken(token) {
   try {
     return jwt.verify(token, JWT_SECRET);
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -205,7 +205,7 @@ function optionalCitizenAuth(req, res, next) {
         if (citizen) req.citizen = citizen;
       }
     }
-  } catch (err) {}
+  } catch {}
   next();
 }
 

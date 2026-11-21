@@ -8,7 +8,7 @@ function request(options, data = null) {
       res.on('end', () => {
         try {
           resolve({ status: res.statusCode, data: JSON.parse(body) });
-        } catch (e) {
+        } catch {
           resolve({ status: res.statusCode, body });
         }
       });

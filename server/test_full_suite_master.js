@@ -6,19 +6,10 @@ dotenv.config();
 
 const db = require('./db');
 const { 
-  hashPassword, 
-  comparePassword, 
-  generateToken, 
-  verifyToken, 
   generateSecureOtp, 
-  hashOtp,
-  checkLoginRateLimit,
-  recordFailedLogin,
-  recordSuccessfulLogin
+  hashOtp
 } = require('./auth');
-const { computeSlaMetrics, getTargetSlaHours } = require('./sla-engine');
-const { analyzeComplaintWithGroq } = require('./groq-ai');
-const { isSmtpConfigured, isSmsConfigured, sendSms } = require('./notifications');
+const { getTargetSlaHours } = require('./sla-engine');
 
 async function runMasterTestSuite() {
   console.log('================================================================================');

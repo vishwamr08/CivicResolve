@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { Navigation, MapPin, CheckCircle2, AlertTriangle, ShieldAlert, Layers, Globe } from 'lucide-react';
+import { MapPin, Globe } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 
 // Create custom colored Leaflet markers based on priority AND resolution status
@@ -62,9 +62,9 @@ export default function ComplaintMap({ complaints, onSelectComplaint }) {
   );
 
   // Default center: Chennai, Tamil Nadu coordinates
-  const defaultCenter = geotaggedComplaints.length > 0 
-    ? [Number(geotaggedComplaints[0].latitude), Number(geotaggedComplaints[0].longitude)]
-    : [13.0827, 80.2707];
+  const defaultCenter = useMemo(() => {
+    return geotaggedComplaints.length > 0 ? [Number(geotaggedComplaints[0].latitude), Number(geotaggedComplaints[0].longitude)] : [13.0827, 80.2707];
+  }, [geotaggedComplaints]);
 
   const nonGeotaggedCount = (complaints || []).length - geotaggedComplaints.length;
 
@@ -81,7 +81,7 @@ export default function ComplaintMap({ complaints, onSelectComplaint }) {
       .catch(() => {});
   }, []);
 
-  const loadGoogleMapsScript = (apiKey) => {
+  function loadGoogleMapsScript(apiKey) {
     if (window.google && window.google.maps) {
       setIsGoogleLoaded(true);
       setMapProvider('google');
@@ -174,7 +174,7 @@ export default function ComplaintMap({ complaints, onSelectComplaint }) {
 
       googleMarkersRef.current.push(marker);
     });
-  }, [mapProvider, isGoogleLoaded, geotaggedComplaints]);
+  }, [mapProvider, isGoogleLoaded, geotaggedComplaints, onSelectComplaint, defaultCenter]);
 
   return (
     <div className="space-y-3" role="region" aria-label="Interactive Map of Reported Grievances">
@@ -236,7 +236,7 @@ export default function ComplaintMap({ complaints, onSelectComplaint }) {
           ) : (
             <span className="inline-flex items-center gap-1 text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
               <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span>
-              OpenStreetMap Active {googleKey ? '' : '(Google Maps Available)'}
+              OpenStreetMap Active {googleLoadError ? '(Google Maps Offline Fallback)' : (googleKey ? '' : '(Google Maps Available)')}
             </span>
           )}
         </div>

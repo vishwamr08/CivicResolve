@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ShieldAlert, Clock, CheckCircle2, AlertTriangle, 
-  Wrench, Building2, MapPin, Search, Filter, RefreshCw, 
-  Eye, Edit3, Image as ImageIcon, Send, Loader2, ArrowRight, X, ChevronRight, UserCheck
+  Clock, Wrench, MapPin, Search, RefreshCw, 
+  Eye, Edit3, Image as Send, Loader2, X, UserCheck, AlertCircle
 } from 'lucide-react';
 import { translations } from '../data/translations';
 import { getApiUrl } from '../config/api';
@@ -171,6 +170,13 @@ export default function OfficerPortal({
           )}
         </div>
       </div>
+
+      {error && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-2xl flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* KPI Work Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">

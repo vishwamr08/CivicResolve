@@ -21,7 +21,7 @@ export default function CitizenAuthModal({
   const [mobileNumber, setMobileNumber] = useState('');
   const [enteredOtp, setEnteredOtp] = useState('');
   const [cooldown, setCooldown] = useState(0);
-  const [isNewUser, setIsNewUser] = useState(false);
+  const [_isNewUser, setIsNewUser] = useState(false);
 
   // New Citizen Profile Fields (collected after mobile verification)
   const [fullName, setFullName] = useState('');
@@ -456,6 +456,20 @@ export default function CitizenAuthModal({
                     </div>
 
                     <div className="space-y-1">
+                      <label htmlFor="reg-municipality" className="text-[11px] font-bold text-slate-700 block">
+                        {lang === 'ta' ? 'மாநகராட்சி' : 'Municipality'}
+                      </label>
+                      <input
+                        id="reg-municipality"
+                        type="text"
+                        placeholder="Greater Chennai Corporation"
+                        value={municipality}
+                        onChange={(e) => setMunicipality(e.target.value)}
+                        className="w-full px-2.5 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1 col-span-2">
                       <label htmlFor="reg-ward" className="text-[11px] font-bold text-slate-700 block">
                         {lang === 'ta' ? 'வார்டு / பகுதி' : 'Ward / Zone'}
                       </label>

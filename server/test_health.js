@@ -46,7 +46,7 @@ function requestHttp(serverUrl, pathName) {
         let json = null;
         try {
           json = JSON.parse(rawData);
-        } catch (e) {
+        } catch {
           json = rawData;
         }
         resolve({

@@ -207,7 +207,7 @@ Note: A photo was attached to this grievance, but text-only triage is executing 
     let parsed;
     try {
       parsed = JSON.parse(responseText);
-    } catch (parseErr) {
+    } catch {
       // Try stripping markdown fences if any
       const cleaned = responseText.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
       parsed = JSON.parse(cleaned);
@@ -264,5 +264,6 @@ Note: A photo was attached to this grievance, but text-only triage is executing 
 module.exports = {
   analyzeComplaintWithGroq,
   ALLOWED_CATEGORIES,
-  ALLOWED_PRIORITIES
+  ALLOWED_PRIORITIES,
+  TN_DEPARTMENTS_LIST
 };

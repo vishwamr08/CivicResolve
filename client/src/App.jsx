@@ -32,7 +32,7 @@ export default function App() {
     try {
       const saved = localStorage.getItem('civic_admin_user');
       return saved ? JSON.parse(saved) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   });
@@ -43,7 +43,7 @@ export default function App() {
     try {
       const saved = localStorage.getItem('civic_citizen_user');
       return saved ? JSON.parse(saved) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   });

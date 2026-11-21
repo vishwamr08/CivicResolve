@@ -3,7 +3,7 @@ const { DEFAULT_SLA_POLICY } = require('./data/tamilnadu-geo');
 /**
  * Determine default SLA target hours for a priority and category
  */
-function getTargetSlaHours(priority, category) {
+function getTargetSlaHours(priority, _category) {
   if (DEFAULT_SLA_POLICY[priority]) {
     return DEFAULT_SLA_POLICY[priority];
   }

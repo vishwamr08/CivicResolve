@@ -5,7 +5,6 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 dotenv.config();
 
 const { analyzeComplaintWithGroq, ALLOWED_CATEGORIES, ALLOWED_PRIORITIES } = require('./groq-ai');
-const db = require('./db');
 
 async function runGroqTestSuite() {
   console.log('====================================================');

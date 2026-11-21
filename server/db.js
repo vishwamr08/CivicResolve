@@ -85,7 +85,7 @@ function initializeDatabase() {
   for (const colDef of newComplaintCols) {
     try {
       db.exec(`ALTER TABLE complaints ADD COLUMN ${colDef};`);
-    } catch (e) {}
+    } catch {}
   }
 
   // Populate missing SLA deadlines & defaults for existing complaints
@@ -101,7 +101,7 @@ function initializeDatabase() {
       UPDATE complaints
       SET local_body = 'Greater Chennai Corporation' WHERE local_body IS NULL;
     `);
-  } catch (e) {}
+  } catch {}
 
   // Create admins table
   db.exec(`
@@ -121,13 +121,13 @@ function initializeDatabase() {
 
   try {
     db.exec(`ALTER TABLE admins ADD COLUMN district TEXT DEFAULT 'Statewide';`);
-  } catch (e) {}
+  } catch {}
   try {
     db.exec(`ALTER TABLE admins ADD COLUMN department TEXT DEFAULT 'Municipal Administration & Water Supply';`);
-  } catch (e) {}
+  } catch {}
   try {
     db.exec(`ALTER TABLE admins ADD COLUMN designation TEXT DEFAULT 'Municipal Officer';`);
-  } catch (e) {}
+  } catch {}
 
   // Create citizens table
   db.exec(`
@@ -163,7 +163,7 @@ function initializeDatabase() {
   for (const cCol of citizenCols) {
     try {
       db.exec(`ALTER TABLE citizens ADD COLUMN ${cCol};`);
-    } catch (e) {}
+    } catch {}
   }
 
   // Create citizen_otps table for Mobile OTP Authentication
@@ -182,7 +182,7 @@ function initializeDatabase() {
   `);
   try {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_citizen_otps_phone ON citizen_otps(phone);`);
-  } catch (e) {}
+  } catch {}
 
   // Create audit_logs table for Municipal Action Tracking
   db.exec(`
@@ -306,7 +306,7 @@ function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_announcements_active ON announcements(is_active);
       CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_type, recipient_id);
     `);
-  } catch (e) {}
+  } catch {}
 
   // Seed master administrator if admins table is empty
   const adminCountStmt = db.prepare('SELECT COUNT(*) as count FROM admins');
@@ -332,7 +332,7 @@ function initializeDatabase() {
   // Ensure role is super_admin for master admin
   try {
     db.exec(`UPDATE admins SET role = 'super_admin' WHERE email = 'admin@civicresolve.gov' AND (role = 'admin' OR role IS NULL);`);
-  } catch (e) {}
+  } catch {}
 
   // Seed departmental and municipal officers if not present
   const demoOfficers = [

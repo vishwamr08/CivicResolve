@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ShieldCheck, AlertTriangle, Clock, CheckCircle2, 
-  MapPin, ArrowRight, Zap, Droplets, Trash2, Wrench, 
-  Lightbulb, Activity, Sparkles, Building2, FileText, 
-  Search, UserCheck, ChevronDown, PhoneCall, HelpCircle,
-  Eye, Lock, BarChart3, Users, ExternalLink, Calendar,
-  Shield, Check, AlertCircle, ArrowUpRight, Megaphone
+  AlertTriangle, CheckCircle2, ShieldCheck, 
+  MapPin, ArrowRight, Zap, Droplets, Trash2, Lightbulb, Activity, Building2, FileText, 
+  Search, UserCheck, ChevronDown, Eye, Lock, BarChart3, ArrowUpRight, Megaphone
 } from 'lucide-react';
 import { translations } from '../data/translations';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
@@ -19,9 +16,9 @@ export default function LandingPage({
   onGoToAdmin,
   onGoToOfficer,
   onGoToPublicDashboard,
-  onGoToServices,
-  onGoToHowItWorks,
-  onGoToAnnouncements,
+  _onGoToServices,
+  _onGoToHowItWorks,
+  _onGoToAnnouncements,
   adminUser,
   stats,
   complaints = [],
@@ -32,7 +29,7 @@ export default function LandingPage({
   const [announcements, setAnnouncements] = useState([]);
   const [announcementIdx, setAnnouncementIdx] = useState(0);
 
-  const t = translations[lang] || translations.en;
+  const _t = translations[lang] || translations.en;
 
   // Fetch live announcements from backend
   useEffect(() => {
@@ -164,7 +161,7 @@ export default function LandingPage({
   const totalRegistered = stats?.totalComplaints || 0;
   const inProgressCases = stats?.inProgressComplaints || 0;
   const resolvedCases = stats?.resolvedComplaints || 0;
-  const overdueCases = stats?.overdueComplaints || 0;
+  const _overdueCases = stats?.overdueComplaints || 0;
   const resolutionRate = stats?.slaResolutionRate || (totalRegistered > 0 ? `${Math.round((resolvedCases / totalRegistered) * 100)}%` : '0%');
 
   // Filter complaints for snapshots (show resolved ones first)

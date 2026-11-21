@@ -45,7 +45,7 @@ function getDistanceMeters(lat1, lon1, lat2, lon2) {
 /**
  * Detect potential duplicate complaints for a newly submitted grievance
  */
-function findDuplicateCandidates({ title, description, category, district, ward, latitude, longitude, excludeId }) {
+function findDuplicateCandidates({ title, description, category, district, _ward, latitude, longitude, excludeId }) {
   try {
     // Look for active complaints in the same category within the last 14 days
     const query = `

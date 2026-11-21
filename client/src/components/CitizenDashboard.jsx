@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { 
   PlusCircle, Search, Filter, AlertCircle, Clock, CheckCircle2, 
-  MapPin, ShieldAlert, Sparkles, ChevronRight, Eye, Calendar, 
-  Map as MapIcon, List, SearchCheck, ArrowRight, Wrench, Send 
-} from 'lucide-react';
+  MapPin, Sparkles, ChevronRight, Calendar, 
+  Map as MapIcon, List, SearchCheck, Wrench } from 'lucide-react';
 import ComplaintMap from './ComplaintMap';
 import ComplaintTracker from './ComplaintTracker';
 

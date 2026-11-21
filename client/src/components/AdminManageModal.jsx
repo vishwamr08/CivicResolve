@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, CheckCircle2, ShieldAlert, Sparkles, Building2, 
-  MapPin, Calendar, Clock, AlertTriangle, ArrowRight, 
-  Save, Wrench, Edit3, Loader2, UserCheck, ShieldCheck, Link2, Copy, Check
-} from 'lucide-react';
+  X, Sparkles, AlertTriangle, Save, Wrench, Loader2 } from 'lucide-react';
 import TrackingTimeline from './TrackingTimeline';
 
 const ALL_DEPARTMENTS = [
@@ -218,7 +215,22 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
               </div>
 
               {/* Department & Officer Allocation (e-Yantra Pattern) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Grievance Category <span className="text-teal">*</span>
+                  </label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-teal bg-white"
+                  >
+                    {ALL_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Nodal Department <span className="text-teal">*</span>

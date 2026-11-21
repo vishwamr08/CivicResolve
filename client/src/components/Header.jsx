@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { 
   ShieldCheck, Globe, Menu, X, Home, Info, Wrench, 
   HelpCircle, BarChart3, Bell, PhoneCall, User, Lock, 
-  PlusCircle, LogOut, Sparkles, ChevronRight, CheckCircle
-} from 'lucide-react';
+  PlusCircle, LogOut, ChevronRight } from 'lucide-react';
 import { translations } from '../data/translations';
 
 export default function Header({ 
@@ -15,13 +14,13 @@ export default function Header({
   onLogoutCitizen, 
   adminUser, 
   onLogoutAdmin, 
-  health, 
+  _health, 
   lang = 'en', 
   setLang,
   announcementCount = 3
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const t = translations[lang] || translations.en;
+  const _t = translations[lang] || translations.en;
 
   const handleNavClick = (tabId) => {
     setActiveTab(tabId);

@@ -1,7 +1,7 @@
 import React from 'react';
-import { ShieldCheck, PhoneCall, Globe, Lock, ExternalLink, Heart } from 'lucide-react';
+import { ShieldCheck, Lock } from 'lucide-react';
 
-export default function Footer({ onNavigate, onOpenSubmit, lang = 'en' }) {
+export default function Footer({ onNavigate, onOpenSubmit, _lang = 'en' }) {
   return (
     <footer className="bg-navy-950 text-slate-400 border-t border-navy-800 text-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ShieldAlert, Clock, CheckCircle2, AlertTriangle, 
-  BarChart3, PieChart as PieIcon, ArrowUpRight, 
-  RefreshCw, Eye, Edit3, Wrench, Search,
+  CheckCircle2, AlertTriangle, 
+  BarChart3, PieChart as PieIcon, RefreshCw, Eye, Edit3, Wrench, Search,
   Mail, Send, Loader2, RotateCcw, Map as MapIcon, Inbox
 } from 'lucide-react';
 import { 

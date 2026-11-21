@@ -11,9 +11,6 @@
  */
 
 const http = require('http');
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
 const db = require('./db.js');
 const app = require('./index.js');
 
@@ -65,7 +62,7 @@ function makeRequest(method, endpoint, headers = {}, body = null) {
         let parsed = null;
         try {
           parsed = JSON.parse(data);
-        } catch (e) {
+        } catch {
           parsed = data;
         }
         resolve({
@@ -371,7 +368,7 @@ async function runTests() {
       try {
         db.prepare("DELETE FROM complaints WHERE ref_id = ?").run(refId);
         db.prepare("DELETE FROM audit_logs WHERE complaint_ref = ?").run(refId);
-      } catch (cleanErr) {}
+      } catch {}
     }
 
     // 7.5 All Mandated Tamil Nadu Grievance Categories Supported

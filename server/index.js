@@ -24,22 +24,17 @@ const {
   authenticateCitizen,
   optionalCitizenAuth,
   generateSecureOtp,
-  hashOtp,
-  requireRole,
-  ADMIN_ROLES
+  hashOtp
 } = require('./auth');
 const { computeSlaMetrics, getTargetSlaHours } = require('./sla-engine');
 const { findDuplicateCandidates } = require('./duplicate-engine');
 const {
-  sendEmail,
   sendSms,
-  sendWhatsApp,
   notifyCitizenEvent,
   retryNotificationLog,
   testSmtpConnection,
   isSmtpConfigured,
   isSmsConfigured,
-  isMsg91Configured,
   isWhatsAppConfigured
 } = require('./notifications');
 const { TAMIL_NADU_DISTRICTS, TN_CIVIC_DEPARTMENTS } = require('./data/tamilnadu-geo');
@@ -303,7 +298,7 @@ function parseComplaint(c, isAuthorized = false) {
   let history = [];
   try {
     history = c.status_history ? JSON.parse(c.status_history) : [];
-  } catch (e) {
+  } catch {
     history = [
       { status: c.status, timestamp: c.created_at, note: 'Grievance record initialized', actor: 'System' }
     ];
@@ -360,6 +355,20 @@ function recordAuditLog({ complaintRef, actorId, actorName, actorRole, action, p
   } catch (err) {
     console.warn('[Audit Log DB Notice]:', err.message);
   }
+}
+
+// High-Performance In-Memory Cache (TTL: 15s)
+const statsCache = new Map();
+function getCachedStats(key) {
+  const item = statsCache.get(key);
+  if (item && (Date.now() - item.ts < 15000)) return item.val;
+  return null;
+}
+function setCachedStats(key, val) {
+  statsCache.set(key, { ts: Date.now(), val });
+}
+function invalidateStatsCache() {
+  statsCache.clear();
 }
 
 // -------------------------------------------------------------
@@ -485,6 +494,7 @@ app.post('/api/recaptcha/verify', async (req, res) => {
       return res.status(400).json({ success: false, error: 'reCAPTCHA validation failed.', details: result['error-codes'] });
     }
   } catch (err) {
+    console.error('[Recaptcha Error]:', err);
     res.status(500).json({ success: false, error: 'Internal verification error' });
   }
 });
@@ -575,7 +585,7 @@ app.post('/api/auth/citizen/send-otp', async (req, res) => {
 // POST /api/auth/citizen/verify-otp
 app.post('/api/auth/citizen/verify-otp', (req, res) => {
   try {
-    const { phone, otp, purpose = 'login' } = req.body;
+    const { phone, otp, _purpose = 'login' } = req.body;
     if (!phone || !otp) {
       return res.status(400).json({ error: 'Phone number and 6-digit OTP are required.' });
     }
@@ -834,6 +844,7 @@ app.get('/api/citizen/profile', authenticateCitizen, (req, res) => {
     if (!c) return res.status(404).json({ error: 'Citizen not found' });
     res.json({ profile: c });
   } catch (err) {
+    console.error('[Profile Fetch Error]:', err);
     res.status(500).json({ error: 'Failed to fetch profile' });
   }
 });
@@ -870,6 +881,7 @@ app.put('/api/citizen/profile', authenticateCitizen, (req, res) => {
     const updated = db.prepare('SELECT id, name, email, phone, district, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent FROM citizens WHERE id = ?').get(req.citizen.id);
     res.json({ message: 'Profile updated successfully', profile: updated });
   } catch (err) {
+    console.error('[Profile Update Error]:', err);
     res.status(500).json({ error: 'Failed to update profile' });
   }
 });
@@ -898,6 +910,7 @@ app.post('/api/auth/citizen/password-reset', (req, res) => {
 
     res.json({ message: 'Password has been reset successfully. You can now log in.' });
   } catch (err) {
+    console.error('[Password Reset Error]:', err);
     res.status(500).json({ error: 'Password reset failed' });
   }
 });
@@ -1044,6 +1057,11 @@ app.get('/api/complaints', (req, res) => {
       params.push(local_body);
     }
 
+    if (ward && ward !== 'All') {
+      query += ' AND ward = ?';
+      params.push(ward);
+    }
+
     query += ' ORDER BY created_at DESC LIMIT ?';
     params.push(parseInt(limit, 10));
 
@@ -1131,6 +1149,7 @@ app.post('/api/complaints/track/:refId/verify-access', (req, res) => {
 
     res.status(401).json({ error: 'Verification failed: Credential does not match the contact details registered with this grievance.' });
   } catch (err) {
+    console.error('[Track Verify Error]:', err);
     res.status(500).json({ error: 'Verification error' });
   }
 });
@@ -1358,6 +1377,8 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
       }
     });
 
+    invalidateStatsCache();
+
     res.status(201).json({
       message: 'Complaint submitted and analyzed successfully',
       complaint: parseComplaint(created, true),
@@ -1410,6 +1431,7 @@ app.post('/api/complaints/:id/feedback', optionalCitizenAuth, (req, res) => {
 
     res.json({ message: 'Thank you! Your feedback has been recorded.' });
   } catch (err) {
+    console.error('[Feedback Record Error]:', err);
     res.status(500).json({ error: 'Failed to record feedback' });
   }
 });
@@ -1492,8 +1514,10 @@ app.post('/api/complaints/:id/appeal', optionalCitizenAuth, (req, res) => {
     });
 
     const updated = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    invalidateStatsCache();
     res.json({ message: 'Appeal submitted successfully. Escalated for senior officer review.', complaint: parseComplaint(updated, true) });
   } catch (err) {
+    console.error('[Appeal Submit Error]:', err);
     res.status(500).json({ error: 'Failed to submit appeal' });
   }
 });
@@ -1621,6 +1645,7 @@ app.get('/api/notifications', (req, res) => {
     `).all();
     res.json({ notifications });
   } catch (err) {
+    console.error('[Notifications Fetch Error]:', err);
     res.status(500).json({ error: 'Failed to fetch notifications' });
   }
 });
@@ -1630,6 +1655,7 @@ app.patch('/api/notifications/:id/read', (req, res) => {
     db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (err) {
+    console.error('[Notification Mark Error]:', err);
     res.status(500).json({ error: 'Failed to mark notification' });
   }
 });
@@ -1661,6 +1687,7 @@ app.get('/api/admin/notifications/logs', authenticateAdmin, (req, res) => {
     const logs = db.prepare(query).all(...params);
     res.json({ logs });
   } catch (err) {
+    console.error('[Notification Logs Fetch Error]:', err);
     res.status(500).json({ error: 'Failed to fetch notification logs' });
   }
 });
@@ -1823,6 +1850,8 @@ app.patch('/api/complaints/:id/manage', authenticateAdmin, (req, res) => {
       }
     });
 
+    invalidateStatsCache();
+
     res.json({
       message: 'Complaint successfully updated by officer',
       complaint: parseComplaint(updated, true)
@@ -1886,6 +1915,8 @@ app.patch('/api/complaints/:id/status', authenticateAdmin, (req, res) => {
       }
     });
 
+    invalidateStatsCache();
+
     res.json({ message: 'Status updated successfully', complaint: parseComplaint(updated, true) });
   } catch (err) {
     console.error('Error updating status:', err);
@@ -1912,6 +1943,7 @@ app.get('/api/admin/duplicates/:id', authenticateAdmin, (req, res) => {
 
     res.json({ duplicates });
   } catch (err) {
+    console.error('[Duplicate Scan Error]:', err);
     res.status(500).json({ error: 'Failed to find duplicates' });
   }
 });
@@ -1930,8 +1962,11 @@ app.post('/api/admin/link-duplicate', authenticateAdmin, (req, res) => {
       WHERE ref_id = ?
     `).run(primaryRefId, duplicateRefId);
 
+    invalidateStatsCache();
+
     res.json({ message: `Complaint ${duplicateRefId} linked to primary incident ${primaryRefId}` });
   } catch (err) {
+    console.error('[Link Duplicate Error]:', err);
     res.status(500).json({ error: 'Failed to link duplicate' });
   }
 });
@@ -1939,9 +1974,16 @@ app.post('/api/admin/link-duplicate', authenticateAdmin, (req, res) => {
 // -------------------------------------------------------------
 // 9. DASHBOARD STATISTICS & CIVIC ANALYTICS
 // -------------------------------------------------------------
+
 app.get('/api/dashboard/stats', (req, res) => {
   try {
     const { district } = req.query;
+    const cacheKey = district || 'all';
+    const cached = getCachedStats(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     let whereClause = 'WHERE 1=1';
     const params = [];
 
@@ -1950,21 +1992,18 @@ app.get('/api/dashboard/stats', (req, res) => {
       params.push(district);
     }
 
-    const totalRow = db.prepare(`SELECT COUNT(*) as total FROM complaints ${whereClause}`).get(...params);
-    const pendingRow = db.prepare(`SELECT COUNT(*) as pending FROM complaints ${whereClause} AND status IN ('Submitted', 'Under Review')`).get(...params);
-    const highPriorityRow = db.prepare(`SELECT COUNT(*) as high_priority FROM complaints ${whereClause} AND priority = 'High'`).get(...params);
-    const criticalRow = db.prepare(`SELECT COUNT(*) as critical FROM complaints ${whereClause} AND priority = 'Critical'`).get(...params);
-    const inProgressRow = db.prepare(`SELECT COUNT(*) as in_progress FROM complaints ${whereClause} AND status IN ('Assigned', 'In Progress')`).get(...params);
-    const resolvedRow = db.prepare(`SELECT COUNT(*) as resolved FROM complaints ${whereClause} AND status = 'Resolved'`).get(...params);
-
-    // Overdue count (past SLA deadline and not resolved)
-    const overdueRow = db.prepare(`
-      SELECT COUNT(*) as overdue FROM complaints 
-      ${whereClause} 
-      AND status != 'Resolved' 
-      AND sla_deadline IS NOT NULL 
-      AND datetime('now') > datetime(sla_deadline)
-    `).get(...params);
+    // Consolidated single-pass aggregation query for maximum efficiency
+    const countsRow = db.prepare(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN status IN ('Submitted', 'Under Review') THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN priority = 'High' THEN 1 ELSE 0 END) as high_priority,
+        SUM(CASE WHEN priority = 'Critical' THEN 1 ELSE 0 END) as critical,
+        SUM(CASE WHEN status IN ('Assigned', 'In Progress') THEN 1 ELSE 0 END) as in_progress,
+        SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved,
+        SUM(CASE WHEN status != 'Resolved' AND sla_deadline IS NOT NULL AND datetime('now') > datetime(sla_deadline) THEN 1 ELSE 0 END) as overdue
+      FROM complaints ${whereClause}
+    `).get(...params) || {};
 
     // Distinct departments with counts
     const departments = db.prepare(`
@@ -2007,18 +2046,18 @@ app.get('/api/dashboard/stats', (req, res) => {
         ELSE 5 END
     `).all(...params);
 
-    const total = totalRow.total || 0;
-    const resolved = resolvedRow.resolved || 0;
+    const total = countsRow.total || 0;
+    const resolved = countsRow.resolved || 0;
     const slaRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
 
-    res.json({
+    const payload = {
       totalComplaints: total,
-      pendingComplaints: pendingRow.pending || 0,
-      highPriorityComplaints: highPriorityRow.high_priority || 0,
-      criticalComplaints: criticalRow.critical || 0,
-      inProgressComplaints: inProgressRow.in_progress || 0,
+      pendingComplaints: countsRow.pending || 0,
+      highPriorityComplaints: countsRow.high_priority || 0,
+      criticalComplaints: countsRow.critical || 0,
+      inProgressComplaints: countsRow.in_progress || 0,
       resolvedComplaints: resolved,
-      overdueComplaints: overdueRow.overdue || 0,
+      overdueComplaints: countsRow.overdue || 0,
       resolutionRate: slaRate,
       slaResolutionRate: `${slaRate}%`,
       departments,
@@ -2026,7 +2065,10 @@ app.get('/api/dashboard/stats', (req, res) => {
       districtDistribution: districtRows,
       categoryDistribution: categoryRows,
       priorityDistribution: priorityRows
-    });
+    };
+
+    setCachedStats(cacheKey, payload);
+    res.json(payload);
   } catch (err) {
     console.error('Error fetching dashboard stats:', err);
     res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
@@ -2049,6 +2091,7 @@ app.get('/api/announcements', (req, res) => {
     `).all();
     res.json({ announcements });
   } catch (err) {
+    console.error('[Announcements Fetch Error]:', err);
     res.status(500).json({ error: 'Failed to fetch public announcements' });
   }
 });
@@ -2088,6 +2131,7 @@ app.post('/api/admin/announcements', authenticateAdmin, (req, res) => {
 
     res.status(201).json({ success: true, message: 'Announcement published successfully.' });
   } catch (err) {
+    console.error('[Create Announcement Error]:', err);
     res.status(500).json({ error: 'Failed to create announcement' });
   }
 });
@@ -2116,6 +2160,7 @@ app.delete('/api/admin/announcements/:id', authenticateAdmin, (req, res) => {
 
     res.json({ success: true, message: 'Announcement removed successfully.' });
   } catch (err) {
+    console.error('[Delete Announcement Error]:', err);
     res.status(500).json({ error: 'Failed to delete announcement' });
   }
 });
@@ -2131,6 +2176,7 @@ app.get('/api/admin/audit-logs', authenticateAdmin, (req, res) => {
     `).all(parseInt(limit, 10));
     res.json({ logs });
   } catch (err) {
+    console.error('[Audit Logs Error]:', err);
     res.status(500).json({ error: 'Failed to fetch audit logs' });
   }
 });
@@ -2177,7 +2223,7 @@ app.get('/api/geocode/reverse', async (req, res) => {
           });
         }
       }
-    } catch (e) {}
+    } catch {}
 
     // Graceful Tamil Nadu coordinate area fallback
     return res.json({
@@ -2185,6 +2231,7 @@ app.get('/api/geocode/reverse', async (req, res) => {
       provider: 'GPS Coordinates'
     });
   } catch (err) {
+    console.error('[Reverse Geocode Error]:', err);
     res.status(500).json({ error: 'Failed to reverse geocode location' });
   }
 });
@@ -2230,6 +2277,7 @@ app.get('/api/complaints/:refId/receipt', optionalCitizenAuth, (req, res) => {
       }
     });
   } catch (err) {
+    console.error('[Receipt Error]:', err);
     res.status(500).json({ error: 'Failed to generate receipt' });
   }
 });

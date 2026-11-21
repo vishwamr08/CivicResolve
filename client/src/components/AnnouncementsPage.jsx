@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Bell, AlertTriangle, Info, Calendar, Building2, Search, 
-  PlusCircle, Trash2, X, CheckCircle2, ShieldAlert, Sparkles, 
-  Loader2, ArrowRight, Filter, ExternalLink
-} from 'lucide-react';
+  Bell, AlertTriangle, Calendar, Building2, Search, 
+  PlusCircle, Trash2, X, CheckCircle2, Sparkles, 
+  Loader2, ArrowRight } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 
 export default function AnnouncementsPage({ 

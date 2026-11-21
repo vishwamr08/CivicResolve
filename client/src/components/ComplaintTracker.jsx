@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 import { 
-  Search, ShieldCheck, MapPin, Calendar, Building2, 
-  Sparkles, CheckCircle2, Clock, AlertTriangle, ArrowRight, 
-  Loader2, Navigation, Printer, Star, UserCheck, Image as ImageIcon,
-  Lock, KeyRound, Unlock, Phone, Mail
-} from 'lucide-react';
+  Search, ShieldCheck, Sparkles, CheckCircle2, Clock, AlertTriangle, ArrowRight, 
+  Loader2, Printer, Image as Lock, Unlock } from 'lucide-react';
 import TrackingTimeline from './TrackingTimeline';
 import { getAssetUrl, getApiUrl } from '../config/api';
 
 export default function ComplaintTracker({ 
   initialRefId = '', 
-  onSelectComplaint,
+  _onSelectComplaint,
   onViewReceipt,
-  lang = 'en'
+  _lang = 'en'
 }) {
   const [refInput, setRefInput] = useState(initialRefId);
   const [trackingData, setTrackingData] = useState(null);

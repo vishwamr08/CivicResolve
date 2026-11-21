@@ -35,7 +35,7 @@ const TN_DEPARTMENTS_LIST = [
  * Deterministic Rule-Based Fallback Engine
  * Analyzes grievance keywords across English, Tamil, and Tanglish
  */
-function deterministicRuleBasedTriage({ title = '', description = '', category = '', location = '', district = 'Chennai' }) {
+function deterministicRuleBasedTriage({ title = '', description = '', category = '', location = '', _district = 'Chennai' }) {
   const text = `${title} ${description} ${category} ${location}`.toLowerCase();
 
   // Electricity / High-voltage live safety emergency
@@ -319,7 +319,7 @@ CRITICAL INSTRUCTIONS:
     let parsed;
     try {
       parsed = JSON.parse(responseText);
-    } catch (parseErr) {
+    } catch {
       const cleaned = responseText.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
       parsed = JSON.parse(cleaned);
     }

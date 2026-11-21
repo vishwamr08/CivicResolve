@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  BarChart3, PieChart as PieChartIcon, TrendingUp, 
-  ShieldCheck, ArrowLeft, RefreshCw, Filter, 
-  CheckCircle2, AlertTriangle, Clock, Building2, MapPin,
-  ExternalLink, Sparkles
-} from 'lucide-react';
+  PieChart as ShieldCheck, ArrowLeft, RefreshCw, Filter } from 'lucide-react';
 import { 
   ResponsiveContainer, BarChart, Bar, PieChart, Pie, 
-  Cell, Tooltip, XAxis, YAxis, CartesianGrid, Legend,
-  LineChart, Line
-} from 'recharts';
+  Cell, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
 import { getApiUrl } from '../config/api';
 
@@ -17,7 +11,7 @@ const COLORS = ['#0D9488', '#3B82F6', '#6366F1', '#EC4899', '#F59E0B', '#10B981'
 
 export default function PublicDashboard({ 
   onBack, 
-  onOpenSubmit,
+  _onOpenSubmit,
   stats: initialStats,
   lang = 'en'
 }) {

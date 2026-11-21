@@ -210,7 +210,7 @@ export default function ComplaintFormModal({
               setStreetAddress(data.address);
             }
           }
-        } catch (e) {
+        } catch {
           if (!streetAddress) {
             setStreetAddress(`Geotagged Coordinates: Lat ${lat}, Lng ${lng}`);
           }

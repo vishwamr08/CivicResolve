@@ -1,7 +1,8 @@
 import React from 'react';
 import { 
   Smartphone, Camera, Clock, CheckCircle2, 
-  RotateCcw, Building2, ArrowRight, Award 
+  RotateCcw, Building2, ArrowRight, Award,
+  Search, BarChart3
 } from 'lucide-react';
 
 export default function HowItWorksPage({ 

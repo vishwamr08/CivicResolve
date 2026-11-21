@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  ShieldCheck, Lock, Mail, Eye, EyeOff, 
+  Lock, Mail, Eye, EyeOff, 
   ArrowRight, ArrowLeft, Loader2, AlertCircle, KeyRound, Sparkles 
 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
