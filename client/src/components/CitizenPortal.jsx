@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { translations } from '../data/translations';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
+import { getApiUrl } from '../config/api';
 
 export default function CitizenPortal({ 
   citizenUser, 
@@ -55,7 +56,7 @@ export default function CitizenPortal({
 
     setLoading(true);
     try {
-      const res = await fetch('/api/citizen/my-complaints', {
+      const res = await fetch(getApiUrl('/api/citizen/my-complaints'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -74,7 +75,7 @@ export default function CitizenPortal({
     if (!token) return;
 
     try {
-      const res = await fetch('/api/citizen/profile', {
+      const res = await fetch(getApiUrl('/api/citizen/profile'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -111,7 +112,7 @@ export default function CitizenPortal({
     setSavingProfile(true);
     setProfileMsg(null);
     try {
-      const res = await fetch('/api/citizen/profile', {
+      const res = await fetch(getApiUrl('/api/citizen/profile'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -153,7 +154,7 @@ export default function CitizenPortal({
     setResettingPassword(true);
     setPasswordMsg(null);
     try {
-      const res = await fetch('/api/auth/citizen/password-reset', {
+      const res = await fetch(getApiUrl('/api/auth/citizen/password-reset'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -189,7 +190,7 @@ export default function CitizenPortal({
       };
 
       if (isAppealing) {
-        const res = await fetch(`/api/complaints/${feedbackComplaint.id || feedbackComplaint.ref_id}/appeal`, {
+        const res = await fetch(getApiUrl(`/api/complaints/${feedbackComplaint.id || feedbackComplaint.ref_id}/appeal`), {
           method: 'POST',
           headers: authHeaders,
           body: JSON.stringify({ 
@@ -201,7 +202,7 @@ export default function CitizenPortal({
         if (!res.ok) throw new Error(data.error || 'Failed to file appeal');
         setFeedbackSuccess('Grievance reopen request submitted for Zonal Officer review!');
       } else {
-        const res = await fetch(`/api/complaints/${feedbackComplaint.id || feedbackComplaint.ref_id}/feedback`, {
+        const res = await fetch(getApiUrl(`/api/complaints/${feedbackComplaint.id || feedbackComplaint.ref_id}/feedback`), {
           method: 'POST',
           headers: authHeaders,
           body: JSON.stringify({ 

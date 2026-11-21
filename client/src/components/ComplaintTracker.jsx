@@ -6,6 +6,7 @@ import {
   Lock, KeyRound, Unlock, Phone, Mail
 } from 'lucide-react';
 import TrackingTimeline from './TrackingTimeline';
+import { getAssetUrl, getApiUrl } from '../config/api';
 
 export default function ComplaintTracker({ 
   initialRefId = '', 
@@ -42,7 +43,7 @@ export default function ComplaintTracker({
     setIsUnlocked(false);
     setVerifyError(null);
     try {
-      const res = await fetch(`/api/complaints/track/${encodeURIComponent(cleanId)}`);
+      const res = await fetch(getApiUrl(`/api/complaints/track/${encodeURIComponent(cleanId)}`));
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
         throw new Error(errJson.error || `No grievance found with reference ID "${cleanId}".`);
@@ -65,7 +66,7 @@ export default function ComplaintTracker({
     setVerifying(true);
     setVerifyError(null);
     try {
-      const res = await fetch(`/api/complaints/track/${trackingData.ref_id}/verify-access`, {
+      const res = await fetch(getApiUrl(`/api/complaints/track/${trackingData.ref_id}/verify-access`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: verifyCredential.trim() })
@@ -142,7 +143,7 @@ export default function ComplaintTracker({
             type="button"
             onClick={() => {
               setRefInput(id);
-              fetch(`/api/complaints/track/${id}`)
+              fetch(getApiUrl(`/api/complaints/track/${id}`))
                 .then(r => r.json())
                 .then(d => { setTrackingData(d); setError(null); setIsUnlocked(false); })
                 .catch(e => setError(e.message));
@@ -309,7 +310,7 @@ export default function ComplaintTracker({
                     Repair Evidence Photo:
                   </span>
                   <img
-                    src={c.resolution_evidence_url}
+                    src={getAssetUrl(c.resolution_evidence_url)}
                     alt="Resolution evidence"
                     className="max-h-48 rounded-xl border border-emerald-200 object-cover"
                   />

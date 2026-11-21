@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { Navigation, MapPin, CheckCircle2, AlertTriangle, ShieldAlert, Layers, Globe } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 // Create custom colored Leaflet markers based on priority AND resolution status
 const createCustomIcon = (priority, status) => {
@@ -69,7 +70,7 @@ export default function ComplaintMap({ complaints, onSelectComplaint }) {
 
   // Check backend for Google Maps API Key
   useEffect(() => {
-    fetch('/api/config/client')
+    fetch(getApiUrl('/api/config/client'))
       .then(r => r.json())
       .then(config => {
         if (config && config.googleMapsEnabled && config.googleMapsApiKey) {

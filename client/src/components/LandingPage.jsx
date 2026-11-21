@@ -10,6 +10,7 @@ import {
 import { translations } from '../data/translations';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
 import ComplaintMap from './ComplaintMap';
+import { getAssetUrl, getApiUrl } from '../config/api';
 
 export default function LandingPage({ 
   onOpenSubmit, 
@@ -35,7 +36,7 @@ export default function LandingPage({
 
   // Fetch live announcements from backend
   useEffect(() => {
-    fetch('/api/announcements')
+    fetch(getApiUrl('/api/announcements'))
       .then(r => r.json())
       .then(d => {
         if (d && d.announcements && d.announcements.length > 0) {
@@ -531,7 +532,7 @@ export default function LandingPage({
               <div>
                 <div className="h-44 bg-slate-100 relative overflow-hidden">
                   <img
-                    src={item.image_url || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop&q=60'}
+                    src={getAssetUrl(item.image_url) || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop&q=60'}
                     alt={item.title}
                     className="w-full h-full object-cover"
                   />

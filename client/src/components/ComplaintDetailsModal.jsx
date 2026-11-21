@@ -3,6 +3,7 @@ import {
   X, MapPin, Calendar, Sparkles, CheckCircle2, Wrench 
 } from 'lucide-react';
 import TrackingTimeline from './TrackingTimeline';
+import { getAssetUrl } from '../config/api';
 
 export default function ComplaintDetailsModal({ 
   complaint, 
@@ -78,7 +79,7 @@ export default function ComplaintDetailsModal({
               </span>
               <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 max-h-72 flex items-center justify-center">
                 <img
-                  src={complaint.image_url}
+                  src={getAssetUrl(complaint.image_url)}
                   alt="Incident Visual Evidence"
                   className="w-full h-full object-contain max-h-72"
                   onError={(e) => {

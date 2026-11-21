@@ -3,6 +3,7 @@ import {
   ShieldCheck, Lock, Mail, Eye, EyeOff, 
   ArrowRight, ArrowLeft, Loader2, AlertCircle, KeyRound, Sparkles 
 } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 export default function AdminLogin({ onLoginSuccess, onCancel }) {
   const [email, setEmail] = useState('');
@@ -22,7 +23,7 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
     setError(null);
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(getApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

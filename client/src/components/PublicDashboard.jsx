@@ -11,6 +11,7 @@ import {
   LineChart, Line
 } from 'recharts';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
+import { getApiUrl } from '../config/api';
 
 const COLORS = ['#0D9488', '#3B82F6', '#6366F1', '#EC4899', '#F59E0B', '#10B981', '#8B5CF6', '#64748B'];
 
@@ -30,8 +31,8 @@ export default function PublicDashboard({
     try {
       const q = district !== 'All' ? `?district=${encodeURIComponent(district)}` : '';
       const [statsRes, annRes] = await Promise.all([
-        fetch(`/api/dashboard/stats${q}`).then(r => r.json()),
-        fetch('/api/announcements').then(r => r.json()).catch(() => ({ announcements: [] }))
+        fetch(getApiUrl(`/api/dashboard/stats${q}`)).then(r => r.json()).catch(() => null),
+        fetch(getApiUrl('/api/announcements')).then(r => r.json()).catch(() => ({ announcements: [] }))
       ]);
 
       if (statsRes) setStats(statsRes);

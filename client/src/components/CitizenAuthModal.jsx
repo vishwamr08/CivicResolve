@@ -5,6 +5,7 @@ import {
   ShieldCheck, ArrowRight, RotateCw
 } from 'lucide-react';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
+import { getApiUrl } from '../config/api';
 
 export default function CitizenAuthModal({ 
   isOpen, 
@@ -73,7 +74,7 @@ export default function CitizenAuthModal({
 
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/citizen/send-otp', {
+      const res = await fetch(getApiUrl('/api/auth/citizen/send-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: clean, purpose: 'login' })
@@ -111,7 +112,7 @@ export default function CitizenAuthModal({
 
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/citizen/verify-otp', {
+      const res = await fetch(getApiUrl('/api/auth/citizen/verify-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: clean, otp: cleanOtp, purpose: 'login' })
@@ -159,7 +160,7 @@ export default function CitizenAuthModal({
     setLoading(true);
     try {
       const clean = mobileNumber.replace(/\D/g, '').slice(-10);
-      const res = await fetch('/api/auth/citizen/register-with-otp', {
+      const res = await fetch(getApiUrl('/api/auth/citizen/register-with-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -196,7 +197,7 @@ export default function CitizenAuthModal({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/citizen/login', {
+      const res = await fetch(getApiUrl('/api/auth/citizen/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

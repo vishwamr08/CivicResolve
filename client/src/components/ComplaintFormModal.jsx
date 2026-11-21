@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
 import { translations } from '../data/translations';
+import { getApiUrl } from '../config/api';
 
 export default function ComplaintFormModal({ 
   isOpen, 
@@ -202,7 +203,7 @@ export default function ComplaintFormModal({
         setIsGpsDetected(true);
 
         try {
-          const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
+          const res = await fetch(getApiUrl(`/api/geocode/reverse?lat=${lat}&lng=${lng}`));
           if (res.ok) {
             const data = await res.json();
             if (data.address) {

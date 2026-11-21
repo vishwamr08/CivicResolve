@@ -4,6 +4,7 @@ import {
   PlusCircle, Trash2, X, CheckCircle2, ShieldAlert, Sparkles, 
   Loader2, ArrowRight, Filter, ExternalLink
 } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 export default function AnnouncementsPage({ 
   adminUser = null, 
@@ -36,7 +37,7 @@ export default function AnnouncementsPage({
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('/api/announcements');
+      const res = await fetch(getApiUrl('/api/announcements'));
       if (!res.ok) throw new Error('Failed to load announcements');
       const data = await res.json();
       setAnnouncements(data.announcements || []);
@@ -62,7 +63,7 @@ export default function AnnouncementsPage({
     setPublishLoading(true);
     setPublishError('');
     try {
-      const res = await fetch('/api/admin/announcements', {
+      const res = await fetch(getApiUrl('/api/admin/announcements'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +101,7 @@ export default function AnnouncementsPage({
     if (!window.confirm(`Are you sure you want to remove announcement: "${title}"?`)) return;
 
     try {
-      const res = await fetch(`/api/admin/announcements/${id}`, {
+      const res = await fetch(getApiUrl(`/api/admin/announcements/${id}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${adminToken}`

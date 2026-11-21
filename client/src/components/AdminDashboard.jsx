@@ -10,6 +10,7 @@ import {
   PieChart, Pie, Cell, Legend 
 } from 'recharts';
 import ComplaintMap from './ComplaintMap';
+import { getApiUrl } from '../config/api';
 
 export default function AdminDashboard({ 
   stats, 
@@ -65,7 +66,7 @@ export default function AdminDashboard({
 
     setLoadingLogs(true);
     try {
-      const res = await fetch('/api/admin/notifications/logs?limit=40', {
+      const res = await fetch(getApiUrl('/api/admin/notifications/logs?limit=40'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -93,7 +94,7 @@ export default function AdminDashboard({
     setTestingSmtp(true);
     setSmtpTestResult(null);
     try {
-      const res = await fetch('/api/admin/notifications/test-email', {
+      const res = await fetch(getApiUrl('/api/admin/notifications/test-email'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +118,7 @@ export default function AdminDashboard({
 
     setRetryingLogId(logId);
     try {
-      const res = await fetch(`/api/admin/notifications/${logId}/retry`, {
+      const res = await fetch(getApiUrl(`/api/admin/notifications/${logId}/retry`), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });

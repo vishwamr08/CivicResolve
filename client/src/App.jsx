@@ -20,6 +20,7 @@ import HowItWorksPage from './components/HowItWorksPage';
 import AboutPage from './components/AboutPage';
 import Footer from './components/Footer';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { getApiUrl } from './config/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('landing'); // 'landing', 'tracker', 'citizen-portal', 'citizen', 'admin', 'admin-login'
@@ -92,7 +93,7 @@ export default function App() {
       const storedAdminToken = localStorage.getItem('civic_admin_token');
       if (storedAdminToken) {
         try {
-          const res = await fetch('/api/auth/me', {
+          const res = await fetch(getApiUrl('/api/auth/me'), {
             headers: { 'Authorization': `Bearer ${storedAdminToken}` }
           });
           if (res.ok) {
@@ -113,7 +114,7 @@ export default function App() {
       const storedCitizenToken = localStorage.getItem('civic_citizen_token');
       if (storedCitizenToken) {
         try {
-          const res = await fetch('/api/auth/citizen/me', {
+          const res = await fetch(getApiUrl('/api/auth/citizen/me'), {
             headers: { 'Authorization': `Bearer ${storedCitizenToken}` }
           });
           if (res.ok) {
@@ -139,19 +140,19 @@ export default function App() {
     try {
       setError(null);
       const [healthRes, statsRes, complaintsRes] = await Promise.all([
-        fetch('/api/health').then(r => r.json()).catch(() => null),
-        fetch('/api/dashboard/stats').then(r => r.json()),
-        fetch('/api/complaints').then(r => r.json())
+        fetch(getApiUrl('/api/health')).then(r => r.json()).catch(() => null),
+        fetch(getApiUrl('/api/dashboard/stats')).then(r => r.json()).catch(() => null),
+        fetch(getApiUrl('/api/complaints')).then(r => r.json()).catch(() => null)
       ]);
 
-      if (healthRes) setHealth(healthRes);
-      if (statsRes) setStats(statsRes);
+      if (healthRes && !healthRes.error) setHealth(healthRes);
+      if (statsRes && !statsRes.error) setStats(statsRes);
       if (complaintsRes && complaintsRes.complaints) {
         setComplaints(complaintsRes.complaints);
       }
     } catch (err) {
       console.error('Error fetching data:', err);
-      setError('Could not connect to CivicResolve Backend API. Please verify server is running on port 5000.');
+      setError('Could not connect to CivicResolve Backend API.');
     } finally {
       setLoading(false);
     }
@@ -174,7 +175,7 @@ export default function App() {
   // Handle Admin Logout
   const handleAdminLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch(getApiUrl('/api/auth/logout'), { method: 'POST' });
     } catch (e) {
       console.warn('Logout API notice:', e.message);
     } finally {
@@ -223,7 +224,7 @@ export default function App() {
         headers['Authorization'] = `Bearer ${citizenToken}`;
       }
 
-      const response = await fetch('/api/complaints', {
+      const response = await fetch(getApiUrl('/api/complaints'), {
         method: 'POST',
         headers,
         body: formData,
@@ -266,7 +267,7 @@ export default function App() {
     }
 
     try {
-      const response = await fetch(`/api/complaints/${id}/manage`, {
+      const response = await fetch(getApiUrl(`/api/complaints/${id}/manage`), {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
@@ -300,8 +301,8 @@ export default function App() {
       }
 
       // Refresh stats
-      const statsRes = await fetch('/api/dashboard/stats').then(r => r.json());
-      setStats(statsRes);
+      const statsRes = await fetch(getApiUrl('/api/dashboard/stats')).then(r => r.json()).catch(() => null);
+      if (statsRes && !statsRes.error) setStats(statsRes);
 
       showToast(`Grievance ${updated.ref_id} updated & audit trail saved!`, 'success');
     } catch (err) {

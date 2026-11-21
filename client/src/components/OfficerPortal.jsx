@@ -5,6 +5,7 @@ import {
   Eye, Edit3, Image as ImageIcon, Send, Loader2, ArrowRight, X, ChevronRight, UserCheck
 } from 'lucide-react';
 import { translations } from '../data/translations';
+import { getApiUrl } from '../config/api';
 
 export default function OfficerPortal({ 
   adminUser, 
@@ -36,7 +37,7 @@ export default function OfficerPortal({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/officer/tasks', {
+      const res = await fetch(getApiUrl('/api/officer/tasks'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -74,7 +75,7 @@ export default function OfficerPortal({
 
     setSubmittingReport(true);
     try {
-      const res = await fetch(`/api/officer/tasks/${reportingTask.id || reportingTask.ref_id}/report`, {
+      const res = await fetch(getApiUrl(`/api/officer/tasks/${reportingTask.id || reportingTask.ref_id}/report`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
