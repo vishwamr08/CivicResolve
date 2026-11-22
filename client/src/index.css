@@ -18,26 +18,37 @@
 }
 
 @layer base {
+  html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
   body {
     @apply font-sans bg-[#f8f9fa] text-[#0f172a] antialiased selection:bg-orange-100 selection:text-orange-900;
+  }
+  :focus-visible {
+    outline: 2px solid #1a3c6e;
+    outline-offset: 2px;
+  }
+  button, a, input, select, textarea {
+    touch-action: manipulation;
   }
 }
 
 /* CivicResolve Design System Tokens */
 .btn-civic-primary {
-  @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#f47920] hover:bg-[#d96810] active:bg-[#c25c0a] transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2;
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#f47920] hover:bg-[#d96810] active:bg-[#c25c0a] transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 min-h-[44px];
 }
 
 .btn-civic-navy {
-  @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#1a3c6e] hover:bg-[#15305a] active:bg-[#0f2040] transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-600 focus-visible:ring-offset-2;
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#1a3c6e] hover:bg-[#15305a] active:bg-[#0f2040] transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-600 focus-visible:ring-offset-2 min-h-[44px];
 }
 
 .btn-civic-secondary {
-  @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold text-[#1a3c6e] bg-white border border-slate-300 hover:bg-slate-50 active:bg-slate-100 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2;
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold text-[#1a3c6e] bg-white border border-slate-300 hover:bg-slate-50 active:bg-slate-100 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 min-h-[44px];
 }
 
 .btn-civic-ghost {
-  @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300;
+  @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 min-h-[40px];
 }
 
 .card-civic {

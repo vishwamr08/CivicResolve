@@ -20,7 +20,7 @@ export default function Header({
   announcementCount = 3
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const _t = translations[lang] || translations.en;
+  const t = translations[lang] || translations.en;
 
   const handleNavClick = (tabId) => {
     setActiveTab(tabId);
@@ -292,36 +292,36 @@ export default function Header({
             {citizenUser ? (
               <button
                 onClick={() => handleNavClick('citizen-portal')}
-                className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-orange-50 border border-orange-200 text-[#d96810] text-xs font-semibold"
+                className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg bg-orange-50 border border-orange-200 text-[#d96810] text-xs font-semibold"
               >
                 <User className="w-3.5 h-3.5 text-[#f47920]" />
-                <span>Citizen Portal</span>
+                <span className="truncate">{t.citizenPortal}</span>
               </button>
             ) : (
               <button
                 onClick={() => { setMobileMenuOpen(false); onOpenCitizenAuth(); }}
-                className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-slate-100 text-slate-800 text-xs font-semibold hover:bg-slate-200"
+                className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg bg-slate-100 text-slate-800 text-xs font-semibold hover:bg-slate-200"
               >
                 <User className="w-3.5 h-3.5 text-slate-600" />
-                <span>Citizen Login</span>
+                <span className="truncate">{t.citizenLogin}</span>
               </button>
             )}
 
             {adminUser ? (
               <button
                 onClick={() => handleNavClick('admin')}
-                className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[#1a3c6e] text-white text-xs font-semibold"
+                className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg bg-[#1a3c6e] text-white text-xs font-semibold"
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-[#f47920]" />
-                <span>Admin Console</span>
+                <span className="truncate">{t.commandCenter}</span>
               </button>
             ) : (
               <button
                 onClick={() => handleNavClick('admin-login')}
-                className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+                className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
               >
                 <Lock className="w-3.5 h-3.5 text-slate-600" />
-                <span>Officer Login</span>
+                <span className="truncate">{t.officerLogin}</span>
               </button>
             )}
           </div>
@@ -362,7 +362,7 @@ export default function Header({
               onClick={() => handleNavClick('tracker')}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-slate-100 text-slate-800 text-xs font-semibold hover:bg-slate-200 transition-colors"
             >
-              <span>{lang === 'ta' ? 'மனு நிலை அறிய' : 'Track Existing Grievance'}</span>
+              <span>{t.trackExisting}</span>
             </button>
           </div>
 

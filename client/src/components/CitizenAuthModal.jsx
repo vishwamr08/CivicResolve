@@ -5,6 +5,7 @@ import {
   ShieldCheck, ArrowRight, RotateCw
 } from 'lucide-react';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
+import { translations } from '../data/translations';
 import { getApiUrl } from '../config/api';
 
 export default function CitizenAuthModal({ 
@@ -40,6 +41,8 @@ export default function CitizenAuthModal({
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  const t = translations[lang] || translations.en;
+
   // Cooldown countdown timer
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -70,7 +73,7 @@ export default function CitizenAuthModal({
 
     const clean = mobileNumber.replace(/\D/g, '').slice(-10);
     if (!/^[6-9]\d{9}$/.test(clean)) {
-      setError(lang === 'ta' ? 'சரியான 10 இலக்க இந்திய அலைபேசி எண்ணை உள்ளிடவும்.' : 'Please enter a valid 10-digit Indian mobile number starting with 6-9.');
+      setError(t.invalidPhoneMsg || (lang === 'ta' ? 'சரியான 10 இலக்க இந்திய அலைபேசி எண்ணை உள்ளிடவும்.' : 'Please enter a valid 10-digit Indian mobile number starting with 6-9.'));
       return;
     }
 
@@ -87,7 +90,7 @@ export default function CitizenAuthModal({
         throw new Error(data.error || 'Failed to dispatch verification OTP.');
       }
 
-      setSuccessMsg(data.message || 'OTP dispatched to registered mobile.');
+      setSuccessMsg(data.message || t.otpSuccessDispatched);
       setCooldown(data.cooldownSeconds || 60);
       setIsNewUser(!data.isExistingUser);
       if (data.devOtp) {
@@ -101,7 +104,7 @@ export default function CitizenAuthModal({
     }
   };
 
-  // 2. Verify OTP Request
+  // 2. Verify OTP Request (Resilient returning citizen detection)
   const handleVerifyOtp = async (e) => {
     if (e) e.preventDefault();
     setError('');
@@ -111,7 +114,7 @@ export default function CitizenAuthModal({
     const cleanOtp = enteredOtp.trim();
 
     if (cleanOtp.length !== 6) {
-      setError(lang === 'ta' ? 'சரியான 6 இலக்க OTP எண்ணை உள்ளிடவும்.' : 'Please enter the complete 6-digit verification code.');
+      setError(t.invalidOtpMsg || (lang === 'ta' ? 'சரியான 6 இலக்க OTP எண்ணை உள்ளிடவும்.' : 'Please enter the complete 6-digit verification code.'));
       return;
     }
 
@@ -128,14 +131,15 @@ export default function CitizenAuthModal({
         throw new Error(data.error || 'OTP verification failed.');
       }
 
-      if (data.isNewUser) {
+      // Check if user is truly new (has no citizen record or no registered name)
+      if (data.isNewUser && (!data.citizen || !data.citizen.name)) {
         // OTP verified for new user -> advance to profile completion
         setIsNewUser(true);
         setRegistrationToken(data.registrationToken || '');
         setOtpStep('complete-profile');
-        setSuccessMsg(lang === 'ta' ? 'அலைபேசி எண் சரிபார்க்கப்பட்டது! விவரங்களை பூர்த்தி செய்யவும்.' : 'Mobile verified! Please provide your name and municipal details to complete setup.');
+        setSuccessMsg(t.otpVerifiedSuccess || (lang === 'ta' ? 'அலைபேசி எண் சரிபார்க்கப்பட்டது! விவரங்களை பூர்த்தி செய்யவும்.' : 'Mobile verified! Please provide your name and municipal details to complete setup.'));
       } else {
-        // Existing user -> session established
+        // Returning citizen -> immediately establish authenticated session
         if (onSuccess) {
           onSuccess(data.token, data.citizen);
         }
@@ -154,12 +158,12 @@ export default function CitizenAuthModal({
     setError('');
 
     if (!fullName.trim()) {
-      setError(lang === 'ta' ? 'உங்கள் பெயரை உள்ளிடவும்.' : 'Citizen full name is required.');
+      setError(t.nameRequiredMsg || (lang === 'ta' ? 'உங்கள் பெயரை உள்ளிடவும்.' : 'Citizen full name is required.'));
       return;
     }
 
     if (!consentTerms) {
-      setError(lang === 'ta' ? 'விதிமுறைகளுக்கு ஒப்புதல் அளிக்க வேண்டும்.' : 'Please accept the citizen charter terms.');
+      setError(t.consentRequiredMsg || (lang === 'ta' ? 'விதிமுறைகளுக்கு ஒப்புதல் அளிக்க வேண்டும்.' : 'Please accept the citizen charter terms.'));
       return;
     }
 
@@ -229,6 +233,14 @@ export default function CitizenAuthModal({
     }
   };
 
+  const handleDistrictChange = (distName) => {
+    setDistrict(distName);
+    const dObj = TAMIL_NADU_DISTRICTS.find(d => d.name === distName || d.id === distName);
+    if (dObj && dObj.localBodies && dObj.localBodies.length > 0) {
+      setMunicipality(dObj.localBodies[0].name);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
@@ -248,10 +260,10 @@ export default function CitizenAuthModal({
             </div>
             <div>
               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-navy-900 text-slate-300 border border-navy-800 mb-1">
-                Citizen Identity Service
+                {t.authModalTitle}
               </div>
               <h2 className="text-base font-bold tracking-tight">
-                {lang === 'ta' ? 'குடிமக்கள் உள்நுழைவு' : 'Citizen Grievance Portal'}
+                {t.authModalHeading}
               </h2>
             </div>
           </div>
@@ -266,7 +278,7 @@ export default function CitizenAuthModal({
               }`}
             >
               <Phone className="w-3.5 h-3.5" />
-              <span>Mobile OTP</span>
+              <span>{t.mobileOtpTab}</span>
             </button>
             <button
               type="button"
@@ -276,7 +288,7 @@ export default function CitizenAuthModal({
               }`}
             >
               <Lock className="w-3.5 h-3.5" />
-              <span>Password Login</span>
+              <span>{t.passwordLoginTab}</span>
             </button>
           </div>
         </div>
@@ -306,7 +318,7 @@ export default function CitizenAuthModal({
                 <form onSubmit={handleSendOtp} className="space-y-4">
                   <div className="space-y-1.5">
                     <label htmlFor="citizen-mobile-phone" className="text-xs font-semibold text-slate-700 block">
-                      {lang === 'ta' ? 'அலைபேசி எண் (10 இலக்கங்கள்)' : 'Mobile Phone Number'}
+                      {t.mobileNumberLabel}
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-semibold text-xs" aria-hidden="true">
@@ -327,7 +339,7 @@ export default function CitizenAuthModal({
                       />
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      {lang === 'ta' ? 'உங்கள் எண்ணிற்கு 6 இலக்க OTP குறியீடு அனுப்பப்படும்.' : 'A 6-digit one-time password will be dispatched via municipal SMS gateway.'}
+                      {t.otpNotice}
                     </p>
                   </div>
 
@@ -337,7 +349,7 @@ export default function CitizenAuthModal({
                     className="w-full py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors shadow-xs"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-                    <span>{lang === 'ta' ? 'OTP பெறுக' : 'Get Verification OTP'}</span>
+                    <span>{t.getOtpBtn}</span>
                   </button>
                 </form>
               )}
@@ -347,7 +359,7 @@ export default function CitizenAuthModal({
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
                     <div>
-                      <span className="text-slate-500 block text-[10px] uppercase font-semibold">Verification sent to</span>
+                      <span className="text-slate-500 block text-[10px] uppercase font-semibold">{t.verifyingSentTo}</span>
                       <span className="font-semibold text-slate-900 font-mono">+91 {mobileNumber}</span>
                     </div>
                     <button
@@ -355,13 +367,13 @@ export default function CitizenAuthModal({
                       onClick={() => setOtpStep('input-phone')}
                       className="text-xs font-semibold text-navy-900 hover:underline"
                     >
-                      Change
+                      {t.changeNumber}
                     </button>
                   </div>
 
                   <div className="space-y-1.5">
                     <label htmlFor="citizen-otp-token" className="text-xs font-semibold text-slate-700 block">
-                      {lang === 'ta' ? '6 இலக்க OTP உள்ளிடவும்' : 'Enter 6-Digit OTP'}
+                      {t.enterOtpLabel}
                     </label>
                     <input
                       id="citizen-otp-token"
@@ -381,18 +393,18 @@ export default function CitizenAuthModal({
                   <div className="flex items-center justify-between text-xs text-slate-500">
                     <span>
                       {cooldown > 0 ? (
-                        <span>Resend in <strong className="text-slate-900 font-mono">{cooldown}s</strong></span>
+                        <span>{t.resendIn} <strong className="text-slate-900 font-mono">{cooldown}s</strong></span>
                       ) : (
                         <button
                           type="button"
                           onClick={handleSendOtp}
                           className="font-semibold text-navy-900 hover:underline flex items-center gap-1"
                         >
-                          <RotateCw className="w-3 h-3" /> Resend OTP
+                          <RotateCw className="w-3 h-3" /> {t.resendOtp}
                         </button>
                       )}
                     </span>
-                    <span className="text-[10px] text-slate-400">Valid for 10 minutes</span>
+                    <span className="text-[10px] text-slate-400">{t.otpValidPeriod}</span>
                   </div>
 
                   <button
@@ -401,7 +413,7 @@ export default function CitizenAuthModal({
                     className="w-full py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors shadow-xs"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                    <span>{lang === 'ta' ? 'சரிபார்த்து தொடரவும்' : 'Verify & Sign In'}</span>
+                    <span>{t.verifyAndSignInBtn}</span>
                   </button>
                 </form>
               )}
@@ -411,12 +423,12 @@ export default function CitizenAuthModal({
                 <form onSubmit={handleCompleteRegistration} className="space-y-3.5">
                   <div className="space-y-1">
                     <label htmlFor="reg-fullname" className="text-xs font-semibold text-slate-700 block">
-                      {lang === 'ta' ? 'முழு பெயர்' : 'Full Name'} *
+                      {t.fullNameLabel} *
                     </label>
                     <input
                       id="reg-fullname"
                       type="text"
-                      placeholder="e.g. S. Ramanathan"
+                      placeholder={t.fullNamePlaceholder}
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900"
@@ -426,12 +438,12 @@ export default function CitizenAuthModal({
 
                   <div className="space-y-1">
                     <label htmlFor="reg-email" className="text-xs font-semibold text-slate-700 block">
-                      {lang === 'ta' ? 'மின்னஞ்சல் (விருப்பத்தேர்வு)' : 'Email Address (Optional)'}
+                      {t.emailOptionalLabel}
                     </label>
                     <input
                       id="reg-email"
                       type="email"
-                      placeholder="ramanathan@example.com"
+                      placeholder="citizen@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900"
@@ -441,23 +453,25 @@ export default function CitizenAuthModal({
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="space-y-1">
                       <label htmlFor="reg-district" className="text-[11px] font-semibold text-slate-700 block">
-                        {lang === 'ta' ? 'மாவட்டம்' : 'District'} *
+                        {t.districtLabel} *
                       </label>
                       <select
                         id="reg-district"
                         value={district}
-                        onChange={(e) => setDistrict(e.target.value)}
+                        onChange={(e) => handleDistrictChange(e.target.value)}
                         className="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900 bg-white"
                       >
                         {TAMIL_NADU_DISTRICTS.map((d) => (
-                          <option key={d.id} value={d.name}>{d.name}</option>
+                          <option key={d.id} value={d.name}>
+                            {lang === 'ta' ? (d.name_ta || d.name) : d.name}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     <div className="space-y-1">
                       <label htmlFor="reg-municipality" className="text-[11px] font-semibold text-slate-700 block">
-                        {lang === 'ta' ? 'மாநகராட்சி' : 'Municipality'}
+                        {t.localBodyLabel}
                       </label>
                       <input
                         id="reg-municipality"
@@ -471,7 +485,7 @@ export default function CitizenAuthModal({
 
                     <div className="space-y-1 col-span-2">
                       <label htmlFor="reg-ward" className="text-[11px] font-semibold text-slate-700 block">
-                        {lang === 'ta' ? 'வார்டு / பகுதி' : 'Ward / Zone'}
+                        {t.wardZoneLabel}
                       </label>
                       <input
                         id="reg-ward"
@@ -492,7 +506,7 @@ export default function CitizenAuthModal({
                         onChange={(e) => setConsentTerms(e.target.checked)}
                         className="mt-0.5 rounded text-navy-900 focus:ring-navy-800"
                       />
-                      <span>I agree to receive grievance status alerts via SMS and accept the CivicResolve citizen charter.</span>
+                      <span>{t.charterConsent}</span>
                     </label>
                   </div>
 
@@ -502,7 +516,7 @@ export default function CitizenAuthModal({
                     className="w-full py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors shadow-xs"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                    <span>{lang === 'ta' ? 'பதிவு செய்து உள்நுழைக' : 'Complete Setup & Open Portal'}</span>
+                    <span>{t.completeSetupBtn}</span>
                   </button>
                 </form>
               )}
@@ -514,7 +528,7 @@ export default function CitizenAuthModal({
             <form onSubmit={handlePasswordLogin} className="space-y-4">
               <div className="space-y-1.5">
                 <label htmlFor="login-email-input" className="text-xs font-semibold text-slate-700 block">
-                  {lang === 'ta' ? 'மின்னஞ்சல் முகவரி' : 'Registered Email Address'}
+                  {t.registeredEmailLabel}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400" aria-hidden="true">
@@ -535,7 +549,7 @@ export default function CitizenAuthModal({
 
               <div className="space-y-1.5">
                 <label htmlFor="login-password-input" className="text-xs font-semibold text-slate-700 block">
-                  {lang === 'ta' ? 'கடவுச்சொல்' : 'Password'}
+                  {t.passwordInputLabel}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400" aria-hidden="true">
@@ -549,6 +563,7 @@ export default function CitizenAuthModal({
                     onChange={(e) => setLoginPassword(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900"
                     required
+                    aria-label="Account password"
                   />
                 </div>
               </div>
@@ -559,7 +574,7 @@ export default function CitizenAuthModal({
                 className="w-full py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors shadow-xs"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                <span>{lang === 'ta' ? 'உள்நுழைக' : 'Sign In with Password'}</span>
+                <span>{t.signIn}</span>
               </button>
 
               <div className="text-center pt-2">

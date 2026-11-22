@@ -11,6 +11,10 @@
  */
 
 const http = require('http');
+
+const { setupIsolatedTestDb } = require('./test_helper');
+const { isolatedDbPath, cleanup } = setupIsolatedTestDb('evaluation_complete');
+
 const db = require('./db.js');
 const app = require('./index.js');
 
@@ -394,7 +398,11 @@ async function runTests() {
 
   // Gracefully close internal test server
   if (server) {
-    server.close();
+    server.close(() => {
+      cleanup(db);
+    });
+  } else {
+    cleanup(db);
   }
 
   // ==========================================

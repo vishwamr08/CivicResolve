@@ -30,7 +30,7 @@ export default function LandingPage({
   const [announcements, setAnnouncements] = useState([]);
   const [announcementIdx, setAnnouncementIdx] = useState(0);
 
-  const _t = translations[lang] || translations.en;
+  const t = translations[lang] || translations.en;
 
   // Fallback realistic announcements to guarantee initial pre-deployment contents
   const defaultAnnouncements = [
@@ -864,28 +864,25 @@ export default function LandingPage({
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-6">
         <div className="text-center max-w-2xl mx-auto space-y-1.5">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            Statewide Coverage Across All 38 Districts
+            {t.tnCoverageTitle || 'Statewide Coverage Across All 38 Districts'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500">
-            Standardized municipal jurisdiction hierarchy from corporation headquarters to village panchayat wards.
+            {t.tnCoverageSub || 'Standardized municipal jurisdiction hierarchy across 25 Municipal Corporations to town panchayats and village wards.'}
           </p>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8">
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
-            {TAMIL_NADU_DISTRICTS.slice(0, 24).map((d) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+            {TAMIL_NADU_DISTRICTS.map((d) => (
               <div 
                 key={d.id} 
-                className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-center hover:border-slate-300 transition-colors"
+                className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-center hover:border-slate-300 hover:bg-slate-100 transition-colors"
               >
                 <span className="font-semibold text-xs text-slate-900 block">{d.name}</span>
                 <span className="text-[10px] text-slate-500 block">{d.name_ta}</span>
               </div>
             ))}
           </div>
-          <p className="text-center text-xs text-slate-500 mt-4">
-            + 14 additional districts including Ramanathapuram, Theni, Virudhunagar, Thiruvarur, and Dharmapuri.
-          </p>
         </div>
       </section>
 

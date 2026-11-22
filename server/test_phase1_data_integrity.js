@@ -10,6 +10,10 @@
 
 const assert = require('assert');
 const path = require('path');
+
+const { setupIsolatedTestDb } = require('./test_helper');
+const { isolatedDbPath, cleanup } = setupIsolatedTestDb('phase1_data_integrity');
+
 const db = require('./db');
 
 console.log('================================================================================');
@@ -110,9 +114,12 @@ async function runPhase1Tests() {
   console.log('\n================================================================================');
   console.log(`  ALL ${passedTests}/${totalTests} PHASE 1 DATA INTEGRITY TESTS PASSED CLEANLY!`);
   console.log('================================================================================\n');
+
+  cleanup(db);
 }
 
 runPhase1Tests().catch(err => {
+  cleanup(db);
   console.error('Phase 1 Data Integrity Test Failed:', err);
   process.exit(1);
 });

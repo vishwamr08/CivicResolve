@@ -7,7 +7,9 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 
-process.env.NODE_ENV = 'test';
+const { setupIsolatedTestDb } = require('./test_helper');
+const { isolatedDbPath, cleanup } = setupIsolatedTestDb('phase3_routing');
+
 process.env.JWT_SECRET = 'test_jwt_secret_civicresolve_2026';
 
 const app = require('./index');
@@ -298,7 +300,13 @@ async function runTests() {
     console.error('Test run failed with error:', err);
     failed++;
   } finally {
-    if (server) server.close();
+    if (server) {
+      server.close(() => {
+        cleanup(db);
+      });
+    } else {
+      cleanup(db);
+    }
   }
 
   console.log('\n------------------------------------------------------');

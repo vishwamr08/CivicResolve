@@ -20,6 +20,23 @@ function normalizePhone(phone) {
   return cleaned.slice(-10);
 }
 
+// Resilient citizen lookup by normalized mobile number
+function findCitizenByPhone(database, phone) {
+  const norm = normalizePhone(phone);
+  if (!norm) return null;
+  const dbInstance = database || db;
+  return dbInstance.prepare(`
+    SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, created_at
+    FROM citizens
+    WHERE phone = ?
+       OR phone = ?
+       OR phone = ?
+       OR phone = ?
+       OR substr(replace(replace(replace(phone, ' ', ''), '-', ''), '+91', ''), -10) = ?
+    ORDER BY id ASC LIMIT 1
+  `).get(norm, `+91${norm}`, `+91-${norm}`, `0${norm}`, norm);
+}
+
 // Cryptographically Secure OTP Utilities
 function generateSecureOtp() {
   return crypto.randomInt(100000, 1000000).toString();
@@ -245,6 +262,7 @@ function requireRole(...allowedRoles) {
 
 module.exports = {
   normalizePhone,
+  findCitizenByPhone,
   generateSecureOtp,
   hashOtp,
   hashPassword,

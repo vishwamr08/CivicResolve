@@ -6,8 +6,9 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure test environment
-process.env.NODE_ENV = 'test';
+const { setupIsolatedTestDb } = require('./test_helper');
+const { isolatedDbPath, cleanup } = setupIsolatedTestDb('phase2_auth');
+
 process.env.JWT_SECRET = 'test_jwt_secret_civicresolve_2026';
 
 const app = require('./index');
@@ -301,7 +302,11 @@ async function runTests() {
     failed++;
   } finally {
     if (server) {
-      server.close();
+      server.close(() => {
+        cleanup(db);
+      });
+    } else {
+      cleanup(db);
     }
   }
 

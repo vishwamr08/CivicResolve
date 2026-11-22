@@ -7,26 +7,82 @@ dotenv.config();
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 
-const dbPath = process.env.SQLITE_DB_PATH || 
-  (process.env.DATA_DIR ? path.join(process.env.DATA_DIR, 'civicresolve.db') : path.join(__dirname, 'civicresolve.db'));
+let dbPath;
+const isProduction = process.env.NODE_ENV === 'production';
+const isTest = process.env.NODE_ENV === 'test';
+
+const genuineDbPath = path.resolve(path.join(__dirname, 'civicresolve.db'));
+const backupDbPath = path.resolve(path.join(__dirname, 'civicresolve_safety_backup_phase1.db'));
+
+// Deterministic Path Resolution Precedence:
+// 1. SQLITE_DB_PATH (Explicit path to SQLite database file)
+// 2. DATA_DIR (Directory containing civicresolve.db, e.g. /var/data on Render persistent disk)
+// 3. In production: Fatal startup failure (silent fallback to ephemeral storage is strictly prohibited)
+// 4. In test: Fatal test isolation failure (silent fallback to genuine local DB is strictly prohibited)
+// 5. In development: Safe fallback to local server/civicresolve.db
+if (process.env.SQLITE_DB_PATH) {
+  dbPath = path.resolve(process.env.SQLITE_DB_PATH);
+} else if (process.env.DATA_DIR) {
+  dbPath = path.resolve(path.join(process.env.DATA_DIR, 'civicresolve.db'));
+} else {
+  if (isProduction) {
+    const errorMsg = '[FATAL DATABASE STARTUP FAILURE]: Production environment requires an explicit persistent database path via SQLITE_DB_PATH or DATA_DIR. Silent fallback to local ephemeral storage is strictly prohibited to prevent data loss.';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+  if (isTest) {
+    const testIsolationMsg = '[FATAL TEST ISOLATION FAILURE]: Automated tests (NODE_ENV=test) must explicitly configure an isolated temporary database via process.env.SQLITE_DB_PATH before requiring database modules. Fallback to genuine database is strictly prohibited.';
+    console.error(testIsolationMsg);
+    throw new Error(testIsolationMsg);
+  }
+  dbPath = genuineDbPath;
+}
+
+// Strict Test Isolation Guard: Prevent test execution from ever pointing to the genuine database or backup
+if (isTest) {
+  if (path.resolve(dbPath) === genuineDbPath || path.resolve(dbPath) === backupDbPath) {
+    const testIsolationError = `[FATAL TEST ISOLATION FAILURE]: Automated tests (NODE_ENV=test) are strictly forbidden from connecting to or mutating the genuine local database at "${dbPath}". Tests must set process.env.SQLITE_DB_PATH to an isolated temporary test database.`;
+    console.error(testIsolationError);
+    throw new Error(testIsolationError);
+  }
+}
+
+// In production, verify that a configured persistent storage mount directory actually exists
+if (isProduction && process.env.DATA_DIR && !fs.existsSync(process.env.DATA_DIR)) {
+  const mountError = `[FATAL DATABASE STARTUP FAILURE]: Configured persistent storage mount directory DATA_DIR="${process.env.DATA_DIR}" does not exist. Verify persistent disk attachment in Render Dashboard.`;
+  console.error(mountError);
+  throw new Error(mountError);
+}
+
+// In production, prevent silent creation of unintended empty replacement databases
+if (isProduction && !fs.existsSync(dbPath)) {
+  if (process.env.REQUIRE_EXISTING_DB === 'true' || process.env.ALLOW_NEW_PRODUCTION_DB !== 'true') {
+    const missingDbError = `[FATAL DATABASE STARTUP FAILURE]: Expected production database file does not exist at "${dbPath}" while REQUIRE_EXISTING_DB=true. Refusing to create an unverified empty replacement database. If this is an intentional initial deployment on a new disk, set ALLOW_NEW_PRODUCTION_DB=true.`;
+    console.error(missingDbError);
+    throw new Error(missingDbError);
+  }
+}
 
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+  try {
+    fs.mkdirSync(dbDir, { recursive: true });
+  } catch (err) {
+    console.error(`[DATABASE ERROR]: Failed to create directory for database at ${dbDir}:`, err.message);
+    throw err;
+  }
 }
 
-// If configured with persistent storage (e.g. DATA_DIR=/var/data) and target DB does not exist yet,
-// safely seed it from the repo baseline so all 27 genuine complaints and user accounts are preserved
-const baselineRepoDb = path.join(__dirname, 'civicresolve.db');
-if (path.resolve(dbPath) !== path.resolve(baselineRepoDb) && !fs.existsSync(dbPath)) {
-  if (fs.existsSync(baselineRepoDb)) {
-    try {
-      fs.copyFileSync(baselineRepoDb, dbPath);
-      console.log(`[Database Initialization]: Initialized persistent database at ${dbPath} from baseline snapshot.`);
-    } catch (err) {
-      console.warn(`[Database Initialization]: Could not copy baseline DB to ${dbPath}:`, err.message);
-    }
-  }
+try {
+  fs.accessSync(dbDir, fs.constants.W_OK);
+} catch (err) {
+  console.error(`[DATABASE ERROR]: Database directory ${dbDir} is not writable:`, err.message);
+  throw err;
+}
+
+const dbExisted = fs.existsSync(dbPath);
+if (!dbExisted && isProduction) {
+  console.warn(`[DATABASE DIAGNOSTIC]: Database file does not yet exist at ${dbPath}. Initializing schema on persistent mount.`);
 }
 
 class BetterSqliteAdapter {
@@ -70,6 +126,14 @@ class BetterSqliteAdapter {
       }
     };
   }
+  async backup(destPath) {
+    if (typeof this.syncDb.backup === 'function') {
+      return this.syncDb.backup(destPath);
+    }
+    // Non-destructive online snapshot via SQLite VACUUM INTO
+    this.syncDb.exec(`VACUUM INTO '${destPath.replace(/'/g, "''")}'`);
+    return destPath;
+  }
   close() {
     this._open = false;
     return this.syncDb.close();
@@ -85,11 +149,22 @@ try {
   db = new BetterSqliteAdapter(dbPath);
 }
 
-// Enable WAL mode for better concurrency and enforce FULL synchronous durability per municipal deployment safety standards
+// Enable WAL mode for better concurrency, FULL synchronous durability, and busy timeout for concurrent requests
 db.pragma('journal_mode = WAL');
 db.pragma('synchronous = FULL');
+db.pragma('busy_timeout = 5000');
 
 function initializeDatabase() {
+  try {
+    const integrity = db.pragma('integrity_check');
+    const isOk = Array.isArray(integrity) && integrity.length > 0 && (integrity[0].integrity_check === 'ok' || Object.values(integrity[0])[0] === 'ok');
+    if (!isOk) {
+      console.error('[DATABASE INTEGRITY WARNING]: PRAGMA integrity_check reported issues:', integrity);
+    }
+  } catch (err) {
+    console.warn('[DATABASE INTEGRITY NOTICE]: Integrity check query returned notice:', err.message);
+  }
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS complaints (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -757,5 +832,7 @@ function initializeDatabase() {
 }
 
 initializeDatabase();
+
+db.dbPath = dbPath;
 
 module.exports = db;

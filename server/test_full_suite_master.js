@@ -4,6 +4,9 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 dotenv.config();
 
+const { setupIsolatedTestDb } = require('./test_helper');
+const { isolatedDbPath, cleanup } = setupIsolatedTestDb('full_suite_master');
+
 const db = require('./db');
 const { 
   generateSecureOtp, 
@@ -199,9 +202,12 @@ async function runMasterTestSuite() {
   console.log('\n================================================================================');
   console.log(`  ALL ${passedTests}/${totalTests} MASTER TEST SUITES PASSED CLEANLY!`);
   console.log('================================================================================\n');
+
+  cleanup(db);
 }
 
 runMasterTestSuite().catch(err => {
+  cleanup(db);
   console.error('\nMaster Test Suite Encountered Error:', err);
   process.exit(1);
 });

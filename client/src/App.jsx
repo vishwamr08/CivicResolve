@@ -48,7 +48,20 @@ function ViewSkeleton() {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('landing'); // 'landing', 'tracker', 'citizen-portal', 'citizen', 'admin', 'admin-login'
-  const [lang, setLang] = useState('en'); // 'en' or 'ta'
+  const [lang, setLang] = useState(() => {
+    try {
+      return localStorage.getItem('civic_lang') || 'en';
+    } catch {
+      return 'en';
+    }
+  });
+
+  const handleSetLang = (newLang) => {
+    setLang(newLang);
+    try {
+      localStorage.setItem('civic_lang', newLang);
+    } catch {}
+  };
   
   // Administrator Authentication State
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem('civic_admin_token') || null);
@@ -76,7 +89,7 @@ export default function App() {
   const [complaintsLoaded, setComplaintsLoaded] = useState(false);
   const [stats, setStats] = useState(null);
   const [health, setHealth] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, _setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isServerWaking, setIsServerWaking] = useState(false);
 
@@ -125,14 +138,15 @@ export default function App() {
           if (res.ok) {
             const data = await res.json();
             setAdminUser(data.admin);
-          } else {
+          } else if (res.status === 401 || res.status === 403) {
+            // Strictly remove on authenticated refusal only, never on 502/503/504 cold starts!
             localStorage.removeItem('civic_admin_token');
             localStorage.removeItem('civic_admin_user');
             setAdminToken(null);
             setAdminUser(null);
           }
         } catch (e) {
-          console.warn('Admin session verify notice:', e.message);
+          console.warn('Admin session verify notice (server may be waking):', e.message);
         }
       }
 
@@ -147,18 +161,22 @@ export default function App() {
         if (res.ok) {
           const data = await res.json();
           setCitizenUser(data.citizen);
-          if (storedCitizenToken) {
+          if (data.token) {
+            setCitizenToken(data.token);
+            localStorage.setItem('civic_citizen_token', data.token);
+          } else if (storedCitizenToken) {
             setCitizenToken(storedCitizenToken);
           }
           localStorage.setItem('civic_citizen_user', JSON.stringify(data.citizen));
-        } else if (storedCitizenToken) {
+        } else if (res.status === 401 || res.status === 403) {
+          // Strictly clear session ONLY if explicit 401/403 unauthorized, never on 502/503/504 or network errors!
           localStorage.removeItem('civic_citizen_token');
           localStorage.removeItem('civic_citizen_user');
           setCitizenToken(null);
           setCitizenUser(null);
         }
       } catch (e) {
-        console.warn('Citizen session verify notice:', e.message);
+        console.warn('Citizen session verify notice (server may be waking):', e.message);
       }
     };
 
@@ -180,7 +198,7 @@ export default function App() {
   }, [complaintsLoaded]);
 
   // Fetch initial lightweight startup data only (Health + Aggregated Stats)
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setError(null);
       const [healthRes, statsRes] = await Promise.all([
@@ -188,29 +206,53 @@ export default function App() {
         fetch(getApiUrl('/api/dashboard/stats')).then(r => r.json()).catch(() => null)
       ]);
 
-      if (healthRes && !healthRes.error) setHealth(healthRes);
-      if (statsRes && !statsRes.error) setStats(statsRes);
+      if (healthRes && !healthRes.error) {
+        setHealth(healthRes);
+        setIsServerWaking(false);
+      }
+      if (statsRes && !statsRes.error) {
+        setStats(statsRes);
+      }
+      return !!(healthRes && !healthRes.error);
     } catch (err) {
-      console.error('Error fetching startup data:', err);
-      setError('Could not connect to CivicResolve Backend API.');
-    } finally {
-      setLoading(false);
+      console.warn('Backend connection notice:', err.message);
+      return false;
     }
-  };
-
-  // Initial startup probe with transparent waking detection for cloud cold starts
-  useEffect(() => {
-    const wakingTimer = setTimeout(() => {
-      setIsServerWaking(true);
-    }, 2500);
-
-    fetchData().finally(() => {
-      clearTimeout(wakingTimer);
-      setIsServerWaking(false);
-    });
-
-    return () => clearTimeout(wakingTimer);
   }, []);
+
+  // Initial startup probe with transparent waking detection and bounded automatic retry for cloud cold starts
+  useEffect(() => {
+    let cancelled = false;
+    let pollCount = 0;
+    const maxPolls = 8;
+    let pollTimer = null;
+
+    const wakingTimer = setTimeout(() => {
+      if (!cancelled) setIsServerWaking(true);
+    }, 2000);
+
+    const probeAndPoll = async () => {
+      const ok = await fetchData();
+      clearTimeout(wakingTimer);
+      if (ok) {
+        if (!cancelled) setIsServerWaking(false);
+      } else if (!cancelled && pollCount < maxPolls) {
+        setIsServerWaking(true);
+        pollCount++;
+        pollTimer = setTimeout(probeAndPoll, 4000);
+      } else if (!cancelled) {
+        setIsServerWaking(false);
+      }
+    };
+
+    probeAndPoll();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(wakingTimer);
+      if (pollTimer) clearTimeout(pollTimer);
+    };
+  }, [fetchData]);
 
   // Fetch complaints on-demand when navigating to tabs that require individual complaints
   useEffect(() => {
@@ -218,6 +260,14 @@ export default function App() {
       loadComplaints();
     }
   }, [activeTab, loadComplaints]);
+
+  // Combined refresh for Admin Command Center: telemetry metrics + full complaints list
+  const handleAdminRefresh = useCallback(async () => {
+    await Promise.all([
+      fetchData(),
+      loadComplaints(true)
+    ]);
+  }, [fetchData, loadComplaints]);
 
   // Handle Admin Login Success
   const handleAdminLoginSuccess = (token, admin) => {
@@ -248,13 +298,14 @@ export default function App() {
     }
   };
 
-  // Handle Citizen Login Success
+  // Handle Citizen Login Success (Auto routes to citizen-portal and persists tokens)
   const handleCitizenLoginSuccess = (token, citizen) => {
     setCitizenToken(token);
     setCitizenUser(citizen);
-    localStorage.setItem('civic_citizen_token', token);
-    localStorage.setItem('civic_citizen_user', JSON.stringify(citizen));
-    showToast(`Welcome back, ${citizen.name}!`, 'success');
+    if (token) localStorage.setItem('civic_citizen_token', token);
+    if (citizen) localStorage.setItem('civic_citizen_user', JSON.stringify(citizen));
+    setActiveTab('citizen-portal');
+    showToast(lang === 'ta' ? `வணக்கம், ${citizen?.name || 'குடிமகன்'}!` : `Welcome back, ${citizen?.name || 'Citizen'}!`, 'success');
   };
 
   // Handle Citizen Logout
@@ -315,8 +366,11 @@ export default function App() {
       setIsReceiptModalOpen(true);
       setNewlyCreatedComplaint(created);
 
-      // Refresh database records
-      await fetchData();
+      // Refresh database records and complaints list
+      await Promise.all([
+        fetchData(),
+        loadComplaints(true)
+      ]);
 
       showToast(`Grievance ${created.ref_id} registered successfully!`, 'success');
     } catch (err) {
@@ -404,7 +458,7 @@ export default function App() {
           setIsCitizenAuthOpen(true);
         }}
         lang={lang}
-        setLang={setLang}
+        setLang={handleSetLang}
       />
 
       {/* Toast Notification */}
@@ -604,11 +658,12 @@ export default function App() {
                   <AdminDashboard
                     stats={stats}
                     complaints={complaints}
-                    onRefresh={fetchData}
+                    onRefresh={handleAdminRefresh}
                     onSelectComplaint={(c) => setSelectedComplaint(c)}
                     onManageComplaint={(c) => setManagingComplaint(c)}
                     adminUser={adminUser}
                     onLogout={handleAdminLogout}
+                    lang={lang}
                   />
                 ) : (
                   <AdminLogin
@@ -698,6 +753,7 @@ export default function App() {
           isOpen={!!managingComplaint}
           onClose={() => setManagingComplaint(null)}
           onSave={handleManageComplaintSave}
+          lang={lang}
         />
       </Suspense>
 

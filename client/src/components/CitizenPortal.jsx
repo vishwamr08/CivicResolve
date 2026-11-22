@@ -64,12 +64,13 @@ export default function CitizenPortal({
 
   const fetchMyComplaints = async () => {
     const token = localStorage.getItem('civic_citizen_token');
-    if (!token) return;
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
     setLoading(true);
     try {
       const res = await fetch(getApiUrl('/api/citizen/my-complaints'), {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers,
+        credentials: 'include'
       });
       if (res.ok) {
         const data = await res.json();
@@ -84,11 +85,12 @@ export default function CitizenPortal({
 
   const fetchProfileSettings = async () => {
     const token = localStorage.getItem('civic_citizen_token');
-    if (!token) return;
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
     try {
       const res = await fetch(getApiUrl('/api/citizen/profile'), {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers,
+        credentials: 'include'
       });
       if (res.ok) {
         const data = await res.json();
@@ -134,17 +136,16 @@ export default function CitizenPortal({
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('civic_citizen_token');
-    if (!token) return;
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
     setSavingProfile(true);
     setProfileMsg(null);
     try {
       const res = await fetch(getApiUrl('/api/citizen/profile'), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
+        credentials: 'include',
         body: JSON.stringify({
           name: profileName,
           phone: profilePhone,
@@ -176,7 +177,10 @@ export default function CitizenPortal({
         }
       } catch {}
 
-      setProfileMsg({ type: 'success', text: 'Profile & administrative jurisdiction saved successfully!' });
+      setProfileMsg({ 
+        type: 'success', 
+        text: lang === 'ta' ? 'சுயவிவரம் மற்றும் நகராட்சி வரம்பு வெற்றிகரமாக சேமிக்கப்பட்டது!' : 'Profile & administrative jurisdiction saved successfully!' 
+      });
     } catch (err) {
       setProfileMsg({ type: 'error', text: err.message });
     } finally {
@@ -237,6 +241,7 @@ export default function CitizenPortal({
         const res = await fetch(getApiUrl(`/api/complaints/${feedbackComplaint.id || feedbackComplaint.ref_id}/appeal`), {
           method: 'POST',
           headers: authHeaders,
+          credentials: 'include',
           body: JSON.stringify({ 
             appeal_reason: appealReason,
             credential: citizenUser?.phone || citizenUser?.email
@@ -244,11 +249,12 @@ export default function CitizenPortal({
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to file appeal');
-        setFeedbackSuccess('Grievance reopen request submitted for Zonal Officer review!');
+        setFeedbackSuccess(lang === 'ta' ? 'மறு ஆய்வு கோரிக்கை மண்டல அதிகாரி பார்வைக்கு அனுப்பப்பட்டது!' : 'Grievance reopen request submitted for Zonal Officer review!');
       } else {
         const res = await fetch(getApiUrl(`/api/complaints/${feedbackComplaint.id || feedbackComplaint.ref_id}/feedback`), {
           method: 'POST',
           headers: authHeaders,
+          credentials: 'include',
           body: JSON.stringify({ 
             rating, 
             feedback: feedbackText,
@@ -257,7 +263,7 @@ export default function CitizenPortal({
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to submit feedback');
-        setFeedbackSuccess('Thank you! Your satisfaction feedback has been recorded.');
+        setFeedbackSuccess(lang === 'ta' ? 'குடிமக்கள் திருப்திக் கருத்து பதிவு செய்யப்பட்டது. நன்றி!' : 'Thank you! Your satisfaction feedback has been recorded.');
       }
 
       await fetchMyComplaints();

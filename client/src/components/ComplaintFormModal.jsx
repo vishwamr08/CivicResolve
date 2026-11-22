@@ -642,13 +642,22 @@ export default function ComplaintFormModal({
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-navy-800 bg-white focus:outline-none"
                   >
                     {zones.length > 0 ? (
-                      zones.map((z) => (
-                        <option key={z.id} value={`${z.name} (Wards: ${z.wards?.slice(0, 3).join(', ')}...)`}>
-                          {z.name}
-                        </option>
-                      ))
+                      zones.map((z) => {
+                        const hasWards = z.is_verified_zone && z.wards && z.wards.length > 0;
+                        const optionValue = hasWards ? `${z.name} (Wards: ${z.wards.slice(0, 3).join(', ')}...)` : z.name;
+                        const optionLabel = hasWards
+                          ? `${z.name} (Wards: ${z.wards.slice(0, 3).join(', ')}...)`
+                          : `${z.name} (${lang === 'ta' ? 'வார்டு எல்லைகள் வெளியிடப்படவில்லை' : 'Official ward boundaries pending publication'})`;
+                        return (
+                          <option key={z.id} value={optionValue}>
+                            {optionLabel}
+                          </option>
+                        );
+                      })
                     ) : (
-                      <option value="Municipal Ward Area">Municipal Ward Area</option>
+                      <option value="General Municipal Area">
+                        {lang === 'ta' ? 'பொது நகராட்சி பகுதி (வார்டு வெளியிடப்படவில்லை)' : 'General Municipal Area (Ward pending publication)'}
+                      </option>
                     )}
                   </select>
                 </div>
@@ -916,19 +925,19 @@ export default function ComplaintFormModal({
               type="button"
               onClick={() => setStep(step - 1)}
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors min-h-[40px]"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back</span>
+              <span>{t.backBtn || 'Back'}</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg text-slate-600 hover:text-slate-900 font-semibold text-xs transition-colors"
+              className="px-4 py-2 rounded-lg text-slate-600 hover:text-slate-900 font-semibold text-xs transition-colors min-h-[40px]"
             >
-              Cancel
+              {lang === 'ta' ? 'ரத்து' : 'Cancel'}
             </button>
           )}
 
@@ -936,9 +945,9 @@ export default function ComplaintFormModal({
             <button
               type="button"
               onClick={handleNextStep}
-              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-saffron hover:bg-saffron-dark text-white font-semibold text-xs shadow-sm transition-colors"
+              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-saffron hover:bg-saffron-dark text-white font-semibold text-xs shadow-sm transition-colors min-h-[40px]"
             >
-              <span>Next Step</span>
+              <span>{t.continueBtn || 'Next Step'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           ) : (
@@ -946,17 +955,17 @@ export default function ComplaintFormModal({
               type="button"
               onClick={handleSubmitFinal}
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-saffron hover:bg-saffron-dark text-white font-semibold text-xs shadow-sm transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-saffron hover:bg-saffron-dark text-white font-semibold text-xs shadow-sm transition-colors disabled:opacity-50 min-h-[40px]"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Submitting to Portal...</span>
+                  <span>{t.submittingBtn || 'Submitting to Portal...'}</span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Submit Grievance</span>
+                  <span>{t.submitGrievanceBtn || 'Submit Grievance'}</span>
                 </>
               )}
             </button>

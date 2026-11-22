@@ -16,6 +16,10 @@ const http = require('http');
 const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
+
+const { setupIsolatedTestDb } = require('./test_helper');
+const { isolatedDbPath, cleanup } = setupIsolatedTestDb('phase4_perf');
+
 const db = require('./db.js');
 
 console.log('======================================================');
@@ -216,12 +220,19 @@ function runTests() {
       console.log(`Results: ${passed} passed, ${failed} failed`);
       console.log('======================================================\n');
 
-      server.close(() => {
+      if (server) {
+        server.close(() => {
+          cleanup(db);
+          process.exit(failed > 0 ? 1 : 0);
+        });
+      } else {
+        cleanup(db);
         process.exit(failed > 0 ? 1 : 0);
-      });
+      }
     } catch (err) {
       console.error('[FATAL TEST ERROR]:', err);
-      if (server) server.close();
+      if (server) server.close(() => cleanup(db));
+      else cleanup(db);
       process.exit(1);
     }
   }

@@ -26,7 +26,8 @@ const {
   requireRole,
   generateSecureOtp,
   hashOtp,
-  normalizePhone
+  normalizePhone,
+  findCitizenByPhone
 } = require('./auth');
 const { computeSlaMetrics, getTargetSlaHours } = require('./sla-engine');
 const { findDuplicateCandidates } = require('./duplicate-engine');
@@ -496,6 +497,38 @@ app.get('/api/geo/districts', (req, res) => {
   res.json({ districts: TAMIL_NADU_DISTRICTS });
 });
 
+// GET /api/geo/corporations
+app.get('/api/geo/corporations', (req, res) => {
+  const corps = [];
+  TAMIL_NADU_DISTRICTS.forEach(d => {
+    (d.localBodies || []).forEach(lb => {
+      if (lb.type === 'Corporation' || lb.is_corporation) {
+        corps.push({
+          district_id: d.id,
+          district_name: d.name,
+          district_name_ta: d.name_ta,
+          id: lb.id,
+          name: lb.name,
+          name_ta: lb.name_ta,
+          type: lb.type,
+          zones_count: (lb.zones || []).length
+        });
+      }
+    });
+  });
+  res.json({ total: corps.length, corporations: corps });
+});
+
+// GET /api/geo/hierarchy
+app.get('/api/geo/hierarchy', (req, res) => {
+  res.json({
+    state: 'Tamil Nadu',
+    state_ta: 'தமிழ்நாடு',
+    total_districts: TAMIL_NADU_DISTRICTS.length,
+    districts: TAMIL_NADU_DISTRICTS
+  });
+});
+
 // GET /api/geo/departments
 app.get('/api/geo/departments', (req, res) => {
   res.json({ departments: TN_CIVIC_DEPARTMENTS });
@@ -604,7 +637,8 @@ app.post('/api/auth/citizen/send-otp', async (req, res) => {
       VALUES (?, ?, ?, 0, 5, datetime('now', '+10 minutes'))
     `).run(cleanPhone, otpHash, purpose);
 
-    const isExisting = Boolean(db.prepare('SELECT id FROM citizens WHERE phone = ?').get(cleanPhone));
+    const existingCitizen = findCitizenByPhone(db, cleanPhone);
+    const isExisting = Boolean(existingCitizen);
 
     // If real telecom SMS gateway is configured, dispatch SMS
     const hasSmsGateway = isSmsConfigured();
@@ -682,8 +716,8 @@ app.post('/api/auth/citizen/verify-otp', (req, res) => {
     // Mark OTP verified
     db.prepare('UPDATE citizen_otps SET verified = 1 WHERE id = ?').run(otpRecord.id);
 
-    // Check citizen record
-    const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified FROM citizens WHERE phone = ?').get(cleanPhone);
+    // Check citizen record using normalized mobile lookup
+    const citizen = findCitizenByPhone(db, cleanPhone);
 
     if (citizen) {
       // Existing citizen: issue session token and refresh verification
@@ -795,19 +829,24 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
     const cleanEmail = email && email.trim() ? email.toLowerCase().trim() : `citizen.${cleanPhone}@civicresolve.gov`;
 
     // Check if phone already registered (idempotent / safe returning citizen resolution)
-    const existing = db.prepare('SELECT id, name, email, phone, district, municipality, ward FROM citizens WHERE phone = ?').get(cleanPhone);
+    const existing = findCitizenByPhone(db, cleanPhone);
     if (existing) {
-      // Update details if missing
+      // Non-destructive update: only fill fields that are non-empty; never overwrite existing details with empty/blank values
+      const updateName = (name && name.trim()) ? name.trim() : existing.name;
+      const updateDistrict = (district && district.trim()) ? district.trim() : existing.district;
+      const updateMunicipality = (municipality && municipality.trim()) ? municipality.trim() : existing.municipality;
+      const updateWard = (ward && ward.trim()) ? ward.trim() : existing.ward;
+
       db.prepare(`
         UPDATE citizens
-        SET name = COALESCE(?, name),
-            district = COALESCE(?, district),
-            municipality = COALESCE(?, municipality),
-            ward = COALESCE(?, ward),
+        SET name = ?,
+            district = ?,
+            municipality = ?,
+            ward = ?,
             mobile_verified = 1,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `).run(name.trim(), district || null, municipality || null, ward || null, existing.id);
+      `).run(updateName, updateDistrict, updateMunicipality, updateWard, existing.id);
 
       const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified FROM citizens WHERE id = ?').get(existing.id);
       const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, phone: citizen.phone, type: 'citizen' });
@@ -890,10 +929,13 @@ app.post('/api/auth/citizen/register', (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const cleanPhone = phone.trim();
+    const cleanPhone = normalizePhone(phone);
+    if (!cleanPhone || !/^[6-9]\d{9}$/.test(cleanPhone)) {
+      return res.status(400).json({ error: 'Please enter a valid 10-digit Indian mobile number.' });
+    }
 
     // Check existing
-    const existing = db.prepare('SELECT id FROM citizens WHERE LOWER(email) = ? OR phone = ?').get(cleanEmail, cleanPhone);
+    const existing = db.prepare('SELECT id FROM citizens WHERE LOWER(email) = ?').get(cleanEmail) || findCitizenByPhone(db, cleanPhone);
     if (existing) {
       return res.status(409).json({ error: 'An account with this email or phone number already exists.' });
     }
@@ -905,7 +947,7 @@ app.post('/api/auth/citizen/register', (req, res) => {
     `).run(name.trim(), cleanEmail, cleanPhone, passwordHash, district || 'Chennai');
 
     const citizen = db.prepare('SELECT id, name, email, phone, district, email_verified, email_notifications FROM citizens WHERE id = ?').get(result.lastInsertRowid);
-    const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, type: 'citizen' });
+    const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, phone: citizen.phone, type: 'citizen' });
 
     res.cookie('civic_citizen_token', token, getCookieOptions());
 
@@ -977,8 +1019,17 @@ app.post('/api/auth/citizen/login', (req, res) => {
 
 // GET /api/auth/citizen/me
 app.get('/api/auth/citizen/me', authenticateCitizen, (req, res) => {
+  const token = generateToken({
+    id: req.citizen.id,
+    email: req.citizen.email,
+    name: req.citizen.name,
+    phone: req.citizen.phone,
+    type: 'citizen'
+  });
+  res.cookie('civic_citizen_token', token, getCookieOptions());
   res.json({
     authenticated: true,
+    token,
     citizen: {
       id: req.citizen.id,
       name: req.citizen.name,
@@ -1871,6 +1922,19 @@ app.post('/api/officer/tasks/:id/report', authenticateAdmin, upload.single('evid
 
     const updated = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
 
+    // Record administrative audit trail
+    recordAuditLog({
+      complaintRef: updated.ref_id,
+      actorId: req.admin ? req.admin.id : null,
+      actorName: req.admin ? req.admin.name : 'Officer',
+      actorRole: req.admin ? req.admin.role : 'officer',
+      action: 'OFFICER_FIELD_REPORT',
+      previousState: current.status,
+      newState: newStatus,
+      remarks: remarks || 'Officer field progress report filed',
+      ip: req.ip
+    });
+
     // Notify citizen
     notifyCitizenEvent({
       eventType: newStatus === 'Resolved' ? 'resolution_certified' : 'status_update',
@@ -2111,6 +2175,19 @@ app.patch('/api/complaints/:id/manage', authenticateAdmin, (req, res) => {
       }
     });
 
+    // Record administrative audit trail
+    recordAuditLog({
+      complaintRef: updated.ref_id,
+      actorId: req.admin ? req.admin.id : null,
+      actorName: req.admin ? req.admin.name : 'Municipal Officer',
+      actorRole: req.admin ? req.admin.role : 'officer',
+      action: 'MANAGE_COMPLAINT',
+      previousState: { status: current.status, department: current.department, officer: current.assigned_officer },
+      newState: { status: newStatus, department: newDept, officer: newOfficer },
+      remarks: noteText,
+      ip: req.ip
+    });
+
     invalidateStatsCache();
 
     res.json({
@@ -2163,6 +2240,19 @@ app.patch('/api/complaints/:id/status', authenticateAdmin, (req, res) => {
 
     const updated = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
 
+    // Record audit log
+    recordAuditLog({
+      complaintRef: updated.ref_id,
+      actorId: req.admin ? req.admin.id : null,
+      actorName: req.admin ? req.admin.name : 'Municipal Officer',
+      actorRole: req.admin ? req.admin.role : 'officer',
+      action: 'STATUS_UPDATE',
+      previousState: current.status,
+      newState: status,
+      remarks: `Status updated to ${status}`,
+      ip: req.ip
+    });
+
     notifyCitizenEvent({
       eventType: status === 'Resolved' ? 'resolution_certified' : 'status_update',
       citizenName: updated.citizen_name,
@@ -2182,6 +2272,108 @@ app.patch('/api/complaints/:id/status', authenticateAdmin, (req, res) => {
   } catch (err) {
     console.error('Error updating status:', err);
     res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+// PATCH /api/complaints/:id/assign (Assign department & field officer)
+app.patch('/api/complaints/:id/assign', authenticateAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { department, assigned_officer, internal_notes } = req.body;
+    if (!department && !assigned_officer) {
+      return res.status(400).json({ error: 'Department or assigned officer is required for assignment.' });
+    }
+
+    const current = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    if (!current) return res.status(404).json({ error: 'Complaint not found' });
+
+    const newDept = department || current.department;
+    const newOfficer = assigned_officer || current.assigned_officer;
+    const newNotes = internal_notes !== undefined ? internal_notes : current.internal_notes;
+    const newStatus = (current.status === 'Submitted' || current.status === 'Under Review') ? 'Assigned' : current.status;
+
+    const parsed = parseComplaint(current, true);
+    const history = parsed.status_history || [];
+    history.push({
+      status: newStatus,
+      timestamp: new Date().toISOString(),
+      note: `Assigned to department "${newDept}" and officer "${newOfficer}"`,
+      actor: `${req.admin.name} (${req.admin.designation || 'Officer'})`
+    });
+
+    db.prepare(`
+      UPDATE complaints
+      SET department = ?, assigned_officer = ?, internal_notes = ?, status = ?, status_history = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? OR ref_id = ?
+    `).run(newDept, newOfficer, newNotes, newStatus, JSON.stringify(history), id, id);
+
+    const updated = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+
+    recordAuditLog({
+      complaintRef: updated.ref_id,
+      actorId: req.admin.id,
+      actorName: req.admin.name,
+      actorRole: req.admin.role,
+      action: 'ASSIGN_COMPLAINT',
+      previousState: { department: current.department, assigned_officer: current.assigned_officer },
+      newState: { department: newDept, assigned_officer: newOfficer },
+      remarks: `Assigned to ${newDept} / ${newOfficer}`,
+      ip: req.ip
+    });
+
+    invalidateStatsCache();
+    res.json({ message: 'Complaint assigned successfully', complaint: parseComplaint(updated, true) });
+  } catch (err) {
+    console.error('Error assigning complaint:', err);
+    res.status(500).json({ error: 'Failed to assign complaint' });
+  }
+});
+
+// POST /api/complaints/:id/escalate (Escalate overdue or critical complaint)
+app.post('/api/complaints/:id/escalate', authenticateAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason, escalation_level = 'Supervisor Review' } = req.body;
+
+    const current = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    if (!current) return res.status(404).json({ error: 'Complaint not found' });
+
+    const parsed = parseComplaint(current, true);
+    const history = parsed.status_history || [];
+    const escalateNote = reason || 'Escalated due to SLA urgency or critical public safety concern';
+
+    history.push({
+      status: escalation_level,
+      timestamp: new Date().toISOString(),
+      note: `Administrative escalation: ${escalateNote}`,
+      actor: `${req.admin.name} (${req.admin.designation || 'Officer'})`
+    });
+
+    db.prepare(`
+      UPDATE complaints
+      SET status = ?, priority = 'Critical', status_history = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? OR ref_id = ?
+    `).run(escalation_level, JSON.stringify(history), id, id);
+
+    const updated = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+
+    recordAuditLog({
+      complaintRef: updated.ref_id,
+      actorId: req.admin.id,
+      actorName: req.admin.name,
+      actorRole: req.admin.role,
+      action: 'ESCALATE_COMPLAINT',
+      previousState: { status: current.status, priority: current.priority },
+      newState: { status: escalation_level, priority: 'Critical' },
+      remarks: escalateNote,
+      ip: req.ip
+    });
+
+    invalidateStatsCache();
+    res.json({ message: 'Complaint escalated successfully', complaint: parseComplaint(updated, true) });
+  } catch (err) {
+    console.error('Error escalating complaint:', err);
+    res.status(500).json({ error: 'Failed to escalate complaint' });
   }
 });
 
@@ -2447,13 +2639,20 @@ app.get('/api/admin/audit-logs', authenticateAdmin, (req, res) => {
 // GET /api/admin/database/info (Inspect database storage location, persistence, and record counts)
 app.get('/api/admin/database/info', authenticateAdmin, (req, res) => {
   try {
-    const dbPath = process.env.SQLITE_DB_PATH ||
+    const dbPath = db.dbPath || process.env.SQLITE_DB_PATH ||
       (process.env.DATA_DIR ? path.join(process.env.DATA_DIR, 'civicresolve.db') : path.join(__dirname, 'civicresolve.db'));
     const isPersistentDisk = Boolean(process.env.DATA_DIR && process.env.DATA_DIR.includes('/var/data'));
     const fileStats = fs.existsSync(dbPath) ? fs.statSync(dbPath) : null;
     const complaintCount = db.prepare('SELECT COUNT(*) as c FROM complaints').get().c;
     const citizenCount = db.prepare('SELECT COUNT(*) as c FROM citizens').get().c;
     const adminCount = db.prepare('SELECT COUNT(*) as c FROM admins').get().c;
+
+    let journalMode = 'unknown';
+    let syncMode = 'unknown';
+    try {
+      journalMode = db.pragma('journal_mode')[0]?.journal_mode || 'unknown';
+      syncMode = db.pragma('synchronous')[0]?.synchronous ?? 'unknown';
+    } catch (_) {}
 
     res.json({
       dbPath,
@@ -2462,6 +2661,8 @@ app.get('/api/admin/database/info', authenticateAdmin, (req, res) => {
       sizeKb: fileStats ? Math.round(fileStats.size / 1024) : 0,
       persistentDiskMounted: isPersistentDisk,
       storageType: isPersistentDisk ? 'Render Persistent Disk (/var/data)' : 'Local Filesystem',
+      journalMode,
+      synchronous: syncMode,
       counts: {
         complaints: complaintCount,
         citizens: citizenCount,
@@ -2473,23 +2674,80 @@ app.get('/api/admin/database/info', authenticateAdmin, (req, res) => {
   }
 });
 
-// GET /api/admin/database/backup (Super Admin-authorized SQLite backup download)
-app.get('/api/admin/database/backup', authenticateAdmin, requireRole('super_admin'), (req, res) => {
+// GET /api/admin/database/backup (Super Admin-authorized SQLite Online Backup API snapshot download)
+app.get('/api/admin/database/backup', authenticateAdmin, requireRole('super_admin'), async (req, res) => {
+  let tempSnapshotPath = null;
   try {
-    const dbPath = process.env.SQLITE_DB_PATH ||
-      (process.env.DATA_DIR ? path.join(process.env.DATA_DIR, 'civicresolve.db') : path.join(__dirname, 'civicresolve.db'));
-
-    if (!fs.existsSync(dbPath)) {
-      return res.status(404).json({ error: 'Database file not found.' });
-    }
-
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const downloadName = `civicresolve-backup-${timestamp}.db`;
+    const tempDir = path.join(__dirname, 'backups_temp');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    tempSnapshotPath = path.join(tempDir, `snapshot-${timestamp}-${Math.random().toString(36).slice(2, 8)}.db`);
 
-    res.download(dbPath, downloadName);
+    // Execute non-destructive online backup using SQLite Online Backup API
+    if (typeof db.backup === 'function') {
+      await db.backup(tempSnapshotPath);
+    } else {
+      // Non-destructive fallback for adapter
+      db.exec(`VACUUM INTO '${tempSnapshotPath.replace(/'/g, "''")}'`);
+    }
+
+    if (!fs.existsSync(tempSnapshotPath)) {
+      throw new Error('Online backup snapshot file was not created.');
+    }
+
+    // Verify snapshot integrity and table counts using a read-only connection
+    const Database = require('better-sqlite3');
+    let verifyDb;
+    try {
+      verifyDb = new Database(tempSnapshotPath, { readonly: true });
+      const integrity = verifyDb.pragma('integrity_check');
+      const isOk = Array.isArray(integrity) && integrity.length > 0 &&
+        (integrity[0].integrity_check === 'ok' || Object.values(integrity[0])[0] === 'ok');
+      if (!isOk) {
+        throw new Error('Backup snapshot integrity check failed: ' + JSON.stringify(integrity));
+      }
+
+      // Verify table counts without exposing any personal information
+      const complaintCount = verifyDb.prepare('SELECT COUNT(*) as c FROM complaints').get().c;
+      const citizenCount = verifyDb.prepare('SELECT COUNT(*) as c FROM citizens').get().c;
+      const adminCount = verifyDb.prepare('SELECT COUNT(*) as c FROM admins').get().c;
+      console.log(`[Database Backup]: Online backup snapshot verified. Complaints: ${complaintCount}, Citizens: ${citizenCount}, Admins: ${adminCount}.`);
+    } finally {
+      if (verifyDb && verifyDb.open) {
+        verifyDb.close();
+      }
+    }
+
+    // Stream the verified snapshot directly to client and delete the temporary file after transfer
+    res.setHeader('Content-Type', 'application/x-sqlite3');
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+    const stream = fs.createReadStream(tempSnapshotPath);
+    stream.pipe(res);
+    stream.on('end', () => {
+      if (tempSnapshotPath && fs.existsSync(tempSnapshotPath)) {
+        try { fs.unlinkSync(tempSnapshotPath); } catch (_) {}
+      }
+    });
+    stream.on('error', (err) => {
+      if (tempSnapshotPath && fs.existsSync(tempSnapshotPath)) {
+        try { fs.unlinkSync(tempSnapshotPath); } catch (_) {}
+      }
+      if (!res.headersSent) {
+        console.error('[DB Backup Error]: Stream transfer failed:', err.message);
+        res.status(500).json({ error: 'Database backup download stream interrupted.' });
+      }
+    });
   } catch (err) {
-    console.error('[DB Backup Error]:', err);
-    res.status(500).json({ error: 'Database backup download failed' });
+    if (tempSnapshotPath && fs.existsSync(tempSnapshotPath)) {
+      try {
+        fs.unlinkSync(tempSnapshotPath);
+      } catch (_) {}
+    }
+    console.error('[DB Backup Error]:', err.message);
+    res.status(500).json({ error: 'Database backup generation failed: ' + err.message });
   }
 });
 
@@ -2585,12 +2843,56 @@ const PORT = process.env.PORT || 5000;
 
 // Start Server
 if (require.main === module) {
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`[CivicResolve Server] Live on http://127.0.0.1:${PORT} (0.0.0.0)`);
     console.log(`[CivicResolve Server] AI Engine: Google Gemini (${process.env.GEMINI_MODEL || 'gemini-2.5-flash'})`);
     console.log(`[CivicResolve Server] SMS Provider: ${isSmsConfigured() ? (process.env.SMS_PROVIDER || 'Twilio') : 'SAFE DEVELOPMENT SIMULATION'}`);
     console.log(`[CivicResolve Server] SMTP Email Delivery: ${isSmtpConfigured() ? 'CONFIGURED' : 'UNCONFIGURED'}`);
   });
+
+  const handleShutdown = (signal) => {
+    console.log(`[CivicResolve Server] Received ${signal}. Starting graceful shutdown...`);
+    // Stop accepting new connections; allow existing active requests to finish
+    server.close(() => {
+      console.log('[CivicResolve Server] HTTP server closed; all in-flight requests completed.');
+      try {
+        if (db && db.open) {
+          // Perform WAL checkpoint and inspect results
+          const cpRes = db.pragma('wal_checkpoint(TRUNCATE)');
+          const cpRow = Array.isArray(cpRes) && cpRes.length > 0 ? cpRes[0] : null;
+          const isBusy = cpRow ? (cpRow.busy === 1 || cpRow.busy === '1') : false;
+
+          if (isBusy) {
+            console.warn('[CivicResolve Server] WAL checkpoint returned busy/incomplete status:', cpRow);
+            // Attempt non-blocking passive checkpoint fallback
+            try {
+              const passiveRes = db.pragma('wal_checkpoint(PASSIVE)');
+              console.log('[CivicResolve Server] Secondary passive WAL checkpoint result:', passiveRes);
+            } catch (passiveErr) {
+              console.warn('[CivicResolve Server] Secondary checkpoint error:', passiveErr.message);
+            }
+          } else {
+            console.log('[CivicResolve Server] Database WAL checkpointed successfully:', cpRow);
+          }
+
+          db.close();
+          console.log('[CivicResolve Server] Database connection closed cleanly.');
+        }
+      } catch (dbErr) {
+        console.error('[CivicResolve Server] Error closing database during shutdown:', dbErr.message);
+      }
+      process.exit(0);
+    });
+
+    // Force exit if connections do not drain within 10 seconds (avoid closing DB while requests are still in-flight)
+    setTimeout(() => {
+      console.error('[CivicResolve Server] Graceful shutdown timed out (10s). Forcing process exit without closing database on active in-flight requests.');
+      process.exit(1);
+    }, 10000).unref();
+  };
+
+  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+  process.on('SIGINT', () => handleShutdown('SIGINT'));
 }
 
 module.exports = app;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Sparkles, AlertTriangle, Save, Wrench, Loader2 } from 'lucide-react';
 import TrackingTimeline from './TrackingTimeline';
+import { translations } from '../data/translations';
 
 const ALL_DEPARTMENTS = [
   'Greater Chennai Corporation - Works & Roads',
@@ -30,7 +31,7 @@ const ALL_CATEGORIES = [
 const ALL_STATUSES = ['Submitted', 'Under Review', 'Assigned', 'In Progress', 'Resolved'];
 const ALL_PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 
-export default function AdminManageModal({ complaint, isOpen, onClose, onSave }) {
+export default function AdminManageModal({ complaint, isOpen, onClose, onSave, lang = 'en' }) {
   const [category, setCategory] = useState(complaint?.category || 'Road Damage');
   const [department, setDepartment] = useState(complaint?.department || 'Greater Chennai Corporation - Works & Roads');
   const [status, setStatus] = useState(complaint?.status || 'Under Review');
@@ -43,6 +44,8 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave })
   const [duplicateOfRefId, setDuplicateOfRefId] = useState(complaint?.duplicate_of_ref_id || '');
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('manage'); // 'manage' or 'history'
+
+  const _t = translations[lang] || translations.en;
 
   useEffect(() => {
     if (complaint) {

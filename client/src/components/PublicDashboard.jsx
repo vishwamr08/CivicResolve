@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  PieChart as ShieldCheck, ArrowLeft, RefreshCw, Filter } from 'lucide-react';
+  ShieldCheck, ArrowLeft, RefreshCw, Filter } from 'lucide-react';
 import { 
   ResponsiveContainer, BarChart, Bar, PieChart, Pie, 
   Cell, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
+import { translations } from '../data/translations';
 import { getApiUrl } from '../config/api';
 
 const COLORS = ['#1a3c6e', '#f47920', '#138808', '#2a5298', '#64748b', '#0d9488', '#d97706', '#475569'];
@@ -19,6 +20,8 @@ export default function PublicDashboard({
   const [selectedDistrict, setSelectedDistrict] = useState('All');
   const [loading, setLoading] = useState(!initialStats);
   const [announcements, setAnnouncements] = useState([]);
+
+  const t = translations[lang] || translations.en;
 
   const fetchStats = async (district = selectedDistrict) => {
     setLoading(true);
@@ -90,8 +93,8 @@ export default function PublicDashboard({
               </button>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                    Public Grievance Transparency Portal
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
+                    {t.publicDashboardTitle}
                   </h1>
                   <span className="hidden sm:inline text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded bg-white/15 text-slate-200 border border-white/20">
                     Open Data
@@ -114,7 +117,7 @@ export default function PublicDashboard({
                   )}
                 </div>
                 <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                  Aggregated civic resolution statistics across 38 districts and 25 Municipal Corporations in Tamil Nadu.
+                  {t.publicDashboardSubtitle}
                 </p>
               </div>
             </div>
@@ -128,9 +131,11 @@ export default function PublicDashboard({
                   onChange={(e) => setSelectedDistrict(e.target.value)}
                   className="bg-transparent text-white focus:outline-none text-xs font-semibold"
                 >
-                  <option value="All" className="bg-slate-900 text-white">All Districts (Statewide)</option>
+                  <option value="All" className="bg-slate-900 text-white">{t.allDistricts}</option>
                   {TAMIL_NADU_DISTRICTS.map((d) => (
-                    <option key={d.id} value={d.name} className="bg-slate-900 text-white">{d.name}</option>
+                    <option key={d.id} value={d.name} className="bg-slate-900 text-white">
+                      {lang === 'ta' ? (d.name_ta || d.name) : d.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -138,7 +143,7 @@ export default function PublicDashboard({
               <button
                 onClick={() => fetchStats(selectedDistrict)}
                 className="p-2 rounded-lg bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white transition-colors border border-white/20"
-                title="Refresh Statistics"
+                title={t.refreshStats}
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#f47920]' : ''}`} />
               </button>
@@ -146,29 +151,29 @@ export default function PublicDashboard({
           </div>
 
           {/* Quick Metrics KPI Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-            <div className="bg-white/10 border border-white/15 p-4 rounded-xl space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">Total Grievances</span>
-              <p className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{total}</p>
-              <span className="text-[10px] text-slate-300 font-medium">Registered Database Records</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pt-2">
+            <div className="bg-white/10 border border-white/15 p-3.5 sm:p-4 rounded-xl space-y-1">
+              <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-300 block truncate">{t.totalGrievances}</span>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white tabular-nums">{total}</p>
+              <span className="text-[10px] text-slate-300 font-medium block truncate">Registered Database Records</span>
             </div>
 
-            <div className="bg-white/10 border border-white/15 p-4 rounded-xl space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">Active Field Action</span>
-              <p className="text-2xl sm:text-3xl font-bold text-orange-200 tabular-nums">{inProgress}</p>
-              <span className="text-[10px] text-slate-300 font-medium">Under Investigation / Repair</span>
+            <div className="bg-white/10 border border-white/15 p-3.5 sm:p-4 rounded-xl space-y-1">
+              <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-300 block truncate">{t.inProgressCases}</span>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-orange-200 tabular-nums">{inProgress}</p>
+              <span className="text-[10px] text-slate-300 font-medium block truncate">Under Investigation / Repair</span>
             </div>
 
-            <div className="bg-white/10 border border-white/15 p-4 rounded-xl space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">Certified Resolved</span>
-              <p className="text-2xl sm:text-3xl font-bold text-emerald-300 tabular-nums">{resolved}</p>
-              <span className="text-[10px] text-emerald-300 font-medium">Verified with Photo Proof</span>
+            <div className="bg-white/10 border border-white/15 p-3.5 sm:p-4 rounded-xl space-y-1">
+              <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-300 block truncate">{t.resolvedCases}</span>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-emerald-300 tabular-nums">{resolved}</p>
+              <span className="text-[10px] text-emerald-300 font-medium block truncate">Verified with Photo Proof</span>
             </div>
 
-            <div className="bg-white/10 border border-white/15 p-4 rounded-xl space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">Resolution SLA Rate</span>
-              <p className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{resolutionRate}%</p>
-              <span className="text-[10px] text-slate-300 font-medium">
+            <div className="bg-white/10 border border-white/15 p-3.5 sm:p-4 rounded-xl space-y-1">
+              <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-300 block truncate">{t.resolvedRate}</span>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white tabular-nums">{resolutionRate}%</p>
+              <span className="text-[10px] text-slate-300 font-medium block truncate">
                 {overdue > 0 ? `${overdue} cases escalated` : 'On-Time Adherence'}
               </span>
             </div>
