@@ -42,21 +42,12 @@ export default function PublicDashboard({
     fetchStats(selectedDistrict);
   }, [selectedDistrict]);
 
-  const total = stats?.totalComplaints ?? 37;
-  const inProgress = stats?.inProgressComplaints ?? 8;
-  const resolved = stats?.resolvedComplaints ?? 24;
-  const pending = stats?.pendingComplaints ?? 5;
+  const total = stats?.totalComplaints ?? 0;
+  const inProgress = stats?.inProgressComplaints ?? 0;
+  const resolved = stats?.resolvedComplaints ?? 0;
+  const pending = stats?.pendingComplaints ?? 0;
   const overdue = stats?.overdueComplaints ?? 0;
-  const resolutionRate = stats?.resolutionRate ?? (total > 0 ? Math.round((resolved / total) * 100) : 92);
-
-  // Prepare Category Data for Chart
-  const defaultCategoryData = [
-    { name: 'Road Damage', count: 12, color: '#1a3c6e' },
-    { name: 'Drainage', count: 9, color: '#2a5298' },
-    { name: 'Garbage & Sanitation', count: 7, color: '#f47920' },
-    { name: 'Streetlight', count: 5, color: '#138808' },
-    { name: 'Water Leakage', count: 4, color: '#64748b' }
-  ];
+  const resolutionRate = stats?.resolutionRate ?? (total > 0 ? Math.round((resolved / total) * 100) : 0);
 
   const categoryData = (stats?.categoryDistribution?.length > 0)
     ? stats.categoryDistribution.map((c, i) => ({
@@ -64,16 +55,7 @@ export default function PublicDashboard({
         count: c.count,
         color: COLORS[i % COLORS.length]
       }))
-    : defaultCategoryData;
-
-  // Prepare Department Data for Chart
-  const defaultDepartmentData = [
-    { name: 'Roads & Highways', fullName: 'Roads & Highways', complaints: 12 },
-    { name: 'Storm Water Drainage', fullName: 'Storm Water Drainage', complaints: 9 },
-    { name: 'Solid Waste Mgmt', fullName: 'Solid Waste Management', complaints: 7 },
-    { name: 'Public Lighting Div', fullName: 'Public Lighting Division', complaints: 5 },
-    { name: 'Water Board (CMWSSB)', fullName: 'Water Supply & Sewerage Board', complaints: 4 }
-  ];
+    : [];
 
   const departmentData = (stats?.departments?.length > 0)
     ? stats.departments.map((d) => ({
@@ -81,7 +63,7 @@ export default function PublicDashboard({
         fullName: d.department,
         complaints: d.count
       }))
-    : defaultDepartmentData;
+    : [];
 
   // Prepare Status Distribution
   const statusData = [
@@ -107,13 +89,29 @@ export default function PublicDashboard({
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                     Public Grievance Transparency Portal
                   </h1>
                   <span className="hidden sm:inline text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded bg-white/15 text-slate-200 border border-white/20">
                     Open Data
                   </span>
+                  {stats?.isDemoData ? (
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-500/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                      Demonstration Data
+                    </span>
+                  ) : total > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-200 border border-emerald-500/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      Live Database Records
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded bg-slate-500/20 text-slate-300 border border-slate-500/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                      No Verified Records
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs sm:text-sm text-slate-300 mt-1">
                   Aggregated civic resolution statistics across 38 districts and 25 Municipal Corporations in Tamil Nadu.

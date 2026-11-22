@@ -165,6 +165,22 @@ export default function AdminDashboard({
                 {adminUser.district}
               </span>
             )}
+            {stats?.isDemoData ? (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                Demonstration Data
+              </span>
+            ) : total > 0 ? (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Live Database Data
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                No Data Available
+              </span>
+            )}
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Logged in as <strong className="text-slate-900 font-semibold">{adminUser?.name || 'Administrator'}</strong> ({adminUser?.email || 'admin@civicresolve.gov'})
@@ -393,8 +409,10 @@ export default function AdminDashboard({
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filteredComplaints.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="py-12 text-center text-slate-400">
-                      No grievance records match the current filters.
+                    <td colSpan="7" className="py-12 text-center text-slate-500 text-xs">
+                      {complaints.length === 0
+                        ? 'No verified grievance records are available yet.'
+                        : 'No grievance records match the current filters.'}
                     </td>
                   </tr>
                 ) : (

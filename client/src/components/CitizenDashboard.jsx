@@ -96,7 +96,7 @@ export default function CitizenDashboard({
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Reports</p>
             <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1 tabular-nums tracking-tight">
-              {stats?.totalComplaints || (complaints.length > 0 ? complaints.length : 37)}
+              {stats?.totalComplaints ?? (complaints.length > 0 ? complaints.length : 0)}
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">Municipal SQLite records</p>
           </div>
@@ -109,7 +109,7 @@ export default function CitizenDashboard({
           <div>
             <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Under Review</p>
             <h3 className="text-2xl sm:text-3xl font-bold text-amber-700 mt-1 tabular-nums tracking-tight">
-              {stats?.pendingComplaints || (complaints.length > 0 ? complaints.filter(c => c.status === 'Submitted' || c.status === 'Under Review').length : 5)}
+              {stats?.pendingComplaints ?? (complaints.length > 0 ? complaints.filter(c => c.status === 'Submitted' || c.status === 'Under Review').length : 0)}
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">Initial triage queue</p>
           </div>
@@ -122,7 +122,7 @@ export default function CitizenDashboard({
           <div>
             <p className="text-xs font-semibold text-navy-800 uppercase tracking-wider">Field Action</p>
             <h3 className="text-2xl sm:text-3xl font-bold text-navy-800 mt-1 tabular-nums tracking-tight">
-              {stats?.inProgressComplaints || (complaints.length > 0 ? complaints.filter(c => c.status === 'Assigned' || c.status === 'In Progress').length : 8)}
+              {stats?.inProgressComplaints ?? (complaints.length > 0 ? complaints.filter(c => c.status === 'Assigned' || c.status === 'In Progress').length : 0)}
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">Assigned & crew deployed</p>
           </div>
@@ -135,7 +135,7 @@ export default function CitizenDashboard({
           <div>
             <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">Resolved</p>
             <h3 className="text-2xl sm:text-3xl font-bold text-emerald-700 mt-1 tabular-nums tracking-tight">
-              {stats?.resolvedComplaints || (complaints.length > 0 ? complaints.filter(c => c.status === 'Resolved').length : 24)}
+              {stats?.resolvedComplaints ?? (complaints.length > 0 ? complaints.filter(c => c.status === 'Resolved').length : 0)}
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">Verified closed tickets</p>
           </div>

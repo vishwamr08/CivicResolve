@@ -4,7 +4,6 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 dotenv.config();
 
-const Database = require('better-sqlite3');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 
@@ -16,10 +15,79 @@ if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-const db = new Database(dbPath);
+// If configured with persistent storage (e.g. DATA_DIR=/var/data) and target DB does not exist yet,
+// safely seed it from the repo baseline so all 27 genuine complaints and user accounts are preserved
+const baselineRepoDb = path.join(__dirname, 'civicresolve.db');
+if (path.resolve(dbPath) !== path.resolve(baselineRepoDb) && !fs.existsSync(dbPath)) {
+  if (fs.existsSync(baselineRepoDb)) {
+    try {
+      fs.copyFileSync(baselineRepoDb, dbPath);
+      console.log(`[Database Initialization]: Initialized persistent database at ${dbPath} from baseline snapshot.`);
+    } catch (err) {
+      console.warn(`[Database Initialization]: Could not copy baseline DB to ${dbPath}:`, err.message);
+    }
+  }
+}
 
-// Enable WAL mode for better concurrency
+class BetterSqliteAdapter {
+  constructor(filename) {
+    const { DatabaseSync } = require('node:sqlite');
+    this.syncDb = new DatabaseSync(filename);
+    this._open = true;
+  }
+  get open() {
+    return this._open;
+  }
+  exec(sql) {
+    return this.syncDb.exec(sql);
+  }
+  prepare(sql) {
+    const stmt = this.syncDb.prepare(sql);
+    return {
+      get: (...args) => stmt.get(...args),
+      all: (...args) => stmt.all(...args),
+      run: (...args) => stmt.run(...args),
+      bind: (...args) => stmt.bind(...args)
+    };
+  }
+  pragma(pragmaStr) {
+    try {
+      return this.syncDb.prepare(`PRAGMA ${pragmaStr}`).all();
+    } catch {
+      return [];
+    }
+  }
+  transaction(fn) {
+    return (...args) => {
+      this.syncDb.exec('BEGIN IMMEDIATE');
+      try {
+        const res = fn(...args);
+        this.syncDb.exec('COMMIT');
+        return res;
+      } catch (e) {
+        this.syncDb.exec('ROLLBACK');
+        throw e;
+      }
+    };
+  }
+  close() {
+    this._open = false;
+    return this.syncDb.close();
+  }
+}
+
+let db;
+try {
+  const BetterSqlite = require('better-sqlite3');
+  db = new BetterSqlite(dbPath);
+} catch (err) {
+  // Graceful fallback to Node.js built-in DatabaseSync when native binary is blocked or unavailable
+  db = new BetterSqliteAdapter(dbPath);
+}
+
+// Enable WAL mode for better concurrency and enforce FULL synchronous durability per municipal deployment safety standards
 db.pragma('journal_mode = WAL');
+db.pragma('synchronous = FULL');
 
 function initializeDatabase() {
   db.exec(`
@@ -79,7 +147,12 @@ function initializeDatabase() {
     'language TEXT DEFAULT "en"',
     'verification_otp TEXT',
     'otp_expires_at DATETIME',
-    'reopen_count INTEGER DEFAULT 0'
+    'reopen_count INTEGER DEFAULT 0',
+    'location_accuracy REAL',
+    'detection_method TEXT DEFAULT "manual"',
+    'zone TEXT',
+    'postal_code TEXT',
+    'jurisdiction_source TEXT DEFAULT "unverified"'
   ];
 
   for (const colDef of newComplaintCols) {
@@ -165,6 +238,14 @@ function initializeDatabase() {
       db.exec(`ALTER TABLE citizens ADD COLUMN ${cCol};`);
     } catch {}
   }
+
+  // Database-level uniqueness constraints and performance indexes for citizens
+  try {
+    db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_citizens_phone_unique ON citizens(phone);`);
+  } catch {}
+  try {
+    db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_citizens_email_unique ON citizens(email);`);
+  } catch {}
 
   // Create citizen_otps table for Mobile OTP Authentication
   db.exec(`
@@ -298,6 +379,8 @@ function initializeDatabase() {
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_complaints_ref_id ON complaints(ref_id);
       CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status);
+      CREATE INDEX IF NOT EXISTS idx_complaints_created_at ON complaints(created_at DESC, id DESC);
+      CREATE INDEX IF NOT EXISTS idx_complaints_category ON complaints(category);
       CREATE INDEX IF NOT EXISTS idx_complaints_citizen_id ON complaints(citizen_id);
       CREATE INDEX IF NOT EXISTS idx_complaints_citizen_phone ON complaints(citizen_phone);
       CREATE INDEX IF NOT EXISTS idx_complaints_citizen_email ON complaints(citizen_email);
@@ -492,12 +575,31 @@ function initializeDatabase() {
     }
   }
 
-  // Check if sample data exists
+  // Safe cleanup of legacy synthetic Bengaluru test records, strictly preserving genuine complaints
+  try {
+    const purgeSynthetic = db.prepare(`
+      DELETE FROM complaints
+      WHERE (
+        ref_id IN ('CR-2026-1042', 'CR-2026-1043', 'CR-2026-1044', 'CR-2026-1045', 'CR-2026-1046', 'CR-2026-1047', 'CR-2026-1048')
+        OR ref_id LIKE 'CR-TEST-%'
+      )
+      AND (citizen_id IS NULL OR citizen_id = 0)
+      AND (image_url LIKE '%images.unsplash.com%' OR image_url IS NULL)
+    `);
+    const purged = purgeSynthetic.run();
+    if (purged && purged.changes > 0) {
+      console.log(`Phase 1 data integrity: Cleaned up ${purged.changes} legacy synthetic sample complaints.`);
+    }
+  } catch (err) {
+    console.warn('Notice during synthetic complaints cleanup:', err.message);
+  }
+
+  // Demonstration fixtures are strictly isolated behind explicit development-only configuration
   const countStmt = db.prepare('SELECT COUNT(*) as count FROM complaints');
   const { count } = countStmt.get();
 
-  if (count === 0) {
-    console.log('Inserting initial sample complaints for Phase 3...');
+  if (process.env.SEED_DEMO_DATA === 'true' && count === 0) {
+    console.log('SEED_DEMO_DATA=true: Inserting development test fixtures...');
     const insert = db.prepare(`
       INSERT INTO complaints (
         ref_id, title, description, category, location, latitude, longitude,
@@ -648,7 +750,9 @@ function initializeDatabase() {
       for (const c of complaints) insert.run(c);
     });
     insertMany(sampleComplaints);
-    console.log(`Inserted ${sampleComplaints.length} Phase 3 sample complaints successfully.`);
+    console.log(`Inserted ${sampleComplaints.length} development test fixtures.`);
+  } else {
+    console.log('Production data mode active: zero synthetic fixtures inserted.');
   }
 }
 

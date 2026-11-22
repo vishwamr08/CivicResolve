@@ -22,6 +22,7 @@ export default function CitizenAuthModal({
   const [enteredOtp, setEnteredOtp] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const [_isNewUser, setIsNewUser] = useState(false);
+  const [registrationToken, setRegistrationToken] = useState('');
 
   // New Citizen Profile Fields (collected after mobile verification)
   const [fullName, setFullName] = useState('');
@@ -55,6 +56,7 @@ export default function CitizenAuthModal({
       setAuthMethod(initialMode === 'password' ? 'password' : 'otp');
       setOtpStep('input-phone');
       setEnteredOtp('');
+      setRegistrationToken('');
     }
   }, [isOpen, initialMode]);
 
@@ -129,6 +131,7 @@ export default function CitizenAuthModal({
       if (data.isNewUser) {
         // OTP verified for new user -> advance to profile completion
         setIsNewUser(true);
+        setRegistrationToken(data.registrationToken || '');
         setOtpStep('complete-profile');
         setSuccessMsg(lang === 'ta' ? 'அலைபேசி எண் சரிபார்க்கப்பட்டது! விவரங்களை பூர்த்தி செய்யவும்.' : 'Mobile verified! Please provide your name and municipal details to complete setup.');
       } else {
@@ -170,6 +173,7 @@ export default function CitizenAuthModal({
           name: fullName.trim(),
           phone: clean,
           otp: enteredOtp.trim(),
+          registrationToken,
           email: email.trim() || undefined,
           district,
           municipality,

@@ -22,14 +22,6 @@ export default function ComplaintTracker({
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState(null);
 
-  // Quick Demo Reference IDs
-  const sampleIds = [
-    'CR-TN-2026-763221',
-    'CR-TN-2026-891623',
-    'CR-TN-2026-546632',
-    'CR-2026-1042'
-  ];
-
   const handleTrack = async (e) => {
     if (e) e.preventDefault();
     const cleanId = refInput.trim();
@@ -131,26 +123,10 @@ export default function ComplaintTracker({
         </button>
       </form>
 
-      {/* Quick Test Chips */}
-      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-        <span className="font-medium">Sample References:</span>
-        {sampleIds.map(id => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => {
-              setRefInput(id);
-              fetch(getApiUrl(`/api/complaints/track/${id}`))
-                .then(r => r.json())
-                .then(d => { setTrackingData(d); setError(null); setIsUnlocked(false); })
-                .catch(e => setError(e.message));
-            }}
-            className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-[11px] transition-colors"
-          >
-            {id}
-          </button>
-        ))}
-      </div>
+      {/* Reference Format Hint */}
+      <p className="text-[11px] text-slate-500">
+        Enter the unique reference code provided on your grievance filing receipt (e.g., <span className="font-mono font-medium text-slate-700">CR-TN-2026-XXXXXX</span>).
+      </p>
 
       {/* Error Message */}
       {error && (

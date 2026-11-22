@@ -118,6 +118,7 @@ export function initApiInterceptor() {
   const originalFetch = window.fetch;
   window.fetch = async function (resource, init = {}) {
     let target = resource;
+    const method = (init.method || 'GET').toUpperCase();
 
     if (typeof resource === 'string') {
       if (resource.startsWith('/api/') || resource === '/api' || resource.startsWith('/uploads/') || resource === '/uploads') {
@@ -135,34 +136,61 @@ export function initApiInterceptor() {
       ...init
     };
 
-    try {
-      const res = await originalFetch.call(this, target, options);
+    // Attach timeout if not explicitly provided (30s accommodates Render 15-25s cold starts safely)
+    let timeoutId = null;
+    if (!options.signal && typeof AbortController !== 'undefined') {
+      const controller = new AbortController();
+      const timeoutMs = typeof options.timeout === 'number' ? options.timeout : 30000;
+      timeoutId = setTimeout(() => {
+        controller.abort(new Error(`CivicResolve API request timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+      options.signal = controller.signal;
+    }
 
-      // Enhance res.json to safely handle text/HTML error responses without throwing SyntaxError
-      const originalJson = res.json.bind(res);
-      res.json = async function () {
-        try {
-          const text = await res.text();
-          if (!text || text.trim() === '') return {};
+    // Only allow bounded retries for idempotent/safe GET requests on network failures. Never retry mutations (POST/PUT/PATCH/DELETE).
+    const isSafeGet = method === 'GET';
+    const maxRetries = isSafeGet ? (typeof options.retries === 'number' ? options.retries : 2) : 0;
+    let attempt = 0;
+
+    while (attempt <= maxRetries) {
+      try {
+        const res = await originalFetch.call(this, target, options);
+        if (timeoutId) clearTimeout(timeoutId);
+
+        // Enhance res.json to safely handle text/HTML error responses without throwing SyntaxError
+        const originalJson = res.json.bind(res);
+        res.json = async function () {
           try {
-            return JSON.parse(text);
+            const text = await res.text();
+            if (!text || text.trim() === '') return {};
+            try {
+              return JSON.parse(text);
+            } catch {
+              console.warn(`[CivicResolve API] Non-JSON payload received from ${res.url || target} (HTTP ${res.status}):`, text.slice(0, 150));
+              return {
+                error: `HTTP ${res.status}: ${res.statusText || 'Server error'}`,
+                status: res.status,
+                message: text.slice(0, 200)
+              };
+            }
           } catch {
-            console.warn(`[CivicResolve API] Non-JSON payload received from ${res.url || target} (HTTP ${res.status}):`, text.slice(0, 150));
-            return {
-              error: `HTTP ${res.status}: ${res.statusText || 'Server error'}`,
-              status: res.status,
-              message: text.slice(0, 200)
-            };
+            return originalJson();
           }
-        } catch {
-          return originalJson();
-        }
-      };
+        };
 
-      return res;
-    } catch (fetchErr) {
-      console.error(`[CivicResolve API] Connection error for ${target}:`, fetchErr.message);
-      throw fetchErr;
+        return res;
+      } catch (fetchErr) {
+        attempt++;
+        const isAbort = fetchErr.name === 'AbortError';
+        if (isSafeGet && attempt <= maxRetries && !isAbort) {
+          console.warn(`[CivicResolve API] Safe GET retry ${attempt}/${maxRetries} for ${target}...`);
+          await new Promise(r => setTimeout(r, 2000 * attempt));
+          continue;
+        }
+        if (timeoutId) clearTimeout(timeoutId);
+        console.error(`[CivicResolve API] Connection error for ${target}:`, fetchErr.message);
+        throw fetchErr;
+      }
     }
   };
 }

@@ -1,26 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import LandingPage from './components/LandingPage';
-import PublicDashboard from './components/PublicDashboard';
-import CitizenDashboard from './components/CitizenDashboard';
-import CitizenPortal from './components/CitizenPortal';
-import ComplaintTracker from './components/ComplaintTracker';
-import OfficerPortal from './components/OfficerPortal';
-import AdminDashboard from './components/AdminDashboard';
-import AdminLogin from './components/AdminLogin';
-import ComplaintFormModal from './components/ComplaintFormModal';
-import ReceiptModal from './components/ReceiptModal';
-import CitizenAuthModal from './components/CitizenAuthModal';
-import AiAnalysisModal from './components/AiAnalysisModal';
-import ComplaintDetailsModal from './components/ComplaintDetailsModal';
-import AdminManageModal from './components/AdminManageModal';
-import ServicesPage from './components/ServicesPage';
-import AnnouncementsPage from './components/AnnouncementsPage';
-import HowItWorksPage from './components/HowItWorksPage';
-import AboutPage from './components/AboutPage';
 import Footer from './components/Footer';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { getApiUrl } from './config/api';
+
+// Code-split secondary dashboards, views, and modals to minimize initial page JS bundle
+const PublicDashboard = lazy(() => import('./components/PublicDashboard'));
+const CitizenDashboard = lazy(() => import('./components/CitizenDashboard'));
+const CitizenPortal = lazy(() => import('./components/CitizenPortal'));
+const ComplaintTracker = lazy(() => import('./components/ComplaintTracker'));
+const OfficerPortal = lazy(() => import('./components/OfficerPortal'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const AdminLogin = lazy(() => import('./components/AdminLogin'));
+const ComplaintFormModal = lazy(() => import('./components/ComplaintFormModal'));
+const ReceiptModal = lazy(() => import('./components/ReceiptModal'));
+const CitizenAuthModal = lazy(() => import('./components/CitizenAuthModal'));
+const AiAnalysisModal = lazy(() => import('./components/AiAnalysisModal'));
+const ComplaintDetailsModal = lazy(() => import('./components/ComplaintDetailsModal'));
+const AdminManageModal = lazy(() => import('./components/AdminManageModal'));
+const ServicesPage = lazy(() => import('./components/ServicesPage'));
+const AnnouncementsPage = lazy(() => import('./components/AnnouncementsPage'));
+const HowItWorksPage = lazy(() => import('./components/HowItWorksPage'));
+const AboutPage = lazy(() => import('./components/AboutPage'));
+
+// Institutional loading skeleton for deferred chunks
+function ViewSkeleton() {
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 animate-pulse">
+      <div className="h-7 bg-slate-200 rounded w-1/4 mb-4"></div>
+      <div className="h-4 bg-slate-100 rounded w-1/2 mb-8"></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="h-24 bg-slate-100 border border-slate-200/80 rounded-xl"></div>
+        <div className="h-24 bg-slate-100 border border-slate-200/80 rounded-xl"></div>
+        <div className="h-24 bg-slate-100 border border-slate-200/80 rounded-xl"></div>
+        <div className="h-24 bg-slate-100 border border-slate-200/80 rounded-xl"></div>
+      </div>
+      <div className="h-72 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-center">
+        <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
+          <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+          <span>Loading module...</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('landing'); // 'landing', 'tracker', 'citizen-portal', 'citizen', 'admin', 'admin-login'
@@ -49,10 +73,12 @@ export default function App() {
   });
 
   const [complaints, setComplaints] = useState([]);
+  const [complaintsLoaded, setComplaintsLoaded] = useState(false);
   const [stats, setStats] = useState(null);
   const [health, setHealth] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isServerWaking, setIsServerWaking] = useState(false);
 
   // Modals & Tracking
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
@@ -110,57 +136,88 @@ export default function App() {
         }
       }
 
-      // 2. Check Citizen
+      // 2. Check Citizen (dual-layer: localStorage token + HttpOnly cookie fallback)
       const storedCitizenToken = localStorage.getItem('civic_citizen_token');
-      if (storedCitizenToken) {
-        try {
-          const res = await fetch(getApiUrl('/api/auth/citizen/me'), {
-            headers: { 'Authorization': `Bearer ${storedCitizenToken}` }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setCitizenUser(data.citizen);
-          } else {
-            localStorage.removeItem('civic_citizen_token');
-            localStorage.removeItem('civic_citizen_user');
-            setCitizenToken(null);
-            setCitizenUser(null);
+      const citizenHeaders = storedCitizenToken ? { 'Authorization': `Bearer ${storedCitizenToken}` } : {};
+      try {
+        const res = await fetch(getApiUrl('/api/auth/citizen/me'), {
+          headers: citizenHeaders,
+          credentials: 'include'
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCitizenUser(data.citizen);
+          if (storedCitizenToken) {
+            setCitizenToken(storedCitizenToken);
           }
-        } catch (e) {
-          console.warn('Citizen session verify notice:', e.message);
+          localStorage.setItem('civic_citizen_user', JSON.stringify(data.citizen));
+        } else if (storedCitizenToken) {
+          localStorage.removeItem('civic_citizen_token');
+          localStorage.removeItem('civic_citizen_user');
+          setCitizenToken(null);
+          setCitizenUser(null);
         }
+      } catch (e) {
+        console.warn('Citizen session verify notice:', e.message);
       }
     };
 
     verifySessions();
   }, []);
 
-  // Fetch initial data
+  // On-demand complaints loading (deferred from startup)
+  const loadComplaints = useCallback(async (force = false) => {
+    if (complaintsLoaded && !force) return;
+    try {
+      const res = await fetch(getApiUrl('/api/complaints?limit=100')).then(r => r.json()).catch(() => null);
+      if (res && res.complaints) {
+        setComplaints(res.complaints);
+        setComplaintsLoaded(true);
+      }
+    } catch (err) {
+      console.warn('[Complaints Load Notice]:', err.message);
+    }
+  }, [complaintsLoaded]);
+
+  // Fetch initial lightweight startup data only (Health + Aggregated Stats)
   const fetchData = async () => {
     try {
       setError(null);
-      const [healthRes, statsRes, complaintsRes] = await Promise.all([
+      const [healthRes, statsRes] = await Promise.all([
         fetch(getApiUrl('/api/health')).then(r => r.json()).catch(() => null),
-        fetch(getApiUrl('/api/dashboard/stats')).then(r => r.json()).catch(() => null),
-        fetch(getApiUrl('/api/complaints')).then(r => r.json()).catch(() => null)
+        fetch(getApiUrl('/api/dashboard/stats')).then(r => r.json()).catch(() => null)
       ]);
 
       if (healthRes && !healthRes.error) setHealth(healthRes);
       if (statsRes && !statsRes.error) setStats(statsRes);
-      if (complaintsRes && complaintsRes.complaints) {
-        setComplaints(complaintsRes.complaints);
-      }
     } catch (err) {
-      console.error('Error fetching data:', err);
+      console.error('Error fetching startup data:', err);
       setError('Could not connect to CivicResolve Backend API.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Initial startup probe with transparent waking detection for cloud cold starts
   useEffect(() => {
-    fetchData();
+    const wakingTimer = setTimeout(() => {
+      setIsServerWaking(true);
+    }, 2500);
+
+    fetchData().finally(() => {
+      clearTimeout(wakingTimer);
+      setIsServerWaking(false);
+    });
+
+    return () => clearTimeout(wakingTimer);
   }, []);
+
+  // Fetch complaints on-demand when navigating to tabs that require individual complaints
+  useEffect(() => {
+    if (activeTab === 'citizen' || activeTab === 'admin' || activeTab === 'tracker') {
+      loadComplaints();
+    }
+  }, [activeTab, loadComplaints]);
 
   // Handle Admin Login Success
   const handleAdminLoginSuccess = (token, admin) => {
@@ -201,12 +258,21 @@ export default function App() {
   };
 
   // Handle Citizen Logout
-  const handleCitizenLogout = () => {
-    localStorage.removeItem('civic_citizen_token');
-    localStorage.removeItem('civic_citizen_user');
-    setCitizenToken(null);
-    setCitizenUser(null);
-    showToast('Signed out of citizen account.', 'success');
+  const handleCitizenLogout = async () => {
+    try {
+      await fetch(getApiUrl('/api/auth/citizen/logout'), {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (e) {
+      console.warn('Citizen logout API notice:', e.message);
+    } finally {
+      localStorage.removeItem('civic_citizen_token');
+      localStorage.removeItem('civic_citizen_user');
+      setCitizenToken(null);
+      setCitizenUser(null);
+      showToast('Signed out of citizen account.', 'success');
+    }
   };
 
   // Handle Safe Navigation to Admin
@@ -357,6 +423,14 @@ export default function App() {
         </div>
       )}
 
+      {/* Cloud Cold-Start Transparent Waking Banner */}
+      {isServerWaking && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 transition-all">
+          <Loader2 className="w-4 h-4 animate-spin text-amber-700 flex-shrink-0" />
+          <span>CivicResolve Application Server is waking from standby (standard cloud spin-up, typically 15–25 seconds). Services will be ready momentarily.</span>
+        </div>
+      )}
+
       {/* Main View Container */}
       <main id="main-content" role="main" tabIndex="-1" className="flex-1 outline-none">
         {loading ? (
@@ -397,68 +471,89 @@ export default function App() {
               />
             )}
 
-            {/* 2. Dedicated Municipal Services Catalog */}
-            {activeTab === 'services' && (
-              <ServicesPage
-                onOpenSubmit={handleOpenSubmit}
-                lang={lang}
-              />
-            )}
+            <Suspense fallback={<ViewSkeleton />}>
+              {/* 2. Dedicated Municipal Services Catalog */}
+              {activeTab === 'services' && (
+                <ServicesPage
+                  onOpenSubmit={handleOpenSubmit}
+                  lang={lang}
+                />
+              )}
 
-            {/* 3. Dedicated How It Works Redressal Workflow */}
-            {activeTab === 'how-it-works' && (
-              <HowItWorksPage
-                onOpenSubmit={handleOpenSubmit}
-                onGoToTracker={handleTrackRefId}
-                onGoToPublicDashboard={() => setActiveTab('public-dashboard')}
-                lang={lang}
-              />
-            )}
+              {/* 3. Dedicated How It Works Redressal Workflow */}
+              {activeTab === 'how-it-works' && (
+                <HowItWorksPage
+                  onOpenSubmit={handleOpenSubmit}
+                  onGoToTracker={handleTrackRefId}
+                  onGoToPublicDashboard={() => setActiveTab('public-dashboard')}
+                  lang={lang}
+                />
+              )}
 
-            {/* 4. Dedicated Civic Announcements & Gazettes */}
-            {activeTab === 'announcements' && (
-              <AnnouncementsPage
-                adminUser={adminUser}
-                adminToken={adminToken}
-                onOpenSubmit={handleOpenSubmit}
-                lang={lang}
-              />
-            )}
+              {/* 4. Dedicated Civic Announcements & Gazettes */}
+              {activeTab === 'announcements' && (
+                <AnnouncementsPage
+                  adminUser={adminUser}
+                  adminToken={adminToken}
+                  onOpenSubmit={handleOpenSubmit}
+                  lang={lang}
+                />
+              )}
 
-            {/* 5. Dedicated About CivicResolve & Mission */}
-            {activeTab === 'about' && (
-              <AboutPage
-                onOpenSubmit={handleOpenSubmit}
-                onGoToTracker={handleTrackRefId}
-                lang={lang}
-              />
-            )}
+              {/* 5. Dedicated About CivicResolve & Mission */}
+              {activeTab === 'about' && (
+                <AboutPage
+                  onOpenSubmit={handleOpenSubmit}
+                  onGoToTracker={handleTrackRefId}
+                  lang={lang}
+                />
+              )}
 
-            {/* 6. Emergency Contacts & Directory */}
-            {activeTab === 'contact' && (
-              <AboutPage
-                onOpenSubmit={handleOpenSubmit}
-                onGoToTracker={handleTrackRefId}
-                focusSection="contact"
-                lang={lang}
-              />
-            )}
+              {/* 6. Emergency Contacts & Directory */}
+              {activeTab === 'contact' && (
+                <AboutPage
+                  onOpenSubmit={handleOpenSubmit}
+                  onGoToTracker={handleTrackRefId}
+                  focusSection="contact"
+                  lang={lang}
+                />
+              )}
 
-            {/* 2. Public Transparency Dashboard (Phase 8 Recharts) */}
-            {activeTab === 'public-dashboard' && (
-              <PublicDashboard
-                stats={stats}
-                onBack={() => setActiveTab('landing')}
-                onOpenSubmit={handleOpenSubmit}
-                lang={lang}
-              />
-            )}
+              {/* 2. Public Transparency Dashboard (Phase 8 Recharts) */}
+              {activeTab === 'public-dashboard' && (
+                <PublicDashboard
+                  stats={stats}
+                  onBack={() => setActiveTab('landing')}
+                  onOpenSubmit={handleOpenSubmit}
+                  lang={lang}
+                />
+              )}
 
-            {/* 3. Grievance Tracking View */}
-            {activeTab === 'tracker' && (
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <ComplaintTracker
-                  initialRefId={trackerInitialId}
+              {/* 3. Grievance Tracking View */}
+              {activeTab === 'tracker' && (
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                  <ComplaintTracker
+                    initialRefId={trackerInitialId}
+                    onSelectComplaint={(c) => setSelectedComplaint(c)}
+                    onViewReceipt={(c) => {
+                      setReceiptComplaint(c);
+                      setIsReceiptModalOpen(true);
+                    }}
+                    lang={lang}
+                  />
+                </div>
+              )}
+
+              {/* 4. Citizen Portal (Account, My Grievances, Feedback & Appeal) */}
+              {activeTab === 'citizen-portal' && (
+                <CitizenPortal
+                  citizenUser={citizenUser}
+                  onLogoutCitizen={handleCitizenLogout}
+                  onOpenAuth={(m) => {
+                    setCitizenAuthMode(m || 'otp');
+                    setIsCitizenAuthOpen(true);
+                  }}
+                  onOpenSubmit={handleOpenSubmit}
                   onSelectComplaint={(c) => setSelectedComplaint(c)}
                   onViewReceipt={(c) => {
                     setReceiptComplaint(c);
@@ -466,82 +561,63 @@ export default function App() {
                   }}
                   lang={lang}
                 />
-              </div>
-            )}
+              )}
 
-            {/* 4. Citizen Portal (Account, My Grievances, Feedback & Appeal) */}
-            {activeTab === 'citizen-portal' && (
-              <CitizenPortal
-                citizenUser={citizenUser}
-                onLogoutCitizen={handleCitizenLogout}
-                onOpenAuth={(m) => {
-                  setCitizenAuthMode(m || 'otp');
-                  setIsCitizenAuthOpen(true);
-                }}
-                onOpenSubmit={handleOpenSubmit}
-                onSelectComplaint={(c) => setSelectedComplaint(c)}
-                onViewReceipt={(c) => {
-                  setReceiptComplaint(c);
-                  setIsReceiptModalOpen(true);
-                }}
-                lang={lang}
-              />
-            )}
-
-            {/* 5. Public Complaints Explorer & Map */}
-            {activeTab === 'citizen' && (
-              <CitizenDashboard
-                complaints={complaints}
-                stats={stats}
-                onOpenSubmit={handleOpenSubmit}
-                onSelectComplaint={(c) => setSelectedComplaint(c)}
-              />
-            )}
-
-            {/* 5. Officer Login */}
-            {activeTab === 'admin-login' && (
-              <AdminLogin
-                onLoginSuccess={handleAdminLoginSuccess}
-                onCancel={() => setActiveTab('landing')}
-              />
-            )}
-
-            {/* 6. Officer Field Operations Desk */}
-            {activeTab === 'officer-portal' && (
-              adminUser ? (
-                <OfficerPortal
-                  adminUser={adminUser}
-                  onLogout={handleAdminLogout}
-                  onSelectComplaint={(c) => setSelectedComplaint(c)}
-                  lang={lang}
-                />
-              ) : (
-                <AdminLogin
-                  onLoginSuccess={handleAdminLoginSuccess}
-                  onCancel={() => setActiveTab('landing')}
-                />
-              )
-            )}
-
-            {/* 7. Officer Operations Command Center */}
-            {activeTab === 'admin' && (
-              adminUser ? (
-                <AdminDashboard
-                  stats={stats}
+              {/* 5. Public Complaints Explorer & Map */}
+              {activeTab === 'citizen' && (
+                <CitizenDashboard
                   complaints={complaints}
-                  onRefresh={fetchData}
+                  stats={stats}
+                  onOpenSubmit={handleOpenSubmit}
                   onSelectComplaint={(c) => setSelectedComplaint(c)}
-                  onManageComplaint={(c) => setManagingComplaint(c)}
-                  adminUser={adminUser}
-                  onLogout={handleAdminLogout}
                 />
-              ) : (
+              )}
+
+              {/* 5. Officer Login */}
+              {activeTab === 'admin-login' && (
                 <AdminLogin
                   onLoginSuccess={handleAdminLoginSuccess}
                   onCancel={() => setActiveTab('landing')}
                 />
-              )
-            )}
+              )}
+
+              {/* 6. Officer Field Operations Desk */}
+              {activeTab === 'officer-portal' && (
+                adminUser ? (
+                  <OfficerPortal
+                    adminUser={adminUser}
+                    onLogout={handleAdminLogout}
+                    onSelectComplaint={(c) => setSelectedComplaint(c)}
+                    lang={lang}
+                  />
+                ) : (
+                  <AdminLogin
+                    onLoginSuccess={handleAdminLoginSuccess}
+                    onCancel={() => setActiveTab('landing')}
+                  />
+                )
+              )}
+
+              {/* 7. Officer Operations Command Center */}
+              {activeTab === 'admin' && (
+                adminUser ? (
+                  <AdminDashboard
+                    stats={stats}
+                    complaints={complaints}
+                    onRefresh={fetchData}
+                    onSelectComplaint={(c) => setSelectedComplaint(c)}
+                    onManageComplaint={(c) => setManagingComplaint(c)}
+                    adminUser={adminUser}
+                    onLogout={handleAdminLogout}
+                  />
+                ) : (
+                  <AdminLogin
+                    onLoginSuccess={handleAdminLoginSuccess}
+                    onCancel={() => setActiveTab('landing')}
+                  />
+                )
+              )}
+            </Suspense>
           </>
         )}
       </main>
@@ -559,70 +635,71 @@ export default function App() {
         lang={lang}
       />
 
-      {/* Modals Suite */}
-      
-      {/* Grievance Submission Wizard */}
-      <ComplaintFormModal
-        isOpen={isSubmitModalOpen}
-        onClose={() => setIsSubmitModalOpen(false)}
-        onSubmit={handleSubmitComplaint}
-        isSubmitting={isSubmitting}
-        initialCategory={submitModalCategory}
-        citizenUser={citizenUser}
-        lang={lang}
-      />
+      {/* Modals Suite (Deferred Lazy Loading) */}
+      <Suspense fallback={null}>
+        {/* Grievance Submission Wizard */}
+        <ComplaintFormModal
+          isOpen={isSubmitModalOpen}
+          onClose={() => setIsSubmitModalOpen(false)}
+          onSubmit={handleSubmitComplaint}
+          isSubmitting={isSubmitting}
+          initialCategory={submitModalCategory}
+          citizenUser={citizenUser}
+          lang={lang}
+        />
 
-      {/* Formal Government-Style Acknowledgement Slip */}
-      <ReceiptModal
-        complaint={receiptComplaint}
-        isOpen={isReceiptModalOpen}
-        onClose={() => setIsReceiptModalOpen(false)}
-        onTrack={handleTrackRefId}
-        lang={lang}
-      />
+        {/* Formal Government-Style Acknowledgement Slip */}
+        <ReceiptModal
+          complaint={receiptComplaint}
+          isOpen={isReceiptModalOpen}
+          onClose={() => setIsReceiptModalOpen(false)}
+          onTrack={handleTrackRefId}
+          lang={lang}
+        />
 
-      {/* Citizen Authentication Modal */}
-      <CitizenAuthModal
-        isOpen={isCitizenAuthOpen}
-        onClose={() => setIsCitizenAuthOpen(false)}
-        onSuccess={handleCitizenLoginSuccess}
-        initialMode={citizenAuthMode}
-        lang={lang}
-      />
+        {/* Citizen Authentication Modal */}
+        <CitizenAuthModal
+          isOpen={isCitizenAuthOpen}
+          onClose={() => setIsCitizenAuthOpen(false)}
+          onSuccess={handleCitizenLoginSuccess}
+          initialMode={citizenAuthMode}
+          lang={lang}
+        />
 
-      {/* Groq AI Telemetry Modal */}
-      <AiAnalysisModal
-        complaint={newlyCreatedComplaint}
-        isOpen={isAiModalOpen}
-        onClose={() => setIsAiModalOpen(false)}
-        onViewDetails={(c) => {
-          setIsAiModalOpen(false);
-          setSelectedComplaint(c);
-        }}
-      />
+        {/* Groq AI Telemetry Modal */}
+        <AiAnalysisModal
+          complaint={newlyCreatedComplaint}
+          isOpen={isAiModalOpen}
+          onClose={() => setIsAiModalOpen(false)}
+          onViewDetails={(c) => {
+            setIsAiModalOpen(false);
+            setSelectedComplaint(c);
+          }}
+        />
 
-      {/* Grievance Inspection Modal */}
-      <ComplaintDetailsModal
-        complaint={selectedComplaint}
-        isOpen={!!selectedComplaint}
-        onClose={() => setSelectedComplaint(null)}
-        onManageComplaint={(c) => {
-          if (adminUser) {
-            setManagingComplaint(c);
-          } else {
-            setActiveTab('admin-login');
-            showToast('Administrator authentication required to manage grievances.', 'error');
-          }
-        }}
-      />
+        {/* Grievance Inspection Modal */}
+        <ComplaintDetailsModal
+          complaint={selectedComplaint}
+          isOpen={!!selectedComplaint}
+          onClose={() => setSelectedComplaint(null)}
+          onManageComplaint={(c) => {
+            if (adminUser) {
+              setManagingComplaint(c);
+            } else {
+              setActiveTab('admin-login');
+              showToast('Administrator authentication required to manage grievances.', 'error');
+            }
+          }}
+        />
 
-      {/* Officer Task Management Modal (e-Yantra Pattern) */}
-      <AdminManageModal
-        complaint={managingComplaint}
-        isOpen={!!managingComplaint}
-        onClose={() => setManagingComplaint(null)}
-        onSave={handleManageComplaintSave}
-      />
+        {/* Officer Task Management Modal (e-Yantra Pattern) */}
+        <AdminManageModal
+          complaint={managingComplaint}
+          isOpen={!!managingComplaint}
+          onClose={() => setManagingComplaint(null)}
+          onSave={handleManageComplaintSave}
+        />
+      </Suspense>
 
     </div>
   );

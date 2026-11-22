@@ -3,7 +3,23 @@ services:
   - type: web
     name: civicresolve-api
     runtime: node
-    plan: free
+    # NOTE FOR MUNICIPAL PRODUCTION:
+    # Render Free tier web services use ephemeral storage: all local SQLite database changes
+    # are erased when the instance spins down or is redeployed.
+    #
+    # OPTION A (Recommended for SQLite on Render):
+    # Change plan to 'starter' ($7/mo) and enable the persistent disk below.
+    # The server automatically detects DATA_DIR=/var/data, initialises the database from
+    # the repo baseline, and persists all genuine complaints and citizen profiles across restarts.
+    #
+    # OPTION B (Zero-cost Free Tier persistence):
+    # Use Render's free managed PostgreSQL service or Turso (cloud SQLite/libsql), setting
+    # DATABASE_URL in the environment variables.
+    plan: starter
+    disk:
+      name: civicresolve-data
+      mountPath: /var/data
+      sizeGB: 1
     rootDir: server
     buildCommand: npm install
     startCommand: node index.js
@@ -12,6 +28,8 @@ services:
         value: 5000
       - key: NODE_ENV
         value: production
+      - key: DATA_DIR
+        value: /var/data
       - key: FRONTEND_URL
         value: https://civicresolve-yc9v.onrender.com
       - key: CORS_ORIGIN

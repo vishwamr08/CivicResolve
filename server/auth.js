@@ -12,6 +12,14 @@ const db = require('./db');
 const JWT_SECRET = process.env.JWT_SECRET || 'civicresolve_jwt_fallback_secret_key_2026';
 const JWT_EXPIRES_IN = '24h';
 
+// Phone normalization utility (standard 10-digit Indian mobile format)
+function normalizePhone(phone) {
+  if (!phone) return '';
+  const cleaned = String(phone).replace(/\D/g, '');
+  if (cleaned.length < 10) return '';
+  return cleaned.slice(-10);
+}
+
 // Cryptographically Secure OTP Utilities
 function generateSecureOtp() {
   return crypto.randomInt(100000, 1000000).toString();
@@ -179,9 +187,9 @@ function authenticateCitizen(req, res, next) {
       });
     }
 
-    const citizen = db.prepare('SELECT id, name, email, phone, district FROM citizens WHERE id = ?').get(decoded.id);
+    const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, created_at FROM citizens WHERE id = ?').get(decoded.id);
     if (!citizen) {
-      return res.status(401).json({ error: 'Citizen record not found.' });
+      return res.status(401).json({ error: 'Citizen record not found. Please log in again.' });
     }
 
     req.citizen = citizen;
@@ -211,7 +219,7 @@ function optionalCitizenAuth(req, res, next) {
     if (token) {
       const decoded = verifyToken(token);
       if (decoded && decoded.id) {
-        const citizen = db.prepare('SELECT id, name, email, phone, district FROM citizens WHERE id = ?').get(decoded.id);
+        const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, created_at FROM citizens WHERE id = ?').get(decoded.id);
         if (citizen) req.citizen = citizen;
       }
     }
@@ -236,6 +244,7 @@ function requireRole(...allowedRoles) {
 }
 
 module.exports = {
+  normalizePhone,
   generateSecureOtp,
   hashOtp,
   hashPassword,

@@ -23,8 +23,10 @@ const {
   authenticateAdmin,
   authenticateCitizen,
   optionalCitizenAuth,
+  requireRole,
   generateSecureOtp,
-  hashOtp
+  hashOtp,
+  normalizePhone
 } = require('./auth');
 const { computeSlaMetrics, getTargetSlaHours } = require('./sla-engine');
 const { findDuplicateCandidates } = require('./duplicate-engine');
@@ -38,6 +40,8 @@ const {
   isWhatsAppConfigured
 } = require('./notifications');
 const { TAMIL_NADU_DISTRICTS, TN_CIVIC_DEPARTMENTS } = require('./data/tamilnadu-geo');
+const { reverseGeocodeLocation, checkGeocodeRateLimit } = require('./geocoding-service');
+const { determineMunicipalJurisdiction, validateTamilNaduMembership } = require('./gis-engine');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -128,6 +132,17 @@ app.options(/(.*)/, cors(corsOptions));
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use(cookieParser());
+
+// Cache-Control Security Policy: Ensure sensitive routes are never cached by intermediate proxies
+app.use((req, res, next) => {
+  const sensitivePrefixes = ['/api/auth', '/api/citizen', '/api/admin', '/api/notifications'];
+  if (sensitivePrefixes.some(prefix => req.path.startsWith(prefix)) || req.method !== 'GET') {
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
 
 // Cookie options for cross-origin production and local development
 function getCookieOptions() {
@@ -319,9 +334,53 @@ function parseComplaint(c, isAuthorized = false) {
     base.citizen_phone = maskPhone(c.citizen_phone);
     base.citizen_email = maskEmail(c.citizen_email);
     base.internal_notes = null; // Hide confidential officer notes from public
+    base.ai_reason = null;
+    base.ai_safety_risk = null;
+    base.ai_recommended_action = null;
+    base.verification_otp = null;
+    base.otp_expires_at = null;
   }
 
   return base;
+}
+
+// Helper to generate a lean, privacy-conscious complaint summary for lists & public explorer
+function parseComplaintSummary(c, isAuthorized = false) {
+  if (!c) return null;
+  const sla = computeSlaMetrics(c);
+
+  return {
+    id: c.id,
+    ref_id: c.ref_id,
+    title: c.title,
+    description: c.description,
+    category: c.category,
+    location: c.location,
+    latitude: c.latitude,
+    longitude: c.longitude,
+    image_url: c.image_url,
+    status: c.status,
+    priority: c.priority,
+    department: c.department,
+    district: c.district,
+    local_body: c.local_body,
+    ward: c.ward,
+    zone: c.zone,
+    is_gps_verified: Boolean(c.is_gps_verified),
+    location_accuracy: c.location_accuracy,
+    detection_method: c.detection_method,
+    jurisdiction_source: c.jurisdiction_source,
+    created_at: c.created_at,
+    updated_at: c.updated_at,
+    resolution_remarks: c.resolution_remarks,
+    sla_hours: c.sla_hours,
+    sla_deadline: c.sla_deadline,
+    citizen_name: isAuthorized ? c.citizen_name : maskName(c.citizen_name),
+    citizen_phone: isAuthorized ? c.citizen_phone : maskPhone(c.citizen_phone),
+    citizen_email: isAuthorized ? c.citizen_email : maskEmail(c.citizen_email),
+    citizen_rating: c.citizen_rating,
+    sla
+  };
 }
 
 // Helper to record in-app notification in SQLite
@@ -512,7 +571,7 @@ app.post('/api/auth/citizen/send-otp', async (req, res) => {
       return res.status(400).json({ error: 'Mobile phone number is required.' });
     }
 
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    const cleanPhone = normalizePhone(phone);
     if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
       return res.status(400).json({ error: 'Please enter a valid 10-digit Indian mobile number.' });
     }
@@ -592,7 +651,7 @@ app.post('/api/auth/citizen/verify-otp', (req, res) => {
       return res.status(400).json({ error: 'Phone number and 6-digit OTP are required.' });
     }
 
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    const cleanPhone = normalizePhone(phone);
     const cleanOtp = String(otp).trim();
 
     // Find active non-expired OTP
@@ -624,12 +683,24 @@ app.post('/api/auth/citizen/verify-otp', (req, res) => {
     db.prepare('UPDATE citizen_otps SET verified = 1 WHERE id = ?').run(otpRecord.id);
 
     // Check citizen record
-    const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward FROM citizens WHERE phone = ?').get(cleanPhone);
+    const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified FROM citizens WHERE phone = ?').get(cleanPhone);
 
     if (citizen) {
-      // Existing citizen: issue session token
+      // Existing citizen: issue session token and refresh verification
       db.prepare('UPDATE citizens SET mobile_verified = 1 WHERE id = ?').run(citizen.id);
-      const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, type: 'citizen' });
+
+      // Auto-link any unassociated complaints with this verified phone number
+      try {
+        db.prepare(`
+          UPDATE complaints
+          SET citizen_id = ?
+          WHERE citizen_phone = ? AND (citizen_id IS NULL OR citizen_id = 0)
+        `).run(citizen.id, cleanPhone);
+      } catch (linkErr) {
+        console.warn('[Complaint Link Notice]:', linkErr.message);
+      }
+
+      const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, phone: citizen.phone, type: 'citizen' });
 
       res.cookie('civic_citizen_token', token, getCookieOptions());
 
@@ -645,16 +716,24 @@ app.post('/api/auth/citizen/verify-otp', (req, res) => {
           phone: citizen.phone,
           district: citizen.district || 'Chennai',
           municipality: citizen.municipality || 'Greater Chennai Corporation',
-          ward: citizen.ward || 'Ward 114'
+          ward: citizen.ward || 'Ward 114',
+          mobile_verified: true,
+          email_verified: Boolean(citizen.email_verified)
         }
       });
     } else {
-      // New citizen: OTP verified, prompt for registration details
+      // New citizen: issue cryptographically signed 15-minute registration verification token
+      const registrationToken = generateToken({
+        phone: cleanPhone,
+        purpose: 'citizen_registration'
+      });
+
       return res.json({
         success: true,
         verified: true,
         isNewUser: true,
         phone: cleanPhone,
+        registrationToken,
         message: 'Mobile number verified successfully. Please complete your citizen profile.'
       });
     }
@@ -667,33 +746,90 @@ app.post('/api/auth/citizen/verify-otp', (req, res) => {
 // POST /api/auth/citizen/register-with-otp
 app.post('/api/auth/citizen/register-with-otp', (req, res) => {
   try {
-    const { name, phone, otp, email, district, municipality, ward, password } = req.body;
-    if (!name || !phone) {
-      return res.status(400).json({ error: 'Citizen name and mobile number are required.' });
+    const { name, phone, otp, registrationToken, email, district, municipality, ward, password } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Citizen full name is required.' });
     }
 
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-    const cleanEmail = email ? email.toLowerCase().trim() : `citizen.${cleanPhone}@civicresolve.gov`;
+    let verifiedPhone = null;
 
-    // Check if phone already registered
-    const existing = db.prepare('SELECT id FROM citizens WHERE phone = ?').get(cleanPhone);
-    if (existing) {
-      return res.status(409).json({ error: 'This mobile number is already registered. Please log in.' });
+    // 1. Verify via signed registrationToken (preferred, tamper-proof)
+    if (registrationToken) {
+      const decoded = verifyToken(registrationToken);
+      if (decoded && decoded.purpose === 'citizen_registration' && decoded.phone) {
+        if (phone && normalizePhone(phone) !== decoded.phone) {
+          return res.status(403).json({ error: 'Phone number does not match verified registration token.' });
+        }
+        verifiedPhone = decoded.phone;
+      } else {
+        return res.status(403).json({ error: 'Invalid or expired registration token.' });
+      }
     }
 
-    // Verify OTP if provided in request
-    if (otp) {
+    // 2. Fallback: Verify via OTP code in database
+    if (!verifiedPhone && phone && otp) {
+      const cleanPhone = normalizePhone(phone);
+      const cleanOtp = String(otp).trim();
+      const inputHash = hashOtp(cleanOtp);
+
       const otpRecord = db.prepare(`
         SELECT * FROM citizen_otps
-        WHERE phone = ? AND verified = 0 AND expires_at > CURRENT_TIMESTAMP
+        WHERE phone = ? AND otp_hash = ? AND (verified = 1 OR (verified = 0 AND expires_at > CURRENT_TIMESTAMP))
         ORDER BY id DESC LIMIT 1
-      `).get(cleanPhone);
+      `).get(cleanPhone, inputHash);
 
       if (otpRecord) {
-        if (hashOtp(otp) !== otpRecord.otp_hash) {
-          return res.status(400).json({ error: 'Invalid verification OTP.' });
-        }
+        verifiedPhone = cleanPhone;
         db.prepare('UPDATE citizen_otps SET verified = 1 WHERE id = ?').run(otpRecord.id);
+      }
+    }
+
+    // Requirement 10: Never trust a mobile number supplied by frontend without successful OTP verification
+    if (!verifiedPhone) {
+      return res.status(403).json({
+        error: 'Mobile verification required. Please verify your phone number via OTP first.'
+      });
+    }
+
+    const cleanPhone = verifiedPhone;
+    const cleanEmail = email && email.trim() ? email.toLowerCase().trim() : `citizen.${cleanPhone}@civicresolve.gov`;
+
+    // Check if phone already registered (idempotent / safe returning citizen resolution)
+    const existing = db.prepare('SELECT id, name, email, phone, district, municipality, ward FROM citizens WHERE phone = ?').get(cleanPhone);
+    if (existing) {
+      // Update details if missing
+      db.prepare(`
+        UPDATE citizens
+        SET name = COALESCE(?, name),
+            district = COALESCE(?, district),
+            municipality = COALESCE(?, municipality),
+            ward = COALESCE(?, ward),
+            mobile_verified = 1,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(name.trim(), district || null, municipality || null, ward || null, existing.id);
+
+      const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified FROM citizens WHERE id = ?').get(existing.id);
+      const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, phone: citizen.phone, type: 'citizen' });
+      res.cookie('civic_citizen_token', token, getCookieOptions());
+
+      return res.json({
+        success: true,
+        message: 'Citizen profile verified and updated.',
+        token,
+        citizen: {
+          ...citizen,
+          mobile_verified: Boolean(citizen.mobile_verified),
+          email_verified: Boolean(citizen.email_verified)
+        }
+      });
+    }
+
+    // Check if email already used by a different citizen
+    if (email && email.trim()) {
+      const emailConflict = db.prepare('SELECT id FROM citizens WHERE LOWER(email) = ? AND phone != ?').get(cleanEmail, cleanPhone);
+      if (emailConflict) {
+        return res.status(409).json({ error: 'This email address is already associated with another citizen account.' });
       }
     }
 
@@ -711,8 +847,18 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
       ward || 'Ward 114'
     );
 
-    const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward FROM citizens WHERE id = ?').get(result.lastInsertRowid);
-    const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, type: 'citizen' });
+    const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified FROM citizens WHERE id = ?').get(result.lastInsertRowid);
+
+    // Auto-link any complaints previously submitted with this phone number
+    try {
+      db.prepare(`
+        UPDATE complaints
+        SET citizen_id = ?
+        WHERE citizen_phone = ? AND (citizen_id IS NULL OR citizen_id = 0)
+      `).run(citizen.id, cleanPhone);
+    } catch {}
+
+    const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, phone: citizen.phone, type: 'citizen' });
 
     res.cookie('civic_citizen_token', token, getCookieOptions());
 
@@ -722,7 +868,11 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
       success: true,
       message: 'Citizen account created and mobile verified successfully.',
       token,
-      citizen
+      citizen: {
+        ...citizen,
+        mobile_verified: Boolean(citizen.mobile_verified),
+        email_verified: Boolean(citizen.email_verified)
+      }
     });
   } catch (err) {
     console.error('[Register with OTP Error]:', err);
@@ -829,7 +979,17 @@ app.post('/api/auth/citizen/login', (req, res) => {
 app.get('/api/auth/citizen/me', authenticateCitizen, (req, res) => {
   res.json({
     authenticated: true,
-    citizen: req.citizen
+    citizen: {
+      id: req.citizen.id,
+      name: req.citizen.name,
+      email: req.citizen.email,
+      phone: req.citizen.phone,
+      district: req.citizen.district || 'Chennai',
+      municipality: req.citizen.municipality || 'Greater Chennai Corporation',
+      ward: req.citizen.ward || 'Ward 114',
+      mobile_verified: Boolean(req.citizen.mobile_verified),
+      email_verified: Boolean(req.citizen.email_verified)
+    }
   });
 });
 
@@ -842,7 +1002,7 @@ app.post('/api/auth/citizen/logout', (req, res) => {
 // GET /api/citizen/profile
 app.get('/api/citizen/profile', authenticateCitizen, (req, res) => {
   try {
-    const c = db.prepare('SELECT id, name, email, phone, district, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent, created_at FROM citizens WHERE id = ?').get(req.citizen.id);
+    const c = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent, created_at FROM citizens WHERE id = ?').get(req.citizen.id);
     if (!c) return res.status(404).json({ error: 'Citizen not found' });
     res.json({ profile: c });
   } catch (err) {
@@ -854,13 +1014,15 @@ app.get('/api/citizen/profile', authenticateCitizen, (req, res) => {
 // PUT /api/citizen/profile
 app.put('/api/citizen/profile', authenticateCitizen, (req, res) => {
   try {
-    const { name, phone, district, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent } = req.body;
+    const { name, phone, district, municipality, ward, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent } = req.body;
     
     db.prepare(`
       UPDATE citizens 
       SET name = COALESCE(?, name),
           phone = COALESCE(?, phone),
           district = COALESCE(?, district),
+          municipality = COALESCE(?, municipality),
+          ward = COALESCE(?, ward),
           email_notifications = COALESCE(?, email_notifications),
           sms_notifications = COALESCE(?, sms_notifications),
           whatsapp_notifications = COALESCE(?, whatsapp_notifications),
@@ -870,8 +1032,10 @@ app.put('/api/citizen/profile', authenticateCitizen, (req, res) => {
       WHERE id = ?
     `).run(
       name || null,
-      phone || null,
+      phone ? normalizePhone(phone) : null,
       district || null,
+      municipality || null,
+      ward || null,
       email_notifications !== undefined ? (email_notifications ? 1 : 0) : null,
       sms_notifications !== undefined ? (sms_notifications ? 1 : 0) : null,
       whatsapp_notifications !== undefined ? (whatsapp_notifications ? 1 : 0) : null,
@@ -880,7 +1044,7 @@ app.put('/api/citizen/profile', authenticateCitizen, (req, res) => {
       req.citizen.id
     );
 
-    const updated = db.prepare('SELECT id, name, email, phone, district, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent FROM citizens WHERE id = ?').get(req.citizen.id);
+    const updated = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent FROM citizens WHERE id = ?').get(req.citizen.id);
     res.json({ message: 'Profile updated successfully', profile: updated });
   } catch (err) {
     console.error('[Profile Update Error]:', err);
@@ -1013,63 +1177,97 @@ app.get('/api/auth/me', authenticateAdmin, (req, res) => {
 // 4. GRIEVANCE REGISTRY & TRACKING (PUBLIC & ADVANCED FILTERS)
 // -------------------------------------------------------------
 
-// GET /api/complaints
-app.get('/api/complaints', (req, res) => {
+// GET /api/complaints (Optimized Summary Projection & Deterministic Pagination)
+app.get('/api/complaints', optionalCitizenAuth, (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const { 
       search, category, priority, status, department, 
-      district, local_body, ward, sla_status, limit = 100 
+      district, local_body, ward, sla_status
     } = req.query;
 
-    let query = 'SELECT * FROM complaints WHERE 1=1';
+    const pageNum = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const offset = (pageNum - 1) * limitNum;
+
+    let whereSql = ' WHERE 1=1';
     const params = [];
 
     if (search && search.trim() !== '') {
-      query += ' AND (title LIKE ? OR description LIKE ? OR location LIKE ? OR ref_id LIKE ?)';
+      whereSql += ' AND (title LIKE ? OR description LIKE ? OR location LIKE ? OR ref_id LIKE ?)';
       const term = `%${search.trim()}%`;
       params.push(term, term, term, term);
     }
 
     if (category && category !== 'All') {
-      query += ' AND category = ?';
+      whereSql += ' AND category = ?';
       params.push(category);
     }
 
     if (priority && priority !== 'All') {
-      query += ' AND priority = ?';
+      whereSql += ' AND priority = ?';
       params.push(priority);
     }
 
     if (status && status !== 'All') {
-      query += ' AND status = ?';
+      whereSql += ' AND status = ?';
       params.push(status);
     }
 
     if (department && department !== 'All') {
-      query += ' AND department = ?';
+      whereSql += ' AND department = ?';
       params.push(department);
     }
 
     if (district && district !== 'All') {
-      query += ' AND district = ?';
+      whereSql += ' AND district = ?';
       params.push(district);
     }
 
     if (local_body && local_body !== 'All') {
-      query += ' AND local_body = ?';
+      whereSql += ' AND local_body = ?';
       params.push(local_body);
     }
 
     if (ward && ward !== 'All') {
-      query += ' AND ward = ?';
+      whereSql += ' AND ward = ?';
       params.push(ward);
     }
 
-    query += ' ORDER BY created_at DESC LIMIT ?';
-    params.push(parseInt(limit, 10));
+    // Check authorization for officer unmasking
+    let isAuthorized = false;
+    const adminToken = req.cookies?.civic_admin_token || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
+    if (adminToken) {
+      const decoded = verifyToken(adminToken);
+      if (decoded && (decoded.type === 'admin' || decoded.role)) {
+        isAuthorized = true;
+      }
+    }
 
-    const rawComplaints = db.prepare(query).all(...params);
-    let complaints = rawComplaints.map(c => parseComplaint(c, false));
+    // Count total matching records for pagination
+    const countRow = db.prepare(`SELECT COUNT(*) as total FROM complaints ${whereSql}`).get(...params);
+    const total = countRow ? countRow.total : 0;
+
+    // Explicit summary projection columns: excludes AI reasoning, confidential internal notes, and raw JSON history
+    const selectSql = `
+      SELECT
+        id, ref_id, title, description, category, location, latitude, longitude,
+        image_url, status, priority, department, district, local_body, ward, zone,
+        is_gps_verified, location_accuracy, detection_method, jurisdiction_source,
+        created_at, updated_at, resolution_remarks, sla_hours, sla_deadline,
+        citizen_name, citizen_phone, citizen_email, citizen_rating
+      FROM complaints
+      ${whereSql}
+      ORDER BY created_at DESC, id DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const queryParams = [...params, limitNum, offset];
+    const rawComplaints = db.prepare(selectSql).all(...queryParams);
+    let complaints = rawComplaints.map(c => parseComplaintSummary(c, isAuthorized));
 
     // Filter by SLA status if requested
     if (sla_status && sla_status !== 'All') {
@@ -1084,6 +1282,10 @@ app.get('/api/complaints', (req, res) => {
 
     res.json({
       count: complaints.length,
+      total,
+      page: pageNum,
+      pageSize: limitNum,
+      totalPages: Math.ceil(total / limitNum) || 1,
       complaints
     });
   } catch (err) {
@@ -1198,10 +1400,11 @@ app.get('/api/complaints/:id', optionalCitizenAuth, (req, res) => {
 // POST /api/complaints (Multi-step Submission + Groq AI + SLA + Duplicate Detection + Notification)
 app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (req, res) => {
   try {
-    const { 
-      title, description, category, location, 
-      district, local_body, ward, latitude, longitude, 
-      isGpsVerified, language, citizen_name, citizen_phone, citizen_email 
+    const {
+      title, description, category, location,
+      district, local_body, ward, zone, latitude, longitude,
+      isGpsVerified, location_accuracy, detection_method,
+      language, citizen_name, citizen_phone, citizen_email
     } = req.body;
 
     if (!title || !description || !category || !location) {
@@ -1227,15 +1430,66 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
       mimeType = req.file.mimetype;
     }
 
-    const effectiveDistrict = district || 'Chennai';
-    const effectiveLocalBody = local_body || 'Greater Chennai Corporation';
-    const effectiveWard = ward || 'Zone 9 - Ward 114';
+    // Coordinate validation & telemetry
+    const hasCoordinates = (latitude !== undefined && latitude !== null && longitude !== undefined && longitude !== null &&
+      !isNaN(parseFloat(latitude)) && !isNaN(parseFloat(longitude)));
+    const parsedLat = hasCoordinates ? parseFloat(latitude) : null;
+    const parsedLng = hasCoordinates ? parseFloat(longitude) : null;
+
+    const rawAccuracy = location_accuracy ? parseFloat(location_accuracy) : null;
+    const parsedAccuracy = (rawAccuracy !== null && !isNaN(rawAccuracy)) ? rawAccuracy : null;
+    const validMethods = ['gps', 'map_pin', 'manual'];
+    const parsedMethod = validMethods.includes(detection_method) ? detection_method : (hasCoordinates ? 'manual' : 'manual');
+
+    // Requirement 7: is_gps_verified is strictly true ONLY when actual browser GPS succeeded
+    const isGpsProven = (parsedMethod === 'gps' && hasCoordinates && (isGpsVerified === 'true' || isGpsVerified === true || isGpsVerified === 1));
+    const gpsFlag = isGpsProven ? 1 : 0;
+
+    // Independent Server-Side Jurisdiction Resolution from Incident Location
+    let effectiveDistrict = district && district.trim() ? district.trim() : null;
+    let effectiveLocalBody = local_body && local_body.trim() ? local_body.trim() : null;
+    let effectiveZone = zone && zone.trim() ? zone.trim() : null;
+    let effectiveWard = ward && ward.trim() ? ward.trim() : null;
+    let jurisdictionSource = 'unverified';
+
+    if (hasCoordinates) {
+      const gisResult = determineMunicipalJurisdiction(parsedLat, parsedLng);
+      if (gisResult.in_tamil_nadu) {
+        if (gisResult.jurisdiction_source === 'authoritative_gis') {
+          // Authoritative GIS determination takes precedence for corporation & zone
+          effectiveDistrict = gisResult.district;
+          effectiveLocalBody = gisResult.corporation;
+          effectiveZone = gisResult.zone;
+          jurisdictionSource = 'authoritative_gis';
+
+          if (ward && String(ward).trim()) {
+            effectiveWard = String(ward).trim();
+            jurisdictionSource = 'citizen_confirmed'; // Ward verified by citizen within authoritative zone
+          }
+        } else {
+          // In Tamil Nadu, outside surveyed corporation GIS layers
+          if (!effectiveDistrict) effectiveDistrict = 'Tamil Nadu District';
+          if (!effectiveLocalBody) effectiveLocalBody = 'Local Administration';
+          jurisdictionSource = 'unverified';
+        }
+      } else {
+        jurisdictionSource = 'out_of_state';
+        if (!effectiveDistrict) effectiveDistrict = 'Out of State Jurisdiction';
+        if (!effectiveLocalBody) effectiveLocalBody = 'Non-TN Jurisdiction';
+      }
+    } else {
+      // Manual / Text address only
+      if (!effectiveDistrict) effectiveDistrict = 'Tamil Nadu District';
+      if (!effectiveLocalBody) effectiveLocalBody = 'Local Administration';
+      jurisdictionSource = 'citizen_confirmed';
+    }
+
     const effectiveLang = language || 'en';
 
     // Citizen identity (from session or form)
     const citizenId = req.citizen ? req.citizen.id : null;
     const finalCitizenName = req.citizen ? req.citizen.name : (citizen_name || 'Citizen');
-    const finalCitizenPhone = req.citizen ? req.citizen.phone : (citizen_phone || null);
+    const finalCitizenPhone = req.citizen ? req.citizen.phone : (citizen_phone ? normalizePhone(citizen_phone) : null);
     const finalCitizenEmail = req.citizen ? req.citizen.email : (citizen_email || null);
 
     // Call Google Gemini AI analysis (with deterministic heuristic fallback)
@@ -1279,8 +1533,6 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
     }
 
     const initialStatus = aiResult.ai_status === 'SUCCESS' ? 'Under Review' : 'Submitted';
-    const hasCoordinates = (latitude && longitude && !isNaN(parseFloat(latitude)) && !isNaN(parseFloat(longitude)));
-    const gpsFlag = (isGpsVerified === 'true' || isGpsVerified === true || isGpsVerified === 1) && hasCoordinates ? 1 : 0;
 
     // Check for potential duplicates
     const duplicates = findDuplicateCandidates({
@@ -1300,7 +1552,8 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
         ai_summary, ai_category, ai_priority, ai_department, ai_confidence,
         ai_reason, ai_safety_risk, ai_recommended_action, ai_suggested_response_time,
         ai_status, resolution_remarks, status_history, is_gps_verified,
-        district, local_body, ward, citizen_id, citizen_name, citizen_phone, citizen_email,
+        district, local_body, ward, zone, location_accuracy, detection_method, jurisdiction_source,
+        citizen_id, citizen_name, citizen_phone, citizen_email,
         sla_hours, sla_deadline, language,
         created_at, updated_at
       ) VALUES (
@@ -1310,6 +1563,7 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
         ?, ?, ?, ?,
         ?, NULL, ?, ?,
         ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?,
         ?, ?, ?,
         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       )
@@ -1342,6 +1596,10 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
       effectiveDistrict,
       effectiveLocalBody,
       effectiveWard,
+      effectiveZone,
+      parsedAccuracy,
+      parsedMethod,
+      jurisdictionSource,
       citizenId,
       finalCitizenName,
       finalCitizenPhone,
@@ -1980,6 +2238,7 @@ app.post('/api/admin/link-duplicate', authenticateAdmin, (req, res) => {
 
 app.get('/api/dashboard/stats', (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=15');
     const { district } = req.query;
     const cacheKey = district || 'all';
     const cached = getCachedStats(cacheKey);
@@ -2085,6 +2344,7 @@ app.get('/api/dashboard/stats', (req, res) => {
 // GET /api/announcements (Public active announcements)
 app.get('/api/announcements', (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     const announcements = db.prepare(`
       SELECT id, title, title_ta, content, content_ta, category, priority, department, created_at
       FROM announcements
@@ -2184,55 +2444,77 @@ app.get('/api/admin/audit-logs', authenticateAdmin, (req, res) => {
   }
 });
 
-// GET /api/geocode/reverse (Reverse Geocoding Proxy with Fallback)
+// GET /api/admin/database/info (Inspect database storage location, persistence, and record counts)
+app.get('/api/admin/database/info', authenticateAdmin, (req, res) => {
+  try {
+    const dbPath = process.env.SQLITE_DB_PATH ||
+      (process.env.DATA_DIR ? path.join(process.env.DATA_DIR, 'civicresolve.db') : path.join(__dirname, 'civicresolve.db'));
+    const isPersistentDisk = Boolean(process.env.DATA_DIR && process.env.DATA_DIR.includes('/var/data'));
+    const fileStats = fs.existsSync(dbPath) ? fs.statSync(dbPath) : null;
+    const complaintCount = db.prepare('SELECT COUNT(*) as c FROM complaints').get().c;
+    const citizenCount = db.prepare('SELECT COUNT(*) as c FROM citizens').get().c;
+    const adminCount = db.prepare('SELECT COUNT(*) as c FROM admins').get().c;
+
+    res.json({
+      dbPath,
+      exists: Boolean(fileStats),
+      sizeBytes: fileStats ? fileStats.size : 0,
+      sizeKb: fileStats ? Math.round(fileStats.size / 1024) : 0,
+      persistentDiskMounted: isPersistentDisk,
+      storageType: isPersistentDisk ? 'Render Persistent Disk (/var/data)' : 'Local Filesystem',
+      counts: {
+        complaints: complaintCount,
+        citizens: citizenCount,
+        admins: adminCount
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to inspect database status' });
+  }
+});
+
+// GET /api/admin/database/backup (Super Admin-authorized SQLite backup download)
+app.get('/api/admin/database/backup', authenticateAdmin, requireRole('super_admin'), (req, res) => {
+  try {
+    const dbPath = process.env.SQLITE_DB_PATH ||
+      (process.env.DATA_DIR ? path.join(process.env.DATA_DIR, 'civicresolve.db') : path.join(__dirname, 'civicresolve.db'));
+
+    if (!fs.existsSync(dbPath)) {
+      return res.status(404).json({ error: 'Database file not found.' });
+    }
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const downloadName = `civicresolve-backup-${timestamp}.db`;
+
+    res.download(dbPath, downloadName);
+  } catch (err) {
+    console.error('[DB Backup Error]:', err);
+    res.status(500).json({ error: 'Database backup download failed' });
+  }
+});
+
+// GET /api/geocode/reverse (Authoritative GIS & Reverse Geocoding Endpoint)
 app.get('/api/geocode/reverse', async (req, res) => {
   try {
-    const { lat, lng } = req.query;
+    const { lat, lng, accuracy } = req.query;
     if (!lat || !lng) {
-      return res.status(400).json({ error: 'Latitude and Longitude are required.' });
+      return res.status(400).json({ error: 'Latitude and Longitude are required parameters.' });
     }
 
-    const latitude = parseFloat(lat);
-    const longitude = parseFloat(lng);
-
-    // If Google Maps API Key is configured on server
-    const googleKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (googleKey && !googleKey.includes('your_')) {
-      try {
-        const gRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${googleKey}`);
-        const gData = await gRes.json();
-        if (gData.status === 'OK' && gData.results && gData.results[0]) {
-          return res.json({
-            address: gData.results[0].formatted_address,
-            provider: 'Google Maps'
-          });
-        }
-      } catch (e) {
-        console.warn('[Google Geocode Notice]:', e.message);
-      }
-    }
-
-    // OpenStreetMap Nominatim Fallback
-    try {
-      const osmRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
-        headers: { 'User-Agent': 'CivicResolve-GrievancePortal/2.5 (contact@civicresolve.gov)' }
+    const clientIp = req.ip || req.socket?.remoteAddress || '127.0.0.1';
+    const rateCheck = checkGeocodeRateLimit(clientIp);
+    if (!rateCheck.allowed) {
+      return res.status(429).json({
+        error: `Reverse geocoding rate limit exceeded. Please retry in ${rateCheck.retryAfter} seconds.`
       });
-      if (osmRes.ok) {
-        const osmData = await osmRes.json();
-        if (osmData && osmData.display_name) {
-          return res.json({
-            address: osmData.display_name,
-            provider: 'OpenStreetMap'
-          });
-        }
-      }
-    } catch {}
+    }
 
-    // Graceful Tamil Nadu coordinate area fallback
-    return res.json({
-      address: `Geotagged Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`,
-      provider: 'GPS Coordinates'
-    });
+    const result = await reverseGeocodeLocation(lat, lng, accuracy ? parseFloat(accuracy) : null);
+    if (result.error) {
+      return res.status(result.status || 400).json({ error: result.error });
+    }
+
+    res.json(result);
   } catch (err) {
     console.error('[Reverse Geocode Error]:', err);
     res.status(500).json({ error: 'Failed to reverse geocode location' });

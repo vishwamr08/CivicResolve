@@ -7,6 +7,7 @@ import {
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
 import { translations } from '../data/translations';
 import { getApiUrl } from '../config/api';
+import LocationPickerMap from './LocationPickerMap';
 
 export default function ComplaintFormModal({ 
   isOpen, 
@@ -24,10 +25,14 @@ export default function ComplaintFormModal({
   const [selectedLocalBody, setSelectedLocalBody] = useState('gcc');
   const [selectedZoneWard, setSelectedZoneWard] = useState('Zone 8 - Anna Nagar (Ward 104)');
   const [streetAddress, setStreetAddress] = useState('');
-  const [latitude, setLatitude] = useState('13.0850');
-  const [longitude, setLongitude] = useState('80.2101');
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [locationAccuracy, setLocationAccuracy] = useState(null);
+  const [accuracyTier, setAccuracyTier] = useState(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isGpsDetected, setIsGpsDetected] = useState(false);
+  const [locationError, setLocationError] = useState(null);
+  const [detectionMethod, setDetectionMethod] = useState('manual');
 
   // Issue info
   const [category, setCategory] = useState(initialCategory);
@@ -52,30 +57,43 @@ export default function ComplaintFormModal({
 
   const t = translations[lang] || translations.en;
 
-  // Auto-detect GPS coordinates and reverse geocode
+  // Citizen-initiated GPS coordinates detection with accuracy validation
   const handleGetLocation = useCallback((forceUpdateAddress = false) => {
+    setLocationError(null);
+
     if (!navigator.geolocation) {
-      console.warn('Geolocation not supported by browser.');
-      setLatitude('13.0827');
-      setLongitude('80.2707');
-      setIsGpsDetected(true);
-      if (!streetAddress || forceUpdateAddress) {
-        setStreetAddress('Ripon Building, Greater Chennai Corporation, Chennai - 600003');
-      }
+      setLocationError('Browser geolocation is not supported by your device or browser.');
       return;
     }
 
     setIsGettingLocation(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const lat = pos.coords.latitude.toFixed(6);
-        const lng = pos.coords.longitude.toFixed(6);
+        const rawLat = pos.coords.latitude;
+        const rawLng = pos.coords.longitude;
+        const accuracyMeters = Math.round(pos.coords.accuracy || 0);
+
+        const lat = rawLat.toFixed(6);
+        const lng = rawLng.toFixed(6);
+
         setLatitude(lat);
         setLongitude(lng);
+        setLocationAccuracy(accuracyMeters);
+
+        // Classify accuracy strictly per guidelines: High accuracy, Medium accuracy, Low accuracy
+        let tier = 'High accuracy';
+        if (accuracyMeters > 150) {
+          tier = 'Low accuracy';
+        } else if (accuracyMeters > 50) {
+          tier = 'Medium accuracy';
+        }
+        setAccuracyTier(tier);
+
         setIsGpsDetected(true);
+        setDetectionMethod('gps');
 
         try {
-          const res = await fetch(getApiUrl(`/api/geocode/reverse?lat=${lat}&lng=${lng}`));
+          const res = await fetch(getApiUrl(`/api/geocode/reverse?lat=${lat}&lng=${lng}&accuracy=${accuracyMeters}`));
           if (res.ok) {
             const data = await res.json();
             if (data.address && (!streetAddress || forceUpdateAddress)) {
@@ -88,37 +106,88 @@ export default function ComplaintFormModal({
               );
               if (match) {
                 setSelectedDistrict(match.id);
-                if (match.localBodies?.length) {
-                  setSelectedLocalBody(match.localBodies[0].id);
-                  if (match.localBodies[0].zones?.length) {
-                    setSelectedZoneWard(match.localBodies[0].zones[0].name);
-                  }
+                if (data.local_body && match.localBodies?.length) {
+                  const matchedLb = match.localBodies.find(lb =>
+                    lb.name.toLowerCase().includes(data.local_body.toLowerCase()) ||
+                    data.local_body.toLowerCase().includes(lb.name.toLowerCase())
+                  );
+                  if (matchedLb) setSelectedLocalBody(matchedLb.id);
                 }
               }
             }
           }
         } catch {
           if (!streetAddress || forceUpdateAddress) {
-            setStreetAddress(`Geotagged Location: Lat ${lat}, Lng ${lng} (Tamil Nadu)`);
+            setStreetAddress(`Geotagged Coordinates: Lat ${lat}, Lng ${lng} (Tamil Nadu)`);
           }
         } finally {
           setIsGettingLocation(false);
         }
       },
       (err) => {
-        console.warn('Geolocation fallback:', err.message);
-        // Default to Chennai Municipal Center coordinates
-        setLatitude('13.0827');
-        setLongitude('80.2707');
-        setIsGpsDetected(true);
-        if (!streetAddress || forceUpdateAddress) {
-          setStreetAddress('Greater Chennai Municipal Corporation Zone, Tamil Nadu');
+        let msg = 'Could not acquire location.';
+        if (err.code === 1) {
+          msg = 'Location permission was denied. Please select your location or enter an address manually.';
+        } else if (err.code === 2) {
+          msg = 'Location position is unavailable from your device. Please select manually.';
+        } else if (err.code === 3) {
+          msg = 'Location request timed out. Please retry or enter your address manually.';
+        } else if (err.message) {
+          msg = err.message;
         }
+        setLocationError(msg);
         setIsGettingLocation(false);
+        // Note: Zero fake coordinate insertion. Coordinates and isGpsDetected remain unchanged.
       },
-      { timeout: 7000, enableHighAccuracy: true, maximumAge: 60000 }
+      { timeout: 10000, enableHighAccuracy: true, maximumAge: 0 }
     );
   }, [streetAddress]);
+
+  // Citizen interactive map pin adjustment handler
+  const handleMapLocationSelect = useCallback(async (newLat, newLng, method = 'map_pin') => {
+    const latStr = Number(newLat).toFixed(6);
+    const lngStr = Number(newLng).toFixed(6);
+
+    setLatitude(latStr);
+    setLongitude(lngStr);
+    setDetectionMethod(method);
+    setLocationError(null);
+
+    // If marker is dragged manually, it is map_pin selection, not browser GPS lock
+    if (method === 'map_pin') {
+      setIsGpsDetected(false);
+      setLocationAccuracy(null);
+      setAccuracyTier(null);
+    }
+
+    try {
+      const res = await fetch(getApiUrl(`/api/geocode/reverse?lat=${latStr}&lng=${lngStr}`));
+      if (res.ok) {
+        const data = await res.json();
+        if (data.address) {
+          setStreetAddress(data.address);
+        }
+        if (data.district) {
+          const match = TAMIL_NADU_DISTRICTS.find(d =>
+            d.name.toLowerCase() === data.district.toLowerCase() ||
+            d.id.toLowerCase() === data.district.toLowerCase()
+          );
+          if (match) {
+            setSelectedDistrict(match.id);
+            if (data.local_body && match.localBodies?.length) {
+              const matchedLb = match.localBodies.find(lb =>
+                lb.name.toLowerCase().includes(data.local_body.toLowerCase()) ||
+                data.local_body.toLowerCase().includes(lb.name.toLowerCase())
+              );
+              if (matchedLb) setSelectedLocalBody(matchedLb.id);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Map pin reverse geocode notice:', e);
+    }
+  }, []);
 
   // Setup speech recognition
   useEffect(() => {
@@ -195,11 +264,8 @@ export default function ComplaintFormModal({
           }
         }
       }
-
-      // Auto-fetch GPS Location immediately
-      handleGetLocation(false);
     }
-  }, [isOpen, initialCategory, citizenUser, handleGetLocation]);
+  }, [isOpen, initialCategory, citizenUser]);
 
   if (!isOpen) return null;
 
@@ -363,6 +429,8 @@ export default function ComplaintFormModal({
     if (latitude) formData.append('latitude', latitude);
     if (longitude) formData.append('longitude', longitude);
     formData.append('isGpsVerified', isGpsDetected ? 'true' : 'false');
+    if (locationAccuracy !== null) formData.append('location_accuracy', String(locationAccuracy));
+    formData.append('detection_method', detectionMethod);
     formData.append('language', lang);
 
     if (citizenName.trim()) formData.append('citizen_name', citizenName.trim());
@@ -402,20 +470,22 @@ export default function ComplaintFormModal({
           </button>
         </div>
 
-        {/* Demo Fast-fill Bar */}
-        <div className="bg-slate-50 px-4 sm:px-6 py-2 border-b border-slate-200 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs overflow-x-auto flex-nowrap sm:flex-wrap flex-shrink-0">
-          <span className="font-semibold text-slate-500 flex-shrink-0">Quick Test Cases:</span>
-          {demoPresets.map((preset, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => applyPreset(preset)}
-              className="px-2.5 py-1 rounded-md bg-white hover:bg-slate-100 text-slate-800 font-semibold border border-slate-300 shadow-xs transition-colors whitespace-nowrap"
-            >
-              {preset.label}
-            </button>
-          ))}
-        </div>
+        {/* Demo Fast-fill Bar (Strictly Development / Demo Only) */}
+        {import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_PRESETS === 'true' && (
+          <div className="bg-slate-50 px-4 sm:px-6 py-2 border-b border-slate-200 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs overflow-x-auto flex-nowrap sm:flex-wrap flex-shrink-0">
+            <span className="font-semibold text-slate-500 flex-shrink-0">Quick Test Cases:</span>
+            {demoPresets.map((preset, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className="px-2.5 py-1 rounded-md bg-white hover:bg-slate-100 text-slate-800 font-semibold border border-slate-300 shadow-xs transition-colors whitespace-nowrap"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* 4-Step Progress Indicator */}
         <div className="bg-white px-4 sm:px-6 py-2.5 sm:py-3 border-b border-slate-100 flex items-center justify-between text-[11px] sm:text-xs font-semibold flex-shrink-0">
@@ -457,20 +527,62 @@ export default function ComplaintFormModal({
                 <strong>Administrative Routing:</strong> Grievances are routed directly to the specific Municipal Corporation, Zone, and Ward field teams in Tamil Nadu.
               </div>
 
-              {/* Auto-detected GPS notice banner */}
-              {isGpsDetected && (
-                <div className="p-2.5 sm:p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span><strong>Auto-Detected GPS:</strong> Lat {latitude}, Lng {longitude} (Verified Geotag)</span>
+              {/* Geolocation Loading / Status / Error states */}
+              {isGettingLocation && (
+                <div className="p-3 bg-sky-50 border border-sky-200 rounded-lg text-xs text-sky-800 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-sky-600 flex-shrink-0" />
+                  <span>Acquiring location coordinates from browser geolocation...</span>
+                </div>
+              )}
+
+              {locationError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">Location Detection Notice</p>
+                      <p className="text-[11px] text-rose-700">{locationError}</p>
+                    </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleGetLocation(true)}
-                    className="text-[11px] font-semibold text-navy-800 hover:underline flex-shrink-0"
+                    className="text-xs font-semibold text-rose-800 underline hover:text-rose-950 flex-shrink-0"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {isGpsDetected && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <div>
+                      <span className="font-bold">Detected Location:</span>{' '}
+                      <span className="font-mono">Lat {latitude}, Lng {longitude}</span>
+                      {locationAccuracy !== null && (
+                        <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                          {accuracyTier} (±{locationAccuracy}m)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleGetLocation(true)}
+                    disabled={isGettingLocation}
+                    className="text-xs font-semibold text-navy-800 hover:underline flex-shrink-0"
                   >
                     Refresh GPS
                   </button>
+                </div>
+              )}
+
+              {accuracyTier === 'Low accuracy' && (
+                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-800 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <span>Low accuracy detected (±{locationAccuracy}m). Please verify the street address or manually adjust location.</span>
                 </div>
               )}
 
@@ -552,14 +664,19 @@ export default function ComplaintFormModal({
                     type="button"
                     onClick={() => handleGetLocation(true)}
                     disabled={isGettingLocation}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-navy-800 hover:text-navy-950 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-navy-900 text-white hover:bg-navy-950 disabled:opacity-50 transition-colors"
                   >
                     {isGettingLocation ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Detecting...</span>
+                      </>
                     ) : (
-                      <Compass className="w-3.5 h-3.5" />
+                      <>
+                        <Compass className="w-3.5 h-3.5" />
+                        <span>{isGpsDetected ? 'Refresh GPS' : 'Detect My Location'}</span>
+                      </>
                     )}
-                    <span>{isGpsDetected ? 'GPS Geotagged' : 'Detect GPS'}</span>
                   </button>
                 </div>
                 <input
@@ -573,12 +690,19 @@ export default function ComplaintFormModal({
                 />
               </div>
 
-              {isGpsDetected && (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                  <span>Geotagged: Lat {latitude}, Lng {longitude} (Verified GPS)</span>
-                </div>
-              )}
+              {/* Interactive Location Picker Map */}
+              <div className="space-y-1.5 pt-1">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Pinpoint Incident Spot on Map
+                </label>
+                <LocationPickerMap
+                  latitude={latitude}
+                  longitude={longitude}
+                  accuracyMeters={locationAccuracy}
+                  isGpsDetected={isGpsDetected}
+                  onLocationSelect={handleMapLocationSelect}
+                />
+              </div>
             </div>
           )}
 
@@ -712,6 +836,20 @@ export default function ComplaintFormModal({
                   <div><strong>District:</strong> {currentDistrictObj.name}</div>
                   <div><strong>Local Body:</strong> {currentLocalBodyObj?.name}</div>
                   <div><strong>Ward:</strong> {selectedZoneWard}</div>
+                  <div className="col-span-2">
+                    <strong>Location Mode:</strong>{' '}
+                    {isGpsDetected ? (
+                      <span className="text-emerald-700 font-semibold">
+                        GPS Geotagged (Verified, {accuracyTier} ±{locationAccuracy}m)
+                      </span>
+                    ) : latitude && longitude ? (
+                      <span className="text-navy-800 font-semibold">
+                        Interactive Map Pin (Lat {Number(latitude).toFixed(4)}, Lng {Number(longitude).toFixed(4)})
+                      </span>
+                    ) : (
+                      <span className="text-slate-600">Manual Street Address</span>
+                    )}
+                  </div>
                 </div>
                 <p className="text-[11px] text-slate-500 italic pt-1">
                   "{description}"

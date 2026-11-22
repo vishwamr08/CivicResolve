@@ -46,6 +46,8 @@ export default function CitizenPortal({
   const [profileName, setProfileName] = useState(effectiveCitizen?.name || '');
   const [profilePhone, setProfilePhone] = useState(effectiveCitizen?.phone || '');
   const [profileDistrict, setProfileDistrict] = useState(effectiveCitizen?.district || 'Chennai');
+  const [profileMunicipality, setProfileMunicipality] = useState(effectiveCitizen?.municipality || '');
+  const [profileWard, setProfileWard] = useState(effectiveCitizen?.ward || '');
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [smsNotifs, setSmsNotifs] = useState(false);
   const [whatsappNotifs, setWhatsappNotifs] = useState(false);
@@ -95,6 +97,8 @@ export default function CitizenPortal({
           setProfileName(p.name || '');
           setProfilePhone(p.phone || '');
           setProfileDistrict(p.district || 'Chennai');
+          setProfileMunicipality(p.municipality || '');
+          setProfileWard(p.ward || '');
           setEmailNotifs(Boolean(p.email_notifications));
           setSmsNotifs(Boolean(p.sms_notifications));
           setWhatsappNotifs(Boolean(p.whatsapp_notifications));
@@ -118,6 +122,8 @@ export default function CitizenPortal({
       if (user.name) setProfileName(user.name);
       if (user.phone) setProfilePhone(user.phone);
       if (user.district) setProfileDistrict(user.district);
+      if (user.municipality) setProfileMunicipality(user.municipality);
+      if (user.ward) setProfileWard(user.ward);
       fetchMyComplaints();
       fetchProfileSettings();
     } else {
@@ -143,6 +149,8 @@ export default function CitizenPortal({
           name: profileName,
           phone: profilePhone,
           district: profileDistrict,
+          municipality: profileMunicipality,
+          ward: profileWard,
           email_notifications: emailNotifs ? 1 : 0,
           sms_notifications: smsNotifs ? 1 : 0,
           whatsapp_notifications: whatsappNotifs ? 1 : 0,
@@ -153,7 +161,22 @@ export default function CitizenPortal({
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update profile');
-      setProfileMsg({ type: 'success', text: 'Profile & notification preferences saved successfully!' });
+
+      // Update local storage representation
+      try {
+        const raw = localStorage.getItem('civic_citizen_user');
+        if (raw) {
+          const userObj = JSON.parse(raw);
+          userObj.name = profileName;
+          userObj.phone = profilePhone;
+          userObj.district = profileDistrict;
+          userObj.municipality = profileMunicipality;
+          userObj.ward = profileWard;
+          localStorage.setItem('civic_citizen_user', JSON.stringify(userObj));
+        }
+      } catch {}
+
+      setProfileMsg({ type: 'success', text: 'Profile & administrative jurisdiction saved successfully!' });
     } catch (err) {
       setProfileMsg({ type: 'error', text: err.message });
     } finally {
@@ -280,6 +303,18 @@ export default function CitizenPortal({
               </h1>
               <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span>District: <strong className="text-white font-semibold">{citizenUser.district || 'Chennai'}</strong></span>
+                {citizenUser.municipality && (
+                  <>
+                    <span>•</span>
+                    <span>Admin Body: <strong className="text-white font-semibold">{citizenUser.municipality}</strong></span>
+                  </>
+                )}
+                {citizenUser.ward && (
+                  <>
+                    <span>•</span>
+                    <span>Ward: <strong className="text-white font-semibold">{citizenUser.ward}</strong></span>
+                  </>
+                )}
                 <span>•</span>
                 <span>Mobile: <strong className="text-white font-mono">{citizenUser.phone || '9840XXXXXX'}</strong></span>
                 <span>•</span>
@@ -573,6 +608,29 @@ export default function CitizenPortal({
                     <option key={d.id} value={d.name}>{d.name} ({d.name_ta})</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">Municipality / Corporation</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Greater Chennai Corporation"
+                    value={profileMunicipality}
+                    onChange={(e) => setProfileMunicipality(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-navy-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">Ward / Zone</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Ward 114, Zone 9"
+                    value={profileWard}
+                    onChange={(e) => setProfileWard(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-navy-800 focus:outline-none"
+                  />
+                </div>
               </div>
 
               {/* Notification Toggles */}
