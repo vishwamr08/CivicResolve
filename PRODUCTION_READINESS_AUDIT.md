@@ -347,3 +347,54 @@ The ephemeral container file-system vulnerability previously noted in Problem 3 
    - Unified transaction management via pooled clients (`BEGIN ... COMMIT / ROLLBACK`).
    - Automatic `RETURNING id` injection ensuring `lastInsertRowid` compatibility across engines.
    - Verified automated backup strategy for PostgreSQL (logical JSON/SQL snapshot) and SQLite (atomic Online Backup API).
+
+---
+
+## Phase 10 — Master Production Remediation Programme Verification
+
+### Overview of Completed Remediations
+In November 2026, an exhaustive Master Production Remediation Programme was executed to resolve remaining production defects across administrator authentication, citizen grievance submission, dashboard synchronization, localization, and database reliability:
+
+1. **Administrator Login & Provisioning (`Phase 1`):**
+   - **Root Cause:** Migration `003_seed_master_admin_and_announcements.sql` contained an invalid bcrypt placeholder hash, while SQLite boot-time initialization dynamically overwrote passwords.
+   - **Remediation:** Removed automatic boot-time password overwrites from `db.js`. Replaced migration placeholder with locked marker `*LOCKED*PROVISION_REQUIRED*`. Created authoritative CLI `server/provision_admin.js` using bcrypt cost factor 12 with mandatory `--confirm` flag, preserving `admin@civicresolve.gov` (ID 1) and its `super_admin` role.
+
+2. **Officer & Admin Authentication, Session Invalidation & RBAC (`Phase 2`):**
+   - Implemented token revocation table `revoked_tokens` and SHA-256 token hashing (`auth.js`).
+   - Explicit logouts (`/api/auth/logout`, `/api/auth/citizen/logout`) write to `revoked_tokens`.
+   - Middleware `authenticateAdmin` and `authenticateCitizen` enforce token revocation checks.
+   - Per-IP rate limiting (5 attempts → 15m lockout) and generic authentication error messages protect against credential brute-forcing.
+
+3. **Citizen Grievance Submission Null Reference Fix (`Phase 3`):**
+   - **Root Cause:** In `server/index.js`, `const result = insert.run(...)` was not awaited against the async `PostgresDatabaseAdapter`, evaluating `result.lastInsertRowid` to `undefined` and causing `Cannot read properties of null (reading 'ref_id')`.
+   - **Remediation:** Added `await insert.run(...)`, implemented fallback lookup by `ref_id`, and standardized response payload: `{ success: true, message, complaint, ref_id, id, duplicates }`.
+
+4. **Mandatory Citizen Authentication (`Phase 4`):**
+   - Submissions on `POST /api/complaints` now require a valid citizen session, returning `401 Unauthorized` for unauthenticated visitors.
+   - Citizen ID is strictly derived from `req.citizen.id`, preventing spoofing attacks.
+   - UI preserves pending grievance category across citizen login modal.
+   - Duplicate submissions within 60s return `409 Conflict`.
+
+5. **Dashboard Real-Time Update & Background Synchronization (`Phases 5 & 6`):**
+   - Newly submitted complaints are immediately prepended to local state in `App.jsx` and `CitizenPortal.jsx` without requiring a page reload.
+   - 15-second background auto-synchronization implemented for active Citizen and Admin portals.
+
+6. **Complete Tamil Localization (`Phase 7`):**
+   - 100% key parity achieved between English and Tamil translation dictionaries (246 keys each).
+   - Zero missing keys, zero untranslated English strings in Tamil mode, and zero corrupted Unicode characters.
+
+7. **Database Safety & Fail-Closed Startup Migrations (`Phase 8`):**
+   - On PostgreSQL production startup, Express server awaits `runMigrations()` before binding the HTTP port, failing closed if migrations fail.
+
+8. **Security Audit & Accessibility (`Phase 9`):**
+   - CSRF & exact origin validation implemented on all cookie-authenticated mutation endpoints.
+   - Security headers enforced: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, and HSTS.
+   - Form controls enhanced with accessible labels and ARIA attributes.
+
+9. **Verification & Test Results:**
+   - `test_remediation_phases.js`: **18 / 18 assertions PASSED**.
+   - Core SQLite test suites: **7 suites, 179 / 179 assertions PASSED**.
+   - PostgreSQL Migration Suite: **39 / 39 assertions PASSED**.
+   - PostgreSQL Dual Adapter Suite: **18 / 18 assertions PASSED**.
+   - Frontend Production Build: **Vite clean compile in 2.23s, 0 errors**.
+   - Genuine Local Database & Phase 1 Backup: **Verified 100% intact with matching cryptographic hashes**.

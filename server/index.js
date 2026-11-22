@@ -27,7 +27,8 @@ const {
   generateSecureOtp,
   hashOtp,
   normalizePhone,
-  findCitizenByPhone
+  findCitizenByPhone,
+  revokeToken
 } = require('./auth');
 const { computeSlaMetrics, getTargetSlaHours } = require('./sla-engine');
 const { findDuplicateCandidates } = require('./duplicate-engine');
@@ -133,6 +134,53 @@ app.options(/(.*)/, cors(corsOptions));
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use(cookieParser());
+
+// Security Headers Middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
+// CSRF & Exact Origin Validation for Mutation Requests
+app.use((req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+
+  const origin = req.headers.origin;
+  const referer = req.headers.referer;
+  const hasCookieAuth = !!(req.cookies && (req.cookies.civic_admin_token || req.cookies.civic_citizen_token));
+
+  if (hasCookieAuth) {
+    if (origin) {
+      const cleanOrigin = origin.trim().replace(/\/$/, '');
+      const isAllowed = allowedOrigins.some(allowed => allowed.toLowerCase() === cleanOrigin.toLowerCase()) ||
+        (process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin));
+      if (!isAllowed) {
+        return res.status(403).json({ error: 'CSRF security violation: Origin not authorized for state-changing request.' });
+      }
+    } else if (referer) {
+      try {
+        const refUrl = new URL(referer);
+        const refOrigin = refUrl.origin.toLowerCase();
+        const isAllowed = allowedOrigins.some(allowed => allowed.toLowerCase() === refOrigin) ||
+          (process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(refOrigin));
+        if (!isAllowed) {
+          return res.status(403).json({ error: 'CSRF security violation: Referer not authorized for state-changing request.' });
+        }
+      } catch {
+        return res.status(403).json({ error: 'CSRF security violation: Malformed Referer header.' });
+      }
+    }
+  }
+
+  next();
+});
 
 // Cache-Control Security Policy: Ensure sensitive routes are never cached by intermediate proxies
 app.use((req, res, next) => {
@@ -1048,8 +1096,28 @@ app.get('/api/auth/citizen/me', authenticateCitizen, async (req, res) => {
   });
 });
 
+function extractToken(req, cookieName) {
+  if (req.cookies && req.cookies[cookieName]) {
+    return req.cookies[cookieName];
+  }
+  if (req.headers && req.headers.authorization) {
+    const parts = req.headers.authorization.split(' ');
+    if (parts.length === 2 && parts[0] === 'Bearer') {
+      return parts[1];
+    }
+  }
+  return null;
+}
+
 // POST /api/auth/citizen/logout
 app.post('/api/auth/citizen/logout', async (req, res) => {
+  try {
+    const token = extractToken(req, 'civic_citizen_token');
+    if (token) {
+      const decoded = verifyToken(token);
+      await revokeToken(token, decoded?.exp);
+    }
+  } catch {}
   res.clearCookie('civic_citizen_token', getClearCookieOptions());
   res.json({ message: 'Citizen logged out successfully' });
 });
@@ -1216,6 +1284,13 @@ app.post('/api/auth/login', async (req, res) => {
 
 // POST /api/auth/logout
 app.post('/api/auth/logout', async (req, res) => {
+  try {
+    const token = extractToken(req, 'civic_admin_token');
+    if (token) {
+      const decoded = verifyToken(token);
+      await revokeToken(token, decoded?.exp);
+    }
+  } catch {}
   res.clearCookie('civic_admin_token', getClearCookieOptions());
   res.json({ message: 'Officer logged out successfully' });
 });
@@ -1455,6 +1530,16 @@ app.get('/api/complaints/:id', optionalCitizenAuth, async (req, res) => {
 // POST /api/complaints (Multi-step Submission + Groq AI + SLA + Duplicate Detection + Notification)
 app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (req, res) => {
   try {
+    // Phase 4: Mandatory Citizen Authentication Check
+    if (!req.citizen && !req.admin) {
+      if (req.file && fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch {}
+      }
+      return res.status(401).json({
+        error: 'Citizen authentication required. Please log in or create an account to register a grievance.'
+      });
+    }
+
     const {
       title, description, category, location,
       district, local_body, ward, zone, latitude, longitude,
@@ -1541,11 +1626,29 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
 
     const effectiveLang = language || 'en';
 
-    // Citizen identity (from session or form)
-    const citizenId = req.citizen ? req.citizen.id : null;
-    const finalCitizenName = req.citizen ? req.citizen.name : (citizen_name || 'Citizen');
-    const finalCitizenPhone = req.citizen ? req.citizen.phone : (citizen_phone ? normalizePhone(citizen_phone) : null);
-    const finalCitizenEmail = req.citizen ? req.citizen.email : (citizen_email || null);
+    // Derive Citizen identity strictly from server-side authenticated identity
+    const citizenId = req.citizen ? req.citizen.id : (req.admin ? (req.body.citizen_id ? parseInt(req.body.citizen_id, 10) : null) : null);
+    const finalCitizenName = req.citizen ? req.citizen.name : (req.admin ? (citizen_name || 'Citizen') : 'Citizen');
+    const finalCitizenPhone = req.citizen ? req.citizen.phone : (req.admin && citizen_phone ? normalizePhone(citizen_phone) : null);
+    const finalCitizenEmail = req.citizen ? req.citizen.email : (req.admin ? (citizen_email || null) : null);
+
+    // Prevent duplicate rapid submissions from the same citizen within 60 seconds
+    if (citizenId) {
+      const spaceFormat = new Date(Date.now() - 60000).toISOString().replace('T', ' ').slice(0, 19);
+      const isoFormat = new Date(Date.now() - 60000).toISOString();
+      const recentDup = await db.prepare(`
+        SELECT id, ref_id FROM complaints 
+        WHERE citizen_id = ? AND title = ? AND location = ? AND (created_at > ? OR created_at > ?)
+        LIMIT 1
+      `).get(citizenId, title.trim(), location.trim(), spaceFormat, isoFormat);
+      if (recentDup) {
+        return res.status(409).json({
+          error: `Duplicate grievance detected. Grievance ${recentDup.ref_id} was submitted less than 60 seconds ago.`,
+          ref_id: recentDup.ref_id,
+          id: recentDup.id
+        });
+      }
+    }
 
     // Call Google Gemini AI analysis (with deterministic heuristic fallback)
     const aiResult = await analyzeComplaintWithGemini({
@@ -1624,7 +1727,8 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
       )
     `);
 
-    const result = insert.run(
+    // Await async insertion in dual database architecture
+    const result = await insert.run(
       ref_id,
       title.trim(),
       description.trim(),
@@ -1664,7 +1768,14 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
       effectiveLang
     );
 
-    const created = await db.prepare('SELECT * FROM complaints WHERE id = ?').get(result.lastInsertRowid);
+    const insertId = result?.lastInsertRowid;
+    let created = null;
+    if (insertId) {
+      created = await db.prepare('SELECT * FROM complaints WHERE id = ?').get(insertId);
+    }
+    if (!created) {
+      created = await db.prepare('SELECT * FROM complaints WHERE ref_id = ?').get(ref_id);
+    }
 
     // In-App Notification
     await createNotification(
@@ -1696,8 +1807,11 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
     invalidateStatsCache();
 
     res.status(201).json({
+      success: true,
       message: 'Complaint submitted and analyzed successfully',
       complaint: parseComplaint(created, true),
+      ref_id: created?.ref_id || ref_id,
+      id: created?.id || insertId,
       duplicates
     });
   } catch (err) {
@@ -2144,7 +2258,7 @@ app.patch('/api/complaints/:id/manage', authenticateAdmin, async (req, res) => {
       WHERE id = ? OR ref_id = ?
     `);
 
-    update.run(
+    await update.run(
       newCategory,
       newDept,
       newStatus,
@@ -2886,56 +3000,74 @@ const PORT = process.env.PORT || 5000;
 
 // Start Server
 if (require.main === module) {
-  const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[CivicResolve Server] Live on http://127.0.0.1:${PORT} (0.0.0.0)`);
-    console.log(`[CivicResolve Server] AI Engine: Google Gemini (${process.env.GEMINI_MODEL || 'gemini-2.5-flash'})`);
-    console.log(`[CivicResolve Server] SMS Provider: ${isSmsConfigured() ? (process.env.SMS_PROVIDER || 'Twilio') : 'SAFE DEVELOPMENT SIMULATION'}`);
-    console.log(`[CivicResolve Server] SMTP Email Delivery: ${isSmtpConfigured() ? 'CONFIGURED' : 'UNCONFIGURED'}`);
-  });
-
-  const handleShutdown = (signal) => {
-    console.log(`[CivicResolve Server] Received ${signal}. Starting graceful shutdown...`);
-    // Stop accepting new connections; allow existing active requests to finish
-    server.close(() => {
-      console.log('[CivicResolve Server] HTTP server closed; all in-flight requests completed.');
+  (async () => {
+    // Phase 8: Database migrations must finish before accepting requests; migration failures prevent startup.
+    if (db && db.isPostgres && process.env.AUTO_MIGRATE !== 'false' && process.env.NODE_ENV !== 'test') {
+      const { runMigrations } = require('./migrate');
       try {
-        if (db && db.open) {
-          // Perform WAL checkpoint and inspect results
-          const cpRes = db.pragma('wal_checkpoint(TRUNCATE)');
-          const cpRow = Array.isArray(cpRes) && cpRes.length > 0 ? cpRes[0] : null;
-          const isBusy = cpRow ? (cpRow.busy === 1 || cpRow.busy === '1') : false;
-
-          if (isBusy) {
-            console.warn('[CivicResolve Server] WAL checkpoint returned busy/incomplete status:', cpRow);
-            // Attempt non-blocking passive checkpoint fallback
-            try {
-              const passiveRes = db.pragma('wal_checkpoint(PASSIVE)');
-              console.log('[CivicResolve Server] Secondary passive WAL checkpoint result:', passiveRes);
-            } catch (passiveErr) {
-              console.warn('[CivicResolve Server] Secondary checkpoint error:', passiveErr.message);
-            }
-          } else {
-            console.log('[CivicResolve Server] Database WAL checkpointed successfully:', cpRow);
-          }
-
-          db.close();
-          console.log('[CivicResolve Server] Database connection closed cleanly.');
-        }
-      } catch (dbErr) {
-        console.error('[CivicResolve Server] Error closing database during shutdown:', dbErr.message);
+        console.log('[CivicResolve Server] Verifying PostgreSQL database migrations before accepting traffic...');
+        await runMigrations({ pool: db.pool, schema: db.schema });
+        console.log('[CivicResolve Server] Database migrations verified successfully.');
+      } catch (migErr) {
+        console.error('[FATAL STARTUP ERROR] Migration verification failed. Server refusing to start:', migErr.message);
+        process.exit(1);
       }
-      process.exit(0);
+    }
+
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[CivicResolve Server] Live on http://127.0.0.1:${PORT} (0.0.0.0)`);
+      console.log(`[CivicResolve Server] AI Engine: Google Gemini (${process.env.GEMINI_MODEL || 'gemini-2.5-flash'})`);
+      console.log(`[CivicResolve Server] SMS Provider: ${isSmsConfigured() ? (process.env.SMS_PROVIDER || 'Twilio') : 'SAFE DEVELOPMENT SIMULATION'}`);
+      console.log(`[CivicResolve Server] SMTP Email Delivery: ${isSmtpConfigured() ? 'CONFIGURED' : 'UNCONFIGURED'}`);
     });
 
-    // Force exit if connections do not drain within 10 seconds (avoid closing DB while requests are still in-flight)
-    setTimeout(() => {
-      console.error('[CivicResolve Server] Graceful shutdown timed out (10s). Forcing process exit without closing database on active in-flight requests.');
-      process.exit(1);
-    }, 10000).unref();
-  };
+    const handleShutdown = (signal) => {
+      console.log(`[CivicResolve Server] Received ${signal}. Starting graceful shutdown...`);
+      // Stop accepting new connections; allow existing active requests to finish
+      server.close(() => {
+        console.log('[CivicResolve Server] HTTP server closed; all in-flight requests completed.');
+        try {
+          if (db && db.open) {
+            // Perform WAL checkpoint and inspect results
+            const cpRes = db.pragma('wal_checkpoint(TRUNCATE)');
+            const cpRow = Array.isArray(cpRes) && cpRes.length > 0 ? cpRes[0] : null;
+            const isBusy = cpRow ? (cpRow.busy === 1 || cpRow.busy === '1') : false;
 
-  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
-  process.on('SIGINT', () => handleShutdown('SIGINT'));
+            if (isBusy) {
+              console.warn('[CivicResolve Server] WAL checkpoint returned busy/incomplete status:', cpRow);
+              // Attempt non-blocking passive checkpoint fallback
+              try {
+                const passiveRes = db.pragma('wal_checkpoint(PASSIVE)');
+                console.log('[CivicResolve Server] Secondary passive WAL checkpoint result:', passiveRes);
+              } catch (passiveErr) {
+                console.warn('[CivicResolve Server] Secondary checkpoint error:', passiveErr.message);
+              }
+            } else {
+              console.log('[CivicResolve Server] Database WAL checkpointed successfully:', cpRow);
+            }
+
+            db.close();
+            console.log('[CivicResolve Server] Database connection closed cleanly.');
+          }
+        } catch (dbErr) {
+          console.error('[CivicResolve Server] Error closing database during shutdown:', dbErr.message);
+        }
+        process.exit(0);
+      });
+
+      // Force exit if connections do not drain within 10 seconds (avoid closing DB while requests are still in-flight)
+      setTimeout(() => {
+        console.error('[CivicResolve Server] Graceful shutdown timed out (10s). Forcing process exit without closing database on active in-flight requests.');
+        process.exit(1);
+      }, 10000).unref();
+    };
+
+    process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+    process.on('SIGINT', () => handleShutdown('SIGINT'));
+  })().catch(err => {
+    console.error('[CivicResolve Server] Fatal initialization failure:', err);
+    process.exit(1);
+  });
 }
 
 module.exports = app;

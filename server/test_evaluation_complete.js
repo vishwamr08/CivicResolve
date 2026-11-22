@@ -343,9 +343,11 @@ async function runTests() {
   // ==========================================
   console.log('\n--- 7. PROBLEM STATEMENT ALIGNMENT (TAMIL NADU MUNICIPAL SPEC) ---');
   try {
-    // 7.1 Grievance Creation with Category, Location & SLA Calculation
+    // 7.1 Grievance Creation with Category, Location & SLA Calculation (Mandatory Citizen Auth)
+    const { generateToken } = require('./auth.js');
+    const citizenAuthToken = generateToken({ id: 1, email: 'citizen@example.com', name: 'Evaluation Bot' });
     const uniqueTitle = 'Pothole on 100 Feet Road test ' + Date.now();
-    const createRes = await makeRequest('POST', '/api/complaints', {}, {
+    const createRes = await makeRequest('POST', '/api/complaints', { 'Authorization': `Bearer ${citizenAuthToken}` }, {
       title: uniqueTitle,
       description: 'Major hazardous pothole creating severe traffic congestion near Vadapalani junction.',
       category: 'Pothole',

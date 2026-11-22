@@ -105,6 +105,8 @@ export default function App() {
   
   const [isCitizenAuthOpen, setIsCitizenAuthOpen] = useState(false);
   const [citizenAuthMode, setCitizenAuthMode] = useState('login');
+  const [pendingSubmitCategory, setPendingSubmitCategory] = useState(null);
+  const [newlySubmittedCitizenGrievance, setNewlySubmittedCitizenGrievance] = useState(null);
 
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [managingComplaint, setManagingComplaint] = useState(null);
@@ -112,11 +114,23 @@ export default function App() {
   const [trackerInitialId, setTrackerInitialId] = useState('');
 
   const handleOpenSubmit = (cat) => {
-    if (typeof cat === 'string' && cat.trim() !== '') {
-      setSubmitModalCategory(cat);
-    } else {
-      setSubmitModalCategory('Road Damage');
+    const targetCategory = (typeof cat === 'string' && cat.trim() !== '') ? cat : 'Road Damage';
+    setSubmitModalCategory(targetCategory);
+
+    // Phase 4: Mandatory Citizen Authentication Check
+    if (!citizenToken && !citizenUser) {
+      setPendingSubmitCategory(targetCategory);
+      setCitizenAuthMode('otp');
+      setIsCitizenAuthOpen(true);
+      showToast(
+        lang === 'ta'
+          ? 'மனு சமர்ப்பிக்க குடிமக்கள் கணக்கில் உள்நுழையவும் அல்லது பதிவு செய்யவும்.'
+          : 'Please sign in or register a citizen account to submit a grievance.',
+        'info'
+      );
+      return;
     }
+
     setIsSubmitModalOpen(true);
   };
 
@@ -261,6 +275,20 @@ export default function App() {
     }
   }, [activeTab, loadComplaints]);
 
+  // Phase 6: Automatic background dashboard synchronization
+  useEffect(() => {
+    if (activeTab !== 'admin' && activeTab !== 'citizen-portal') return;
+
+    const syncInterval = setInterval(() => {
+      fetchData();
+      if (activeTab === 'admin') {
+        loadComplaints(true);
+      }
+    }, 15000);
+
+    return () => clearInterval(syncInterval);
+  }, [activeTab, fetchData, loadComplaints]);
+
   // Combined refresh for Admin Command Center: telemetry metrics + full complaints list
   const handleAdminRefresh = useCallback(async () => {
     await Promise.all([
@@ -298,14 +326,23 @@ export default function App() {
     }
   };
 
-  // Handle Citizen Login Success (Auto routes to citizen-portal and persists tokens)
+  // Handle Citizen Login Success (Auto routes to citizen-portal or resumes grievance submission)
   const handleCitizenLoginSuccess = (token, citizen) => {
     setCitizenToken(token);
     setCitizenUser(citizen);
     if (token) localStorage.setItem('civic_citizen_token', token);
     if (citizen) localStorage.setItem('civic_citizen_user', JSON.stringify(citizen));
-    setActiveTab('citizen-portal');
     showToast(lang === 'ta' ? `வணக்கம், ${citizen?.name || 'குடிமகன்'}!` : `Welcome back, ${citizen?.name || 'Citizen'}!`, 'success');
+
+    // If citizen was trying to submit a grievance, seamlessly resume submission
+    if (pendingSubmitCategory) {
+      setSubmitModalCategory(pendingSubmitCategory);
+      setPendingSubmitCategory(null);
+      setIsCitizenAuthOpen(false);
+      setIsSubmitModalOpen(true);
+    } else {
+      setActiveTab('citizen-portal');
+    }
   };
 
   // Handle Citizen Logout
@@ -356,7 +393,12 @@ export default function App() {
       }
 
       const result = await response.json();
-      const created = result.complaint;
+      const created = result.complaint || result;
+      const grievanceRefId = created?.ref_id || result?.ref_id;
+
+      if (!grievanceRefId) {
+        throw new Error(result.error || 'Failed to obtain registered grievance reference ID.');
+      }
 
       // Close submission wizard
       setIsSubmitModalOpen(false);
@@ -365,6 +407,12 @@ export default function App() {
       setReceiptComplaint(created);
       setIsReceiptModalOpen(true);
       setNewlyCreatedComplaint(created);
+      setNewlySubmittedCitizenGrievance(created);
+
+      // Immediate state update (Phase 5): prepend created complaint to existing state
+      if (created) {
+        setComplaints(prev => [created, ...prev.filter(c => c.id !== created.id && c.ref_id !== grievanceRefId)]);
+      }
 
       // Refresh database records and complaints list
       await Promise.all([
@@ -372,7 +420,7 @@ export default function App() {
         loadComplaints(true)
       ]);
 
-      showToast(`Grievance ${created.ref_id} registered successfully!`, 'success');
+      showToast(`Grievance ${grievanceRefId} registered successfully!`, 'success');
     } catch (err) {
       console.error('Submission failed:', err);
       showToast(err.message || 'Submission failed. Please try again.', 'error');
@@ -613,6 +661,7 @@ export default function App() {
                     setReceiptComplaint(c);
                     setIsReceiptModalOpen(true);
                   }}
+                  newGrievance={newlySubmittedCitizenGrievance}
                   lang={lang}
                 />
               )}

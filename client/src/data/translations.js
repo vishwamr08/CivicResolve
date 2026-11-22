@@ -274,7 +274,13 @@ export const translations = {
     backendErrorHeading: 'Backend Connection Notice',
     retryConnectionBtn: 'Retry Connection',
     sessionRestoredNotice: 'Citizen session verified and restored.',
-    sessionExpiredNotice: 'Session expired. Please sign in again.'
+    sessionExpiredNotice: 'Session expired. Please sign in again.',
+    myGrievances: 'My Registered Grievances',
+    assignedTasks: 'My Assigned Field Tasks',
+    authRequiredToSubmit: 'Please sign in or register a citizen account to submit a grievance.',
+    createCitizenAccountPrompt: 'Create Citizen Account',
+    alreadyHaveAccountSignIn: 'Already have an account? Sign In',
+    duplicateGrievanceWarning: 'A similar grievance was recently submitted.'
   },
 
   ta: {
@@ -548,6 +554,12 @@ export const translations = {
     backendErrorHeading: 'சேவையக இணைப்பு அறிவிப்பு',
     retryConnectionBtn: 'மீண்டும் இணைக்க முயல்க',
     sessionRestoredNotice: 'குடிமக்கள் அமர்வு சரிபார்க்கப்பட்டு மீட்டமைக்கப்பட்டது.',
-    sessionExpiredNotice: 'அமர்வு காலாவதியானது. தயவுசெய்து மீண்டும் உள்நுழையவும்.'
+    sessionExpiredNotice: 'அமர்வு காலாவதியானது. தயவுசெய்து மீண்டும் உள்நுழையவும்.',
+    myGrievances: 'எனது பதிவு செய்யப்பட்ட மனுக்கள்',
+    assignedTasks: 'எனக்கு ஒதுக்கப்பட்ட களப் பணிகள்',
+    authRequiredToSubmit: 'மனு சமர்ப்பிக்க குடிமக்கள் கணக்கில் உள்நுழையவும் அல்லது பதிவு செய்யவும்.',
+    createCitizenAccountPrompt: 'குடிமக்கள் கணக்கை உருவாக்கவும்',
+    alreadyHaveAccountSignIn: 'ஏற்கனவே கணக்கு உள்ளதா? உள்நுழையவும்',
+    duplicateGrievanceWarning: 'இதேபோன்ற மனு சமீபத்தில் சமர்ப்பிக்கப்பட்டது.'
   }
 };

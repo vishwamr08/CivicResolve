@@ -15,7 +15,8 @@
     "test:postgres:migration": "node test_postgres_migration.js",
     "test:postgres:adapter": "node test_postgres_dual_architecture.js",
     "test:all": "npm test && node test_postgres_migration.js && node test_postgres_dual_architecture.js",
-    "migrate": "node migrate.js"
+    "migrate": "node migrate.js",
+    "provision:admin": "node provision_admin.js"
   },
   "keywords": [],
   "author": "",

@@ -496,6 +496,15 @@ if (targetEngine === 'postgres') {
       );
     `);
 
+    sqliteDb.exec(`
+      CREATE TABLE IF NOT EXISTS revoked_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        token_hash TEXT UNIQUE NOT NULL,
+        expires_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     try {
       sqliteDb.exec(`
         CREATE INDEX IF NOT EXISTS idx_complaints_ref_id ON complaints(ref_id);
@@ -509,21 +518,21 @@ if (targetEngine === 'postgres') {
         CREATE INDEX IF NOT EXISTS idx_audit_logs_complaint_ref ON audit_logs(complaint_ref);
         CREATE INDEX IF NOT EXISTS idx_announcements_active ON announcements(is_active);
         CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_type, recipient_id);
+        CREATE INDEX IF NOT EXISTS idx_revoked_tokens_hash ON revoked_tokens(token_hash);
       `);
     } catch {}
 
+    // One-time initial seed for clean/synthetic test databases only.
+    // Strictly NEVER resets or overrides existing administrator passwords on application startup.
     const defaultMasterEmail = 'admin@civicresolve.gov';
-    const defaultMasterPassword = 'CivicAdmin#2026!Secure';
-    const masterPasswordHash = bcrypt.hashSync(defaultMasterPassword, 12);
-
     const existingMaster = sqliteDb.prepare('SELECT id FROM admins WHERE LOWER(email) = ?').get(defaultMasterEmail);
     if (!existingMaster) {
+      const defaultMasterPassword = 'CivicAdmin#2026!Secure';
+      const masterPasswordHash = bcrypt.hashSync(defaultMasterPassword, 12);
       sqliteDb.prepare(`
         INSERT INTO admins (email, password_hash, name, role, district, department, designation)
         VALUES (?, ?, 'Director of Municipal Operations', 'super_admin', 'Statewide', 'Municipal Administration & Water Supply', 'Director of Municipal Operations')
       `).run(defaultMasterEmail, masterPasswordHash);
-    } else {
-      sqliteDb.prepare(`UPDATE admins SET password_hash = ?, role = 'super_admin' WHERE LOWER(email) = ?`).run(masterPasswordHash, defaultMasterEmail);
     }
   }
 

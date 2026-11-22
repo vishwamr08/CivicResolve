@@ -33,7 +33,7 @@ Database schema evolution is strictly version-controlled through idempotent SQL 
 
 - `server/migrations/001_initial_schema.sql`: Core tables (`admins`, `citizens`, `complaints`, `citizen_otps`, `audit_logs`, `announcements`, `notifications`, `notification_logs`, `revoked_tokens`).
 - `server/migrations/002_indexes_and_constraints.sql`: Foreign keys (`fk_complaints_citizen`), unique constraints, and performance indexes.
-- `server/migrations/003_seed_master_admin_and_announcements.sql`: Idempotent seeding of standard master administrator and municipal announcements.
+- `server/migrations/003_seed_master_admin_and_announcements.sql`: Idempotent seeding of standard master administrator and municipal announcements. (Note: Admin password uses a locked placeholder; use `provision_admin.js` to set credentials).
 - `server/migrate.js`: Programmatic and CLI migration runner (`npm run migrate`). Tracks migrations in `schema_migrations`.
 
 To run migrations manually:
@@ -43,7 +43,31 @@ npm run migrate
 
 ---
 
-## 3. Core Relational Tables
+## 3. Administrator Account Provisioning (`server/provision_admin.js`)
+
+To ensure security in production and prevent plaintext or compromised credentials from persisting in version-controlled migration files or automated startup scripts, CivicResolve provides an authoritative CLI tool:
+
+```bash
+# Provision or rotate administrator password on Supabase PostgreSQL (requires explicit confirmation)
+node provision_admin.js --confirm
+
+# Or specify a designated email and password
+node provision_admin.js --email admin@civicresolve.gov --password "YourCustomSecret#2026!" --confirm
+
+# For local development SQLite database:
+node provision_admin.js --sqlite --confirm
+```
+
+**Security Properties:**
+- Uses `bcrypt` with cost factor 12 (~250ms key derivation).
+- Automatically updates `admin@civicresolve.gov` (ID: 1) without modifying the account ID, assigned municipal jurisdiction, or `super_admin` role.
+- If `--password` is omitted, generates a 24-character cryptographically random password (`crypto.randomBytes`) and prints it once to stdout.
+- Fails closed without modifying data unless `--confirm` is explicitly passed.
+- Plaintext passwords are never hardcoded in SQL migrations or automatically overwritten during server boot.
+
+---
+
+## 4. Core Relational Tables
 
 ```
 +--------------------------------------------------------------------------+
@@ -64,7 +88,7 @@ npm run migrate
 
 ---
 
-## 4. Key Table Schemas
+## 5. Key Table Schemas
 
 ### `complaints`
 - `id`: `SERIAL PRIMARY KEY` (PostgreSQL) / `INTEGER PRIMARY KEY AUTOINCREMENT` (SQLite)
@@ -91,9 +115,16 @@ npm run migrate
 - `duplicate_of_ref_id`: `VARCHAR(50)`
 - `created_at`: `TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`, `updated_at`: `TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`
 
+### `revoked_tokens`
+- `token_hash`: `VARCHAR(64) PRIMARY KEY` (SHA-256 hash of JWT session token)
+- `user_id`: `INTEGER`
+- `user_type`: `VARCHAR(20)` (`admin` or `citizen`)
+- `expires_at`: `TIMESTAMPTZ NOT NULL`
+- `revoked_at`: `TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`
+
 ---
 
-## 5. Dual Database Abstraction Layer (`server/db_adapter.js`)
+## 6. Dual Database Abstraction Layer (`server/db_adapter.js`)
 
 The backend interacts with database queries via a unified asynchronous abstraction layer:
 - **Parameter Translation:** Automatically maps `?` positional parameters to PostgreSQL `$1, $2, ...` outside string literals.
@@ -103,7 +134,7 @@ The backend interacts with database queries via a unified asynchronous abstracti
 
 ---
 
-## 6. Protected Database Files
+## 7. Protected Database Files
 
 - `server/civicresolve.db`: Authoritative genuine local database (`a9e0bbcee8ea7eae88decdef6591fb7235bdb981cbc13c92637b3e87f654d7ed`).
 - `server/civicresolve_safety_backup_phase1.db`: Cryptographically verified Phase 1 backup (`863ee493de7287a9fa3f5d022cfe4956aa25c4c5d5e3a350d990c7782912636c`).

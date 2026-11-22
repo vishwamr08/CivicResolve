@@ -1,13 +1,14 @@
 -- Migration: 003_seed_master_admin_and_announcements.sql
 -- Description: Idempotent initialization of default administrative officer and municipal announcements
 -- Engine: PostgreSQL 14+ / Supabase
+-- Note: Fixed/plaintext credentials must NEVER be stored in SQL migrations.
+-- Master admin is seeded with a locked hash; authorized credentials are set via `node provision_admin.js`.
 
--- Seed default master administrator if not already present
--- Password: CivicAdmin#2026!Secure (Bcrypt hash with cost 12)
+-- Seed default master administrator placeholder if not already present
 INSERT INTO admins (email, password_hash, name, role, district, department, designation)
 VALUES (
   'admin@civicresolve.gov',
-  '$2a$12$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+  '*LOCKED*PROVISION_REQUIRED*',
   'Director of Municipal Operations',
   'super_admin',
   'Statewide',

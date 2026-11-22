@@ -181,8 +181,12 @@ async function runTests() {
     // --- SUITE 3: Complaint Submission & Location Provenance (POST /api/complaints) ---
     console.log('\n>>> [Suite 3] Complaint Submission & Location Provenance');
 
+    const { generateToken } = require('./auth');
+    const citizenAuthToken = generateToken({ id: 1, email: 'citizen@example.com', name: 'Verified Citizen' });
+    const authHeaders = { 'Authorization': `Bearer ${citizenAuthToken}` };
+
     // Test 12: Verified GPS submission (detection_method: 'gps', isGpsVerified: true)
-    const gpsComplaintRes = await makeRequest('POST', '/api/complaints', {}, {
+    const gpsComplaintRes = await makeRequest('POST', '/api/complaints', authHeaders, {
       title: 'Water pipe leak on 2nd Avenue Anna Nagar',
       description: 'Severe high pressure water leakage overflowing on road causing traffic slowdown.',
       category: 'Water Leakage',
@@ -215,7 +219,7 @@ async function runTests() {
     );
 
     // Test 13: Map Pin Adjustment submission (detection_method: 'map_pin') MUST NOT be marked GPS verified
-    const mapPinComplaintRes = await makeRequest('POST', '/api/complaints', {}, {
+    const mapPinComplaintRes = await makeRequest('POST', '/api/complaints', authHeaders, {
       title: 'Deep road cave-in near central bus stand',
       description: 'Pothole cave-in observed on main arterial road. Needs immediate asphalt patching.',
       category: 'Road Damage',
@@ -240,7 +244,7 @@ async function runTests() {
     );
 
     // Test 14: Manual text address submission with ZERO fake coordinates
-    const manualComplaintRes = await makeRequest('POST', '/api/complaints', {}, {
+    const manualComplaintRes = await makeRequest('POST', '/api/complaints', authHeaders, {
       title: 'Streetlights flickering on North Car Street',
       description: 'Sodium vapor lamps flickering erratically for the past 3 days in heritage street.',
       category: 'Streetlights',
@@ -263,7 +267,7 @@ async function runTests() {
     );
 
     // Test 15: Out-of-state coordinates marked jurisdiction_source = 'out_of_state'
-    const oosComplaintRes = await makeRequest('POST', '/api/complaints', {}, {
+    const oosComplaintRes = await makeRequest('POST', '/api/complaints', authHeaders, {
       title: 'Pothole outside border checkpost',
       description: 'Pothole located just beyond the border checkpost on highway.',
       category: 'Road Damage',

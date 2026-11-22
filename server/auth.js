@@ -69,6 +69,40 @@ function verifyToken(token) {
   }
 }
 
+function hashToken(token) {
+  if (!token) return '';
+  return crypto.createHash('sha256').update(String(token).trim()).digest('hex');
+}
+
+async function isTokenRevoked(token) {
+  if (!token) return true;
+  try {
+    const tokenHash = hashToken(token);
+    const row = await db.prepare('SELECT id FROM revoked_tokens WHERE token_hash = ?').get(tokenHash);
+    return !!row;
+  } catch {
+    return false;
+  }
+}
+
+async function revokeToken(token, expiresAt) {
+  if (!token) return;
+  try {
+    const tokenHash = hashToken(token);
+    const expDate = expiresAt 
+      ? new Date(expiresAt * 1000).toISOString() 
+      : new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+    
+    if (db.isPostgres) {
+      await db.prepare('INSERT INTO revoked_tokens (token_hash, expires_at) VALUES (?, ?) ON CONFLICT (token_hash) DO NOTHING').run(tokenHash, expDate);
+    } else {
+      await db.prepare('INSERT OR IGNORE INTO revoked_tokens (token_hash, expires_at) VALUES (?, ?)').run(tokenHash, expDate);
+    }
+  } catch (err) {
+    console.warn('[Token Revocation Notice]:', err.message);
+  }
+}
+
 // In-Memory Login Rate Limiter (Max 5 failed attempts per 15 mins per IP + account target)
 const loginAttempts = new Map();
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 mins
@@ -159,6 +193,13 @@ async function authenticateAdmin(req, res, next) {
       });
     }
 
+    // Check token revocation
+    if (await isTokenRevoked(token)) {
+      return res.status(401).json({
+        error: 'Administrator session has been invalidated. Please log in again.'
+      });
+    }
+
     // Verify admin in database
     const admin = await db.prepare('SELECT id, email, name, role, district, department, designation FROM admins WHERE id = ?').get(decoded.id);
     if (!admin || !ADMIN_ROLES.includes(admin.role)) {
@@ -201,6 +242,13 @@ async function authenticateCitizen(req, res, next) {
     if (!decoded || !decoded.id) {
       return res.status(401).json({
         error: 'Session expired. Please log in again.'
+      });
+    }
+
+    // Check token revocation
+    if (await isTokenRevoked(token)) {
+      return res.status(401).json({
+        error: 'Citizen session has been invalidated. Please log in again.'
       });
     }
 
@@ -276,5 +324,8 @@ module.exports = {
   authenticateCitizen,
   optionalCitizenAuth,
   requireRole,
+  isTokenRevoked,
+  revokeToken,
+  hashToken,
   ADMIN_ROLES
 };

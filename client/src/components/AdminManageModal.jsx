@@ -220,10 +220,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
               {/* Department & Officer Allocation (e-Yantra Pattern) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label htmlFor="manage-category" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Grievance Category <span className="text-saffron-dark">*</span>
                   </label>
                   <select
+                    id="manage-category"
+                    aria-label="Grievance Category"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-navy-800 bg-white"
@@ -235,10 +237,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label htmlFor="manage-department" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Nodal Department <span className="text-saffron-dark">*</span>
                   </label>
                   <select
+                    id="manage-department"
+                    aria-label="Nodal Department"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-navy-800 bg-white"
@@ -250,10 +254,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label htmlFor="manage-officer" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Assigned Field Officer / Squad
                   </label>
                   <input
+                    id="manage-officer"
+                    aria-label="Assigned Field Officer"
                     type="text"
                     value={assignedOfficer}
                     onChange={(e) => setAssignedOfficer(e.target.value)}
@@ -266,10 +272,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
               {/* Status, Priority & SLA Target */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label htmlFor="manage-status" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Workflow Status <span className="text-saffron-dark">*</span>
                   </label>
                   <select
+                    id="manage-status"
+                    aria-label="Workflow Status"
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-navy-800 bg-white"
@@ -281,10 +289,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label htmlFor="manage-priority" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Priority Level <span className="text-saffron-dark">*</span>
                   </label>
                   <select
+                    id="manage-priority"
+                    aria-label="Priority Level"
                     value={priority}
                     onChange={(e) => setPriority(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-navy-800 bg-white"
@@ -296,10 +306,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label htmlFor="manage-sla-hours" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     SLA Resolution Target (Hours)
                   </label>
                   <input
+                    id="manage-sla-hours"
+                    aria-label="SLA Resolution Target in Hours"
                     type="number"
                     min="1"
                     max="168"
@@ -313,7 +325,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
               {/* Action-Taken Remarks & Evidence Photo URL */}
               <div className="space-y-3 pt-2 border-t border-slate-200">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label htmlFor="manage-resolution-remarks" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Official Action-Taken Remarks (Public Audit)
                   </label>
                   {status !== 'Resolved' && (
@@ -327,6 +339,8 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
                   )}
                 </div>
                 <textarea
+                  id="manage-resolution-remarks"
+                  aria-label="Official Action-Taken Remarks"
                   rows={3}
                   value={resolutionRemarks}
                   onChange={(e) => setResolutionRemarks(e.target.value)}
@@ -336,10 +350,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    <label htmlFor="manage-evidence-url" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                       Resolution Photo Evidence URL
                     </label>
                     <input
+                      id="manage-evidence-url"
+                      aria-label="Resolution Photo Evidence URL"
                       type="text"
                       value={resolutionEvidenceUrl}
                       onChange={(e) => setResolutionEvidenceUrl(e.target.value)}
@@ -349,10 +365,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    <label htmlFor="manage-duplicate-ref" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                       Link Duplicate Reference ID (Optional)
                     </label>
                     <input
+                      id="manage-duplicate-ref"
+                      aria-label="Link Duplicate Reference ID"
                       type="text"
                       value={duplicateOfRefId}
                       onChange={(e) => setDuplicateOfRefId(e.target.value)}
@@ -363,10 +381,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label htmlFor="manage-internal-notes" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Internal Engineering & Supervisory Notes (Restricted)
                   </label>
                   <textarea
+                    id="manage-internal-notes"
+                    aria-label="Internal Engineering and Supervisory Notes"
                     rows={2}
                     value={internalNotes}
                     onChange={(e) => setInternalNotes(e.target.value)}

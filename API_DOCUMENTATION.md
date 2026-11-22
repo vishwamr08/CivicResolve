@@ -44,6 +44,9 @@ Validates submitted OTP code against SHA-256 salted hash with maximum 5 attempts
 ### `POST /api/auth/citizen/register-with-otp`
 Registers new citizen verified by `registrationToken` or verified OTP. Auto-links past grievances submitted under the verified phone number.
 
+### `POST /api/auth/citizen/logout` *(Citizen Protected)*
+Revokes the citizen's JWT session by recording the SHA-256 hash in `revoked_tokens` and clears the HTTP-only cookie. Subsequent requests with the token are rejected with 401.
+
 ### `GET /api/auth/citizen/me` *(Citizen Protected)*
 Returns authenticated citizen profile and jurisdiction information.
 
@@ -52,7 +55,10 @@ Returns authenticated citizen profile and jurisdiction information.
 ## 3. Administrative Authentication & Access Control
 
 ### `POST /api/auth/login`
-Authenticates municipal officer or administrator via email and bcrypt password hash.
+Authenticates municipal officer or administrator via email and bcrypt password hash. Protected by per-IP rate limiting (5 failed attempts → 15-minute lockout). Returns signed JWT and sets HTTP-only session cookie.
+
+### `POST /api/auth/logout` *(Admin Protected)*
+Revokes the administrator's JWT session by recording the token hash in `revoked_tokens` and clears the authentication cookie.
 
 ### `GET /api/auth/me` *(Admin Protected)*
 Validates active administrator session and role scope (`super_admin`, `municipal_admin`, `department_officer`).
@@ -65,8 +71,22 @@ Validates active administrator session and role scope (`super_admin`, `municipal
 Paginated, filtered list of civic grievances with privacy redaction for public consumers.
 - **Query Parameters:** `page`, `pageSize`, `status`, `category`, `district`, `priority`, `search`.
 
-### `POST /api/complaints`
+### `POST /api/complaints` *(Citizen Protected)*
 Citizen grievance submission with multipart photo evidence upload, geospatial coordinates, and automated Google Gemini AI triage.
+- **Authentication:** Mandatory. Requires valid citizen session via `Authorization: Bearer <token>` or `citizen_session_token` cookie. Unauthenticated requests return `401 Unauthorized` with `{ success: false, error: "Authentication required to register a grievance." }`.
+- **Anti-Spoofing & Ownership:** The grievance `citizen_id` is derived strictly from `req.citizen.id` on the server, completely ignoring any spoofed or untrusted `citizen_id` supplied in the client request body.
+- **Duplicate Prevention:** Rejects duplicate submissions with identical title and description from the same citizen submitted within a 60-second window, returning `409 Conflict`.
+- **Response Format:** Standardized JSON object:
+  ```json
+  {
+    "success": true,
+    "message": "Grievance registered successfully",
+    "complaint": { ... },
+    "ref_id": "CR-TN-2026-XXXXXX",
+    "id": 42,
+    "duplicates": []
+  }
+  ```
 
 ### `GET /api/complaints/track/:refId`
 Public tracking view by human-readable reference code (`CR-TN-YYYY-XXXXXX`).
@@ -85,3 +105,14 @@ Inspects active database engine (`postgresql` or `sqlite`), storage mount status
 Downloads an on-demand verified database snapshot:
 - **PostgreSQL:** Logical JSON export of all core relational tables.
 - **SQLite:** Atomic online snapshot file (`.db`).
+
+---
+
+## 6. Security Headers & CSRF Protection
+
+- **Security Headers:** Every HTTP response includes:
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains` (in production)
+- **CSRF & Origin Protection:** All state-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`) authenticated via browser cookies validate the `Origin` or `Referer` header against the authorized `FRONTEND_URL` / `CORS_ORIGIN`. Unmatched origins are rejected with `403 Forbidden`.

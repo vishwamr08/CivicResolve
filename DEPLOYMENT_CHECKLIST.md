@@ -12,9 +12,12 @@ Complete this checklist before deploying CivicResolve to production on Render an
 - [x] **Database Safety Baseline:** Genuine local SQLite database and Phase 1 safety backup verified byte-for-byte identical (SHA-256 hashes preserved).
 - [x] **Frontend Production Build:** Vite production bundle compiles cleanly in < 3s (`npm --prefix client run build`).
 - [x] **Tamil Nadu Geographic Master Data:** All 38 districts and authoritative 25 municipal corporations verified.
-- [x] **Bilingual Localization:** 100% key parity between English and Tamil dictionaries (240 keys each).
-- [x] **WCAG Touch Target Accessibility:** All buttons and interactive controls meet 44px minimum touch target height.
+- [x] **Bilingual Localization:** 100% key parity between English and Tamil dictionaries (246 keys each, 0 missing, 0 corrupt Unicode).
+- [x] **WCAG Touch Target & Form Accessibility:** All buttons meet 44px minimum touch target height; accessible labels and ARIA attributes on all form inputs.
 - [x] **Backend RBAC Enforcement:** Role-based access restrictions strictly enforced on all administrative endpoints.
+- [x] **Mandatory Citizen Authentication:** Grievance submissions require authenticated citizen session; anti-spoofing ownership verified server-side.
+- [x] **Token Invalidation & Session Security:** Explicit logouts revoke JWT sessions in `revoked_tokens` table.
+- [x] **CSRF & Security Headers:** Exact origin verification on cookie mutations; `nosniff`, `DENY`, and `strict-origin-when-cross-origin` enforced.
 
 ---
 
@@ -36,9 +39,16 @@ Complete this checklist before deploying CivicResolve to production on Render an
   CORS_ORIGIN=https://civicresolve-yc9v.onrender.com
   JWT_SECRET=<strong-cryptographic-random-secret>
   OTP_SALT=<cryptographic-otp-salt>
-  INITIAL_ADMIN_EMAIL=admin@civicresolve.gov
-  INITIAL_ADMIN_PASSWORD=CivicAdmin#2026!Secure
   ```
+  *(Note: Do not pass `INITIAL_ADMIN_PASSWORD` in production environment variables; provision the administrator via the CLI below).*
+
+- **Administrator Provisioning (One-Time Setup):**
+  After deploying migrations or on initial launch, provision the production master administrator using the secure provisioning CLI from the Render shell:
+  ```bash
+  node provision_admin.js --confirm
+  ```
+  This securely sets a random 24-character cryptographic password (or a designated password using `--password <secret>`) using bcrypt cost factor 12 without storing credentials in version-controlled files or boot scripts.
+
 - **Optional AI & Telecom Service Keys (if active):**
   ```env
   GEMINI_API_KEY=<Google AI Studio API Key>

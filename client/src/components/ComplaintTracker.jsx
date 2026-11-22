@@ -101,6 +101,8 @@ export default function ComplaintTracker({
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
+            id="tracker-ref-input"
+            aria-label={t.refSearchPlaceholder || 'Grievance Reference Number'}
             type="text"
             placeholder={t.refSearchPlaceholder}
             value={refInput}
@@ -195,6 +197,8 @@ export default function ComplaintTracker({
               </div>
               <form onSubmit={handleVerifyOwnership} className="flex items-center gap-2 w-full sm:w-auto">
                 <input
+                  id="tracker-verify-credential"
+                  aria-label={t.credentialInputPlaceholder || 'Registered phone number or email address'}
                   type="text"
                   placeholder={t.credentialInputPlaceholder}
                   value={verifyCredential}

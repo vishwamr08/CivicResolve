@@ -66,11 +66,33 @@ cp server/.env.example server/.env
 
 ---
 
-## 3. Admin Account Initialization
+## 3. Admin Account Initialization & Secure Provisioning
 
-### First Boot Behavior
+### A. Authoritative Provisioning CLI (`provision_admin.js`)
 
-On **first server startup** (when the `admins` table contains zero rows), `server/db.js` automatically:
+In production environments (Supabase PostgreSQL / Render), administrators should **never** hardcode passwords into `.env` files or SQL migrations. CivicResolve provides a dedicated, audited provisioning CLI:
+
+```bash
+# Provision on Supabase PostgreSQL (requires --confirm flag for safety)
+node provision_admin.js --confirm
+
+# Or provision with a designated email and password
+node provision_admin.js --email admin@civicresolve.gov --password "YourStrongPassword#2026!" --confirm
+
+# For local development SQLite database:
+node provision_admin.js --sqlite --confirm
+```
+
+**Security Guarantees:**
+1. **Preserves Identity & Role:** Updates the authoritative `admin@civicresolve.gov` (ID 1) account, preserving its `super_admin` role and existing municipal profile.
+2. **bcrypt Cost 12:** All passwords are hashed using bcrypt cost factor 12 (~250ms).
+3. **Random Password Generation:** When `--password` is omitted, generates a cryptographically secure 24-character random password and prints it once to stdout.
+4. **Explicit Confirmation Gate:** In production mode, operations fail closed unless `--confirm` is explicitly provided.
+5. **No Boot-Time Overwrite:** The server never automatically overwrites existing passwords on reboot.
+
+### B. First Boot Behavior (Local Development Only)
+
+On **first local server startup** (when the SQLite `admins` table contains zero rows), `server/db.js` automatically:
 
 1. Reads `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` from environment.
 2. Hashes the password using `bcryptjs` with cost factor 12 (requires ~250ms on modern hardware by design).

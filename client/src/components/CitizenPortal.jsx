@@ -16,12 +16,25 @@ export default function CitizenPortal({
   onOpenSubmit,
   onSelectComplaint,
   onViewReceipt,
+  newGrievance,
   lang = 'en'
 }) {
   const [activeTab, setActiveTab] = useState('grievances'); // 'grievances' or 'settings'
   const [myComplaints, setMyComplaints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Phase 5: Real-time update when new grievance is registered without requiring full page refresh
+  useEffect(() => {
+    if (newGrievance && newGrievance.ref_id) {
+      setMyComplaints(prev => {
+        if (prev.some(c => c.ref_id === newGrievance.ref_id || (newGrievance.id && c.id === newGrievance.id))) {
+          return prev;
+        }
+        return [newGrievance, ...prev];
+      });
+    }
+  }, [newGrievance]);
 
   // Feedback & Appeal State
   const [feedbackComplaint, setFeedbackComplaint] = useState(null);

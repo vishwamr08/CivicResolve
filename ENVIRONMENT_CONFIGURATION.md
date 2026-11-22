@@ -20,7 +20,7 @@ This guide details all environment variables supported by the CivicResolve backe
 | `PG_SSL_DISABLE` | Optional | `false` | Set to `true` only for non-SSL local PostgreSQL instances |
 | `AUTO_MIGRATE` | Optional | `true` | Automatically runs pending migrations on startup |
 | `INITIAL_ADMIN_EMAIL` | Optional | `admin@civicresolve.gov` | Seed account email for initial administrator setup |
-| `INITIAL_ADMIN_PASSWORD` | Optional | `CivicAdmin#2026!Secure` | Seed account password for initial administrator setup |
+| `INITIAL_ADMIN_PASSWORD` | **Deprecated in Prod** | *(None)* | Local dev initial password only. In production, use `provision_admin.js` |
 | `GEMINI_API_KEY` | Optional | `AIzaSy...` | Google Gemini AI API key for autonomous complaint triage |
 | `GEMINI_MODEL` | Optional | `gemini-2.5-flash` | Gemini model variant for triage inference |
 | `GROQ_API_KEY` | Optional | `gsk_...` | Groq Cloud API key (alternative fast AI triage) |
@@ -54,9 +54,8 @@ PORT=5000
 FRONTEND_URL=https://civicresolve-yc9v.onrender.com
 CORS_ORIGIN=https://civicresolve-yc9v.onrender.com
 JWT_SECRET=<strong-random-generated-secret>
-INITIAL_ADMIN_EMAIL=admin@civicresolve.gov
-INITIAL_ADMIN_PASSWORD=CivicAdmin#2026!Secure
 ```
+*(Do not include `INITIAL_ADMIN_PASSWORD` in production. Instead, run `node provision_admin.js --confirm` from the Render Shell).*
 
 ---
 

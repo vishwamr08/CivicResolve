@@ -19,6 +19,8 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 dotenv.config();
 
+process.env.USE_SQLITE = 'true';
+
 const app = require('./index');
 const db = require('./db');
 

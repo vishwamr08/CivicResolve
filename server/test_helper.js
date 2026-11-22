@@ -184,6 +184,13 @@ function createSyntheticSchema(db) {
       sent_at DATETIME
     );
 
+    CREATE TABLE IF NOT EXISTS revoked_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      token_hash TEXT UNIQUE NOT NULL,
+      expires_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_complaints_ref_id ON complaints(ref_id);
     CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status);
     CREATE INDEX IF NOT EXISTS idx_complaints_created_at ON complaints(created_at DESC, id DESC);
