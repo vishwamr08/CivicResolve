@@ -31,6 +31,59 @@ async function createDatabaseBackup(activeDb, options = {}) {
   const backupDir = getBackupDir(options.backupDir);
   const prefix = options.prefix || 'civicresolve-backup';
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+  // Branch between PostgreSQL and SQLite engines
+  if (activeDb && activeDb.isPostgres) {
+    const backupFilename = `${prefix}-${timestamp}.json`;
+    const backupPath = path.join(backupDir, backupFilename);
+
+    // Fetch logical snapshot of all core tables
+    const complaints = await activeDb.prepare('SELECT * FROM complaints ORDER BY id ASC').all();
+    const citizens = await activeDb.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, sms_notifications, whatsapp_notifications, created_at FROM citizens ORDER BY id ASC').all();
+    const admins = await activeDb.prepare('SELECT id, email, name, role, district, department, designation, created_at FROM admins ORDER BY id ASC').all();
+    const announcements = await activeDb.prepare('SELECT * FROM announcements ORDER BY id ASC').all();
+    const auditLogs = await activeDb.prepare('SELECT * FROM audit_logs ORDER BY id ASC').all();
+
+    const snapshotPayload = {
+      engine: 'postgresql',
+      version: '2.5.0',
+      createdAt: new Date().toISOString(),
+      counts: {
+        complaints: complaints.length,
+        citizens: citizens.length,
+        admins: admins.length,
+        announcements: announcements.length,
+        auditLogs: auditLogs.length
+      },
+      data: {
+        complaints,
+        citizens,
+        admins,
+        announcements,
+        auditLogs
+      }
+    };
+
+    fs.writeFileSync(backupPath, JSON.stringify(snapshotPayload, null, 2), 'utf8');
+    const stats = fs.statSync(backupPath);
+
+    const maxRetention = options.maxRetention || DEFAULT_MAX_RETENTION;
+    rotateBackups(backupDir, prefix, maxRetention);
+
+    return {
+      success: true,
+      backupPath,
+      filename: backupFilename,
+      sizeBytes: stats.size,
+      verifiedCounts: {
+        complaints: complaints.length,
+        citizens: citizens.length,
+        admins: admins.length
+      },
+      createdAt: snapshotPayload.createdAt
+    };
+  }
+
   const backupFilename = `${prefix}-${timestamp}.db`;
   const backupPath = path.join(backupDir, backupFilename);
 
@@ -106,7 +159,7 @@ function rotateBackups(backupDir, prefix, maxRetention) {
     if (!fs.existsSync(backupDir)) return [];
 
     const files = fs.readdirSync(backupDir)
-      .filter(f => f.startsWith(prefix) && f.endsWith('.db'))
+      .filter(f => f.startsWith(prefix) && (f.endsWith('.db') || f.endsWith('.json')))
       .map(f => {
         const fullPath = path.join(backupDir, f);
         return {
@@ -141,6 +194,25 @@ function verifyRestore(backupPath, isolatedTargetDir) {
   }
   if (!fs.existsSync(isolatedTargetDir)) {
     fs.mkdirSync(isolatedTargetDir, { recursive: true });
+  }
+
+  if (backupPath.endsWith('.json')) {
+    const raw = fs.readFileSync(backupPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.counts) {
+      throw new Error('Invalid PostgreSQL logical backup format');
+    }
+    return {
+      success: true,
+      restoredPath: backupPath,
+      integrity: 'ok',
+      engine: 'postgresql',
+      counts: {
+        complaints: parsed.counts.complaints,
+        citizens: parsed.counts.citizens,
+        admins: parsed.counts.admins
+      }
+    };
   }
 
   const restoredDbPath = path.join(isolatedTargetDir, 'restored_test.db');

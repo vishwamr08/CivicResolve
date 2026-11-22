@@ -1,135 +1,87 @@
 # CivicResolve – REST API Documentation
 
-Base URL: `http://localhost:5000/api`
+Base URL: `http://localhost:5000/api` (Production: `https://civicresolve-8nve.onrender.com/api`)
 
 ---
 
-## 1. System Health Check
+## 1. System Health & Infrastructure Monitoring
 
-### `GET /api/health`
-Returns runtime system status, database connectivity, and Google Gemini AI configuration status.
-
-#### Sample Response:
-```json
-{
-  "status": "healthy",
-  "app": "CivicResolve API",
-  "version": "2.5.0",
-  "tagline": "Report Issues. Track Action. Build Better Communities.",
-  "database": "connected",
-  "aiConfigured": true,
-  "geminiConfigured": true,
-  "aiProvider": "Google Gemini",
-  "aiModel": "gemini-2.5-flash",
-  "smtpConfigured": false,
-  "smsConfigured": false,
-  "whatsappConfigured": false,
-  "timestamp": "2026-11-21T08:00:00.000Z"
-}
-```
-
----
-
-## 2. Authentication Endpoints
-
-### `POST /api/auth/login`
-Authenticates administrator with email and bcrypt-hashed password. Returns signed JWT and sets HTTP-only cookie.
-
-#### Request Body:
-```json
-{
-  "email": "admin@civicresolve.gov",
-  "password": "CivicAdmin#2026!Secure"
-}
-```
+### `GET /health` (Root Infrastructure Probe)
+Authoritative health check endpoint consumed by Render orchestration and container health checks.
+- **Precedence:** Evaluated before downstream route middleware.
+- **Database Connectivity:** Executes `SELECT 1 as test` against active engine (PostgreSQL or SQLite).
+- **HTTP 200 OK:** Server is operational and database connection pool is active.
+- **HTTP 503 Service Unavailable:** Database connection or I/O failure.
 
 #### Sample Response (200 OK):
 ```json
 {
-  "message": "Administrator authentication successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "admin": {
-    "id": 1,
-    "email": "admin@civicresolve.gov",
-    "name": "Director of Municipal Operations",
-    "role": "admin"
-  }
+  "status": "healthy",
+  "service": "CivicResolve",
+  "database": "connected",
+  "database_status": "connected",
+  "timestamp": "2026-11-22T14:30:11.376Z"
 }
 ```
 
-### `GET /api/auth/me` *(Protected)*
-Verifies active administrator session using JWT cookie or `Authorization: Bearer <token>`.
-
-### `POST /api/auth/logout`
-Clears `civic_admin_token` cookie and terminates session.
+### `GET /api/health` (Application Service Diagnostic)
+Returns service metadata, database state, AI engine provider (`Google Gemini` or `Groq`), and outbound communication gateway statuses (SMTP, Fast2SMS, Twilio, WhatsApp).
 
 ---
 
-## 3. Dashboard Statistics
+## 2. Citizen Mobile Authentication & Profile
 
-### `GET /api/dashboard/stats`
-Returns aggregated live metrics calculated directly from the SQLite database.
+### `POST /api/auth/citizen/send-otp`
+Generates a cryptographically secure 6-digit numeric OTP with 10-minute validity and 30-second cooldown.
+- **Request Body:** `{ "phone": "9840123456", "purpose": "login" }`
+- **Response:** `{ "success": true, "message": "Verification code dispatched.", "isExistingUser": true }`
 
-#### Sample Response:
-```json
-{
-  "totalComplaints": 18,
-  "pendingComplaints": 4,
-  "highPriorityComplaints": 6,
-  "criticalComplaints": 2,
-  "inProgressComplaints": 4,
-  "resolvedComplaints": 6,
-  "departments": [
-    { "department": "Roads and Highways", "count": 6 },
-    { "department": "Water Supply & Sewerage Board", "count": 3 },
-    { "department": "Solid Waste Management", "count": 3 }
-  ],
-  "categoryDistribution": [
-    { "category": "Road Damage", "count": 6 },
-    { "category": "Water Leakage", "count": 3 },
-    { "category": "Garbage and Sanitation", "count": 3 }
-  ],
-  "priorityDistribution": [
-    { "priority": "Critical", "count": 2 },
-    { "priority": "High", "count": 6 },
-    { "priority": "Medium", "count": 7 },
-    { "priority": "Low", "count": 3 }
-  ],
-  "statusDistribution": [
-    { "status": "Submitted", "count": 2 },
-    { "status": "Under Review", "count": 3 },
-    { "status": "Assigned", "count": 3 },
-    { "status": "In Progress", "count": 4 },
-    { "status": "Resolved", "count": 6 }
-  ]
-}
-```
+### `POST /api/auth/citizen/verify-otp`
+Validates submitted OTP code against SHA-256 salted hash with maximum 5 attempts and replay protection.
+- **Existing User:** Automatically logs in citizen, refreshes session, and issues signed JWT cookie.
+- **New User:** Returns signed `registrationToken` for tamper-proof registration completion.
+
+### `POST /api/auth/citizen/register-with-otp`
+Registers new citizen verified by `registrationToken` or verified OTP. Auto-links past grievances submitted under the verified phone number.
+
+### `GET /api/auth/citizen/me` *(Citizen Protected)*
+Returns authenticated citizen profile and jurisdiction information.
 
 ---
 
-## 4. Complaints Management & Citizen Tracking
+## 3. Administrative Authentication & Access Control
+
+### `POST /api/auth/login`
+Authenticates municipal officer or administrator via email and bcrypt password hash.
+
+### `GET /api/auth/me` *(Admin Protected)*
+Validates active administrator session and role scope (`super_admin`, `municipal_admin`, `department_officer`).
+
+---
+
+## 4. Grievance Management & Public Tracking
 
 ### `GET /api/complaints`
-Retrieves complaints with multi-filter query parameters: `search`, `category`, `priority`, `status`, `department`, `limit`.
-
-### `GET /api/complaints/track/:refId`
-Public tracking endpoint by human-readable reference code (`CR-YYYY-XXXX`).
+Paginated, filtered list of civic grievances with privacy redaction for public consumers.
+- **Query Parameters:** `page`, `pageSize`, `status`, `category`, `district`, `priority`, `search`.
 
 ### `POST /api/complaints`
-Citizen grievance submission with multipart image upload and automatic Google Gemini AI triage (powered by `@google/genai`).
+Citizen grievance submission with multipart photo evidence upload, geospatial coordinates, and automated Google Gemini AI triage.
 
-#### Form Data Fields:
-- `title` *(string, 1-200 chars)*: Summary headline.
-- `description` *(string, 15-3000 chars)*: Detailed incident observation.
-- `category` *(string)*: Citizen-suggested category.
-- `location` *(string)*: Street name or landmark.
-- `latitude` *(optional float)*: GPS coordinate.
-- `longitude` *(optional float)*: GPS coordinate.
-- `isGpsVerified` *(string 'true'/'false')*: Whether device GPS was verified.
-- `image` *(optional file)*: Photo evidence (JPEG, PNG, WEBP, up to 10MB).
+### `GET /api/complaints/track/:refId`
+Public tracking view by human-readable reference code (`CR-TN-YYYY-XXXXXX`).
 
 ### `PATCH /api/complaints/:id/manage` *(Admin Protected)*
-Requires valid administrator JWT token (`Authorization: Bearer <token>`). Updates department, status, category, priority, and resolution remarks. Appends changes to status history.
+Updates nodal department, status, priority, and remarks, automatically appending immutable audit log records.
 
-### `PATCH /api/complaints/:id/status` *(Admin Protected)*
-Quick status toggle with administrative audit logging.
+---
+
+## 5. Database Diagnostics & Disaster Recovery (Super Admin)
+
+### `GET /api/admin/database/info` *(Super Admin)*
+Inspects active database engine (`postgresql` or `sqlite`), storage mount status, and live table counts.
+
+### `GET /api/admin/database/backup` *(Super Admin)*
+Downloads an on-demand verified database snapshot:
+- **PostgreSQL:** Logical JSON export of all core relational tables.
+- **SQLite:** Atomic online snapshot file (`.db`).

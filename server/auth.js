@@ -32,9 +32,9 @@ function findCitizenByPhone(database, phone) {
        OR phone = ?
        OR phone = ?
        OR phone = ?
-       OR substr(replace(replace(replace(phone, ' ', ''), '-', ''), '+91', ''), -10) = ?
+       OR phone LIKE ?
     ORDER BY id ASC LIMIT 1
-  `).get(norm, `+91${norm}`, `+91-${norm}`, `0${norm}`, norm);
+  `).get(norm, `+91${norm}`, `+91-${norm}`, `0${norm}`, `%${norm}`);
 }
 
 // Cryptographically Secure OTP Utilities
@@ -129,7 +129,7 @@ function recordSuccessfulLogin(key) {
 const ADMIN_ROLES = ['admin', 'super_admin', 'district_admin', 'municipal_admin', 'department_officer', 'field_officer'];
 
 // Admin Authentication Middleware
-function authenticateAdmin(req, res, next) {
+async function authenticateAdmin(req, res, next) {
   try {
     let token = null;
 
@@ -160,7 +160,7 @@ function authenticateAdmin(req, res, next) {
     }
 
     // Verify admin in database
-    const admin = db.prepare('SELECT id, email, name, role, district, department, designation FROM admins WHERE id = ?').get(decoded.id);
+    const admin = await db.prepare('SELECT id, email, name, role, district, department, designation FROM admins WHERE id = ?').get(decoded.id);
     if (!admin || !ADMIN_ROLES.includes(admin.role)) {
       return res.status(403).json({
         error: 'Access denied: Active administrator privileges required.'
@@ -176,7 +176,7 @@ function authenticateAdmin(req, res, next) {
 }
 
 // Citizen Authentication Middleware
-function authenticateCitizen(req, res, next) {
+async function authenticateCitizen(req, res, next) {
   try {
     let token = null;
 
@@ -204,7 +204,7 @@ function authenticateCitizen(req, res, next) {
       });
     }
 
-    const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, created_at FROM citizens WHERE id = ?').get(decoded.id);
+    const citizen = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, created_at FROM citizens WHERE id = ?').get(decoded.id);
     if (!citizen) {
       return res.status(401).json({ error: 'Citizen record not found. Please log in again.' });
     }
@@ -218,7 +218,7 @@ function authenticateCitizen(req, res, next) {
 }
 
 // Optional Citizen Auth Middleware (attaches req.citizen if valid token exists)
-function optionalCitizenAuth(req, res, next) {
+async function optionalCitizenAuth(req, res, next) {
   try {
     let token = null;
 
@@ -236,7 +236,7 @@ function optionalCitizenAuth(req, res, next) {
     if (token) {
       const decoded = verifyToken(token);
       if (decoded && decoded.id) {
-        const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, created_at FROM citizens WHERE id = ?').get(decoded.id);
+        const citizen = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, created_at FROM citizens WHERE id = ?').get(decoded.id);
         if (citizen) req.citizen = citizen;
       }
     }

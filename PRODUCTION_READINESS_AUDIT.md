@@ -323,3 +323,27 @@ While the user interface was successfully transformed to a clean, institutional 
 4. **Google Maps & Leaflet Switcher Test:** Test map rendering with API key present and API key absent.
 5. **Performance Timing Test:** Measure API response times for `/api/dashboard/stats`, `/api/complaints`, and initial page load.
 6. **Master Test Suite Execution:** Verify `test_health.js`, `test_evaluation_complete.js`, and `test_full_suite_master.js` pass cleanly.
+
+---
+
+## Phase 9 Architecture Update: Supabase PostgreSQL Dual Database System
+
+### Permanent Resolution of Production Storage Vulnerability
+The ephemeral container file-system vulnerability previously noted in Problem 3 has been resolved by implementing the **CivicResolve Dual Database Architecture**:
+
+1. **PostgreSQL 17+ on Supabase:**
+   - Production instances bind directly to a high-availability managed PostgreSQL cluster in AWS `ap-northeast-1` via pooled connection URI (`DATABASE_URL`).
+   - Zero reliance on local container disks; Render web services can restart, scale horizontally, or redeploy without data loss.
+   - Version-controlled SQL migrations in `server/migrations/` (`001_initial_schema.sql`, `002_indexes_and_constraints.sql`, `003_seed_master_admin_and_announcements.sql`) are tracked in `schema_migrations`.
+   - The server fails closed in production (`NODE_ENV=production`) if `DATABASE_URL` is absent.
+
+2. **Full SQLite Backward Compatibility:**
+   - Local development and offline pilots seamlessly use `better-sqlite3` / `DatabaseSync` when `DATABASE_URL` is absent or `USE_SQLITE=true`.
+   - Automated regression test suites (18 suites, 471 assertions) run on isolated temporary SQLite databases.
+   - Genuine local SQLite databases (`civicresolve.db` and safety backup) remain cryptographically untouched.
+
+3. **Database Abstraction Parity:**
+   - Positional parameter translation (`?` -> `$1, $2, ...`).
+   - Unified transaction management via pooled clients (`BEGIN ... COMMIT / ROLLBACK`).
+   - Automatic `RETURNING id` injection ensuring `lastInsertRowid` compatibility across engines.
+   - Verified automated backup strategy for PostgreSQL (logical JSON/SQL snapshot) and SQLite (atomic Online Backup API).

@@ -1,6 +1,6 @@
 # CivicResolve — Environment Configuration Guide
 
-> **Notice:** CivicResolve is a pilot / demonstration platform. Sensitive credentials (API keys, JWT secrets, database paths) must never be committed to source control.
+This guide details all environment variables supported by the CivicResolve backend across production (Supabase PostgreSQL) and local development (SQLite).
 
 ---
 
@@ -8,50 +8,73 @@
 
 | Variable | Required in Production | Default / Sample | Purpose |
 | :--- | :--- | :--- | :--- |
-| `PORT` | Yes | `5000` | Port for Express HTTP server |
 | `NODE_ENV` | Yes | `production` / `development` / `test` | Runtime environment mode |
-| `DATA_DIR` | Yes (on Render disk) | `/var/data` | Directory containing persistent `civicresolve.db` |
-| `SQLITE_DB_PATH` | Optional | `/var/data/civicresolve.db` | Explicit path to SQLite database file |
-| `ALLOW_NEW_PRODUCTION_DB` | No (initial deploy only) | `false` | Allows schema generation on a fresh uninitialized persistent disk |
-| `REQUIRE_EXISTING_DB` | Optional | `true` | Prevents starting if target database does not already exist |
-| `JWT_SECRET` | Yes | `crypto-random-string` | Secret key for signing and verifying JSON Web Tokens |
+| `DATABASE_URL` | **Yes (Production)** | `postgresql://user:pass@host:5432/postgres` | PostgreSQL connection URI for Supabase / Render cluster |
+| `PORT` | Yes | `5000` | HTTP port for Express backend server |
 | `FRONTEND_URL` | Yes | `https://civicresolve-yc9v.onrender.com` | Allowed CORS origin for frontend client requests |
 | `CORS_ORIGIN` | Yes | `https://civicresolve-yc9v.onrender.com` | Primary CORS policy header |
-| `GEMINI_API_KEY` | Optional | `AIzaSy...` | Google Gemini AI API key for complaint triage |
+| `JWT_SECRET` | Yes | `<strong-cryptographic-secret>` | Secret key for signing and validating session JWTs |
+| `OTP_SALT` | Optional | `civic_resolve_otp_salt_2026` | Cryptographic salt for SHA-256 OTP hashing |
+| `USE_SQLITE` | Local Dev Only | `false` | When `true`, forces SQLite engine even if `DATABASE_URL` is set |
+| `PG_POOL_MAX` | Optional | `20` | Maximum connections in PostgreSQL connection pool |
+| `PG_SSL_DISABLE` | Optional | `false` | Set to `true` only for non-SSL local PostgreSQL instances |
+| `AUTO_MIGRATE` | Optional | `true` | Automatically runs pending migrations on startup |
+| `INITIAL_ADMIN_EMAIL` | Optional | `admin@civicresolve.gov` | Seed account email for initial administrator setup |
+| `INITIAL_ADMIN_PASSWORD` | Optional | `CivicAdmin#2026!Secure` | Seed account password for initial administrator setup |
+| `GEMINI_API_KEY` | Optional | `AIzaSy...` | Google Gemini AI API key for autonomous complaint triage |
 | `GEMINI_MODEL` | Optional | `gemini-2.5-flash` | Gemini model variant for triage inference |
-| `GROQ_API_KEY` | Optional | `gsk_...` | Groq Cloud Llama API key (alternative triage engine) |
+| `GROQ_API_KEY` | Optional | `gsk_...` | Groq Cloud API key (alternative fast AI triage) |
 | `GROQ_MODEL` | Optional | `llama-3.3-70b-versatile` | Groq model selection |
 | `SMTP_HOST` | Optional | `smtp.gmail.com` | Outbound mail server hostname |
 | `SMTP_PORT` | Optional | `587` | Outbound mail server port |
-| `SMTP_USER` | Optional | `alerts@civicresolve.gov` | Mail sender username |
-| `SMTP_PASS` | Optional | `app-password-string` | Mail sender credentials |
+| `SMTP_USER` | Optional | `alerts@civicresolve.gov` | Outbound mail sender account |
+| `SMTP_PASS` | Optional | `app-password-string` | Outbound mail application password |
 | `FAST2SMS_API_KEY` | Optional | `key-string` | Fast2SMS provider key for telecom SMS delivery |
-| `SEED_DEMO_DATA` | Development Only | `false` | Inserts synthetic test complaints on empty dev database |
+| `SEED_DEMO_DATA` | Local Dev Only | `false` | Inserts synthetic test complaints on empty dev database |
 
 ---
 
 ## 2. Production Storage Guard Rules
 
 When `NODE_ENV=production`:
-1. The server **strictly forbids** ephemeral fallback. Either `DATA_DIR` or `SQLITE_DB_PATH` must be explicitly configured.
-2. If `DATA_DIR` is configured, the directory must exist on the filesystem (verifying persistent disk attachment).
-3. If the database file is missing, the server will **abort startup** unless `ALLOW_NEW_PRODUCTION_DB=true` is explicitly provided, preventing silent creation of empty databases on misconfigured mounts.
+1. The server **fails closed** if `DATABASE_URL` is missing:
+   `[FATAL DATABASE STARTUP FAILURE]: Production environment (NODE_ENV=production) requires DATABASE_URL pointing to the authoritative PostgreSQL database.`
+2. Silent fallback from PostgreSQL to SQLite is strictly forbidden in production.
+3. Database connections run with secure TLS pooling (`ssl: { rejectUnauthorized: false }`).
 
 ---
 
-## 3. Render Web Service Configuration
+## 3. Render Production Web Service Setup
 
-In Render Dashboard -> `civicresolve-api` -> **Environment**:
+In the Render Dashboard -> `civicresolve-api` -> **Environment**:
 ```env
-PORT=5000
 NODE_ENV=production
-DATA_DIR=/var/data
+DATABASE_URL=postgresql://postgres.xxx:yyy@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres
+PORT=5000
 FRONTEND_URL=https://civicresolve-yc9v.onrender.com
 CORS_ORIGIN=https://civicresolve-yc9v.onrender.com
 JWT_SECRET=<strong-random-generated-secret>
+INITIAL_ADMIN_EMAIL=admin@civicresolve.gov
+INITIAL_ADMIN_PASSWORD=CivicAdmin#2026!Secure
 ```
 
-In Render Dashboard -> `civicresolve-api` -> **Disks**:
-- Name: `civicresolve-data`
-- Mount Path: `/var/data`
-- Size: `1 GB`
+---
+
+## 4. Local Development Configurations
+
+### Option A: Local SQLite (Default)
+Simply leave `DATABASE_URL` unset, or set `USE_SQLITE=true` in `server/.env`:
+```env
+USE_SQLITE=true
+PORT=5000
+JWT_SECRET=local_development_secret
+```
+
+### Option B: Local Development against Supabase
+Set `DATABASE_URL` in `server/.env`:
+```env
+DATABASE_URL=postgresql://postgres.xxx:yyy@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres
+PORT=5000
+JWT_SECRET=local_development_secret
+```
+The server will automatically connect to Supabase PostgreSQL and ensure all migrations are up to date.

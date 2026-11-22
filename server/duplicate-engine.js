@@ -45,7 +45,7 @@ function getDistanceMeters(lat1, lon1, lat2, lon2) {
 /**
  * Detect potential duplicate complaints for a newly submitted grievance
  */
-function findDuplicateCandidates({ title, description, category, district, _ward, latitude, longitude, excludeId }) {
+async function findDuplicateCandidates({ title, description, category, district, _ward, latitude, longitude, excludeId }) {
   try {
     // Look for active complaints in the same category within the last 14 days
     const query = `
@@ -59,7 +59,7 @@ function findDuplicateCandidates({ title, description, category, district, _ward
     `;
 
     const params = excludeId ? [category, district || 'Chennai', excludeId] : [category, district || 'Chennai'];
-    const candidates = db.prepare(query).all(...params);
+    const candidates = await db.prepare(query).all(...params);
 
     const matches = [];
 

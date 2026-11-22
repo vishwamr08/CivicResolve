@@ -1,80 +1,95 @@
 # CivicResolve — Database Backup, Recovery & Disaster Recovery Manual
 
-> **Notice:** CivicResolve utilizes an embedded SQLite database configured with Write-Ahead Logging (`PRAGMA journal_mode = WAL`). Backups must be performed using non-blocking online snapshot mechanisms to prevent database locks or torn pages.
+CivicResolve supports backup and disaster recovery protocols for both **Supabase PostgreSQL (Production)** and **SQLite (Local Development & Pilots)**.
 
 ---
 
-## 1. Backup Architecture & Policies
+## 1. Production PostgreSQL Backup Strategy (Supabase)
 
-### Snapshot Mechanism
-- Backups utilize the official SQLite Online Backup API (`db.backup()`) or atomic `VACUUM INTO` snapshots.
-- A passive WAL checkpoint is executed immediately prior to backup generation to minimize uncommitted WAL frames.
-- Generated backup files are independently checked via `PRAGMA integrity_check` before being accepted.
+### A. Managed Automated Backups & PITR
+Supabase automatically manages production backup durability:
+- **Daily Physical Backups:** Retained for 7 to 30 days depending on project tier.
+- **Point-in-Time Recovery (PITR):** Continuous Write-Ahead Log (WAL) archiving allows restoring the cluster to any second within the retention window.
+- **Accessing Managed Backups:** Navigate to Supabase Dashboard -> **Database** -> **Backups** -> **Restore**.
 
-### Retention Policy
-- Automated rotation retains the **7 most recent snapshots** by default.
-- Backups are stored in `server/backups/` with filenames formatted as:
-  `civicresolve-backup-YYYY-MM-DDTHH-mm-ss-sssZ.db`
-- Super Administrators can download verified snapshots directly via `GET /api/admin/database/backup`.
-
----
-
-## 2. Standard Backup Generation
-
-### Manual CLI Backup
-Run the backup manager script directly:
+### B. Application-Level Logical Snapshot API
+Super Administrators can trigger an on-demand logical JSON export of all core tables via `GET /api/admin/database/backup`:
 ```bash
-cd server
-node -e "const { createDatabaseBackup } = require('./backup_manager'); const db = require('./db'); createDatabaseBackup(db).then(r => console.log('Backup successful:', r));"
+curl -H "Authorization: Bearer <SuperAdminJWT>" \
+     -o civicresolve-pg-backup.json \
+     https://civicresolve-8nve.onrender.com/api/admin/database/backup
+```
+The resulting snapshot contains:
+- Schema and version metadata.
+- Row counts for `complaints`, `citizens`, `admins`, `announcements`, `audit_logs`, `notifications`.
+- Full JSON serialized records for all tables.
+
+### C. Standard PostgreSQL CLI Dump (`pg_dump`)
+To produce an industry-standard SQL dump:
+```bash
+# Export full database schema and data
+pg_dump "$DATABASE_URL" --format=custom --file=civicresolve_prod_dump.dump
+
+# Or plain text SQL:
+pg_dump "$DATABASE_URL" --no-owner --clean > civicresolve_prod_dump.sql
 ```
 
-### Automated Cron Schedule (Linux / Render)
-To schedule daily backups at 02:00 AM UTC:
+### D. PostgreSQL Disaster Recovery Procedure
+To restore from a logical SQL dump to a fresh Supabase database:
 ```bash
-0 2 * * * cd /app/server && node -e "const { createDatabaseBackup } = require('./backup_manager'); const db = require('./db'); createDatabaseBackup(db);" >> /var/log/civicresolve_backup.log 2>&1
-```
+# Step 1: Ensure target database connection string is set
+export TARGET_DATABASE_URL="postgresql://postgres.xxx:yyy@host:5432/postgres"
 
----
+# Step 2: Run schema migrations first
+npm run migrate
 
-## 3. Disaster Recovery & Restoration Procedure
+# Step 3: Restore tables
+psql "$TARGET_DATABASE_URL" < civicresolve_prod_dump.sql
 
-If production data corruption or disk replacement occurs, follow this zero-data-loss recovery protocol:
-
-### Step 1: Stop Application Service
-```bash
-# Gracefully terminate the Node process to flush any pending WAL frames
-kill -SIGTERM <node_pid>
-```
-
-### Step 2: Preserve Existing Files (Safety Dump)
-```bash
-mkdir -p /var/data/recovery_stash
-cp /var/data/civicresolve.db* /var/data/recovery_stash/ 2>/dev/null || true
-```
-
-### Step 3: Validate Candidate Backup Integrity
-Before applying any backup, verify its integrity using an independent read-only handle:
-```bash
+# Step 4: Verify health
 node -e "
-const Database = require('better-sqlite3');
-const db = new Database('/path/to/candidate-backup.db', { readonly: true });
-const check = db.pragma('integrity_check');
-console.log('Integrity result:', check);
-if (check[0].integrity_check !== 'ok') process.exit(1);
+const { Pool } = require('pg');
+const pool = new Pool({ connectionString: process.env.TARGET_DATABASE_URL, ssl: { rejectUnauthorized: false } });
+pool.query('SELECT count(*) FROM complaints').then(r => console.log('Restored complaints:', r.rows[0].count)).finally(() => pool.end());
 "
 ```
 
-### Step 4: Restore Candidate Backup
+---
+
+## 2. Local Development & SQLite Backup Strategy
+
+### A. Online Backup API Snapshot
+- Utilizes the official SQLite Online Backup API (`db.backup()`) or atomic `VACUUM INTO` snapshots.
+- A passive WAL checkpoint is executed immediately prior to backup generation to flush uncommitted frames.
+- Generated snapshot files are validated via `PRAGMA integrity_check`.
+
+### B. Manual Backup Execution
 ```bash
-cp /path/to/candidate-backup.db /var/data/civicresolve.db
-# Remove stale WAL and SHM files
-rm -f /var/data/civicresolve.db-wal /var/data/civicresolve.db-shm
+cd server
+node -e "
+const { createDatabaseBackup } = require('./backup_manager');
+const db = require('./db');
+createDatabaseBackup(db).then(r => console.log('Backup successful:', r));
+"
 ```
 
-### Step 5: Start Service & Verify
-```bash
-export NODE_ENV=production
-export DATA_DIR=/var/data
-node index.js
-```
-Query `/api/health` to confirm the database reports `"connected"` and query `/api/dashboard/stats` to verify record counts.
+### C. Retention & Rotation
+- Backups are stored in `server/backups/`.
+- Retains the **7 most recent snapshots** by default; older files are automatically pruned.
+
+### D. SQLite Disaster Recovery Procedure
+1. Stop the application service (`kill -SIGTERM <pid>`).
+2. Verify candidate backup integrity:
+   ```bash
+   node -e "
+   const Database = require('better-sqlite3');
+   const db = new Database('/path/to/candidate.db', { readonly: true });
+   console.log('Integrity:', db.pragma('integrity_check'));
+   "
+   ```
+3. Copy the candidate backup into place:
+   ```bash
+   cp /path/to/candidate.db /var/data/civicresolve.db
+   rm -f /var/data/civicresolve.db-wal /var/data/civicresolve.db-shm
+   ```
+4. Restart service and query `/health`.

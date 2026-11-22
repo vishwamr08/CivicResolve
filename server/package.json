@@ -10,7 +10,12 @@
     "test:phase1": "node test_phase1_data_integrity.js",
     "test:phase2": "node test_phase2_auth_persistence.js",
     "test:phase3": "node test_phase3_location_routing.js",
-    "test:phase4": "node test_phase4_performance.js"
+    "test:phase4": "node test_phase4_performance.js",
+    "test:postgres": "node test_postgres_migration.js && node test_postgres_dual_architecture.js",
+    "test:postgres:migration": "node test_postgres_migration.js",
+    "test:postgres:adapter": "node test_postgres_dual_architecture.js",
+    "test:all": "npm test && node test_postgres_migration.js && node test_postgres_dual_architecture.js",
+    "migrate": "node migrate.js"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +32,7 @@
     "groq-sdk": "^1.6.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.5.0",
-    "nodemailer": "^10.6.1"
+    "nodemailer": "^10.6.1",
+    "pg": "^8.23.1"
   }
 }

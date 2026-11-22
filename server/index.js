@@ -177,7 +177,7 @@ if (!fs.existsSync(uploadsDir)) {
 app.use('/uploads', express.static(uploadsDir));
 
 // Root Entry Point (GET /)
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
   res.status(200).json({
     application: 'CivicResolve',
     name: 'CivicResolve',
@@ -201,7 +201,7 @@ app.get('/', (req, res) => {
 });
 
 // Root Health Check for Render & Infrastructure Monitors (GET /health)
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
   try {
     if (!db || typeof db.prepare !== 'function' || db.open === false) {
       return res.status(503).json({
@@ -214,7 +214,7 @@ app.get('/health', (req, res) => {
       });
     }
 
-    const dbCheck = db.prepare('SELECT 1 as test').get();
+    const dbCheck = await db.prepare('SELECT 1 as test').get();
     if (!dbCheck || dbCheck.test !== 1) {
       return res.status(503).json({
         status: 'unhealthy',
@@ -385,9 +385,9 @@ function parseComplaintSummary(c, isAuthorized = false) {
 }
 
 // Helper to record in-app notification in SQLite
-function createNotification(recipientType, recipientId, refId, title, message) {
+async function createNotification(recipientType, recipientId, refId, title, message) {
   try {
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO notifications (recipient_type, recipient_id, ref_id, title, message)
       VALUES (?, ?, ?, ?, ?)
     `).run(recipientType, recipientId || null, refId || null, title, message);
@@ -397,9 +397,9 @@ function createNotification(recipientType, recipientId, refId, title, message) {
 }
 
 // Helper to record audit log in SQLite
-function recordAuditLog({ complaintRef, actorId, actorName, actorRole, action, previousState, newState, remarks, ip }) {
+async function recordAuditLog({ complaintRef, actorId, actorName, actorRole, action, previousState, newState, remarks, ip }) {
   try {
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO audit_logs (complaint_ref, actor_id, actor_name, actor_role, action, previous_state, new_state, remarks, ip_address)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
@@ -435,7 +435,7 @@ function invalidateStatsCache() {
 // -------------------------------------------------------------
 // 1. SYSTEM HEALTH & GEO HIERARCHY
 // -------------------------------------------------------------
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
   try {
     if (!db || typeof db.prepare !== 'function' || db.open === false) {
       return res.status(503).json({
@@ -448,7 +448,7 @@ app.get('/api/health', (req, res) => {
       });
     }
 
-    const dbCheck = db.prepare('SELECT 1 as test').get();
+    const dbCheck = await db.prepare('SELECT 1 as test').get();
     if (!dbCheck || dbCheck.test !== 1) {
       return res.status(503).json({
         status: 'unhealthy',
@@ -493,12 +493,12 @@ app.get('/api/health', (req, res) => {
 });
 
 // GET /api/geo/districts
-app.get('/api/geo/districts', (req, res) => {
+app.get('/api/geo/districts', async (req, res) => {
   res.json({ districts: TAMIL_NADU_DISTRICTS });
 });
 
 // GET /api/geo/corporations
-app.get('/api/geo/corporations', (req, res) => {
+app.get('/api/geo/corporations', async (req, res) => {
   const corps = [];
   TAMIL_NADU_DISTRICTS.forEach(d => {
     (d.localBodies || []).forEach(lb => {
@@ -520,7 +520,7 @@ app.get('/api/geo/corporations', (req, res) => {
 });
 
 // GET /api/geo/hierarchy
-app.get('/api/geo/hierarchy', (req, res) => {
+app.get('/api/geo/hierarchy', async (req, res) => {
   res.json({
     state: 'Tamil Nadu',
     state_ta: 'தமிழ்நாடு',
@@ -530,7 +530,7 @@ app.get('/api/geo/hierarchy', (req, res) => {
 });
 
 // GET /api/geo/departments
-app.get('/api/geo/departments', (req, res) => {
+app.get('/api/geo/departments', async (req, res) => {
   res.json({ departments: TN_CIVIC_DEPARTMENTS });
 });
 
@@ -560,7 +560,7 @@ async function verifyRecaptcha(token, remoteIp) {
 }
 
 // GET /api/config/client (Public client configuration for Google Maps & reCAPTCHA)
-app.get('/api/config/client', (req, res) => {
+app.get('/api/config/client', async (req, res) => {
   const googleKey = process.env.GOOGLE_MAPS_API_KEY;
   const hasGoogleKey = Boolean(googleKey && !googleKey.includes('your_'));
   res.json({
@@ -610,34 +610,38 @@ app.post('/api/auth/citizen/send-otp', async (req, res) => {
     }
 
     // Check resend cooldown (30 seconds)
-    const recentOtp = db.prepare(`
-      SELECT created_at, (strftime('%s', 'now') - strftime('%s', created_at)) as elapsed_sec
+    const recentOtp = await db.prepare(`
+      SELECT created_at
       FROM citizen_otps
       WHERE phone = ? AND verified = 0
       ORDER BY id DESC LIMIT 1
     `).get(cleanPhone);
 
-    if (recentOtp && recentOtp.elapsed_sec < 30) {
-      const waitTime = 30 - recentOtp.elapsed_sec;
-      return res.status(429).json({
-        error: `Please wait ${waitTime} seconds before requesting another OTP.`
-      });
+    if (recentOtp && recentOtp.created_at) {
+      const elapsedSec = Math.floor((Date.now() - new Date(recentOtp.created_at).getTime()) / 1000);
+      if (elapsedSec < 30) {
+        const waitTime = 30 - elapsedSec;
+        return res.status(429).json({
+          error: `Please wait ${waitTime} seconds before requesting another OTP.`
+        });
+      }
     }
 
     // Invalidate existing unverified OTPs
-    db.prepare('UPDATE citizen_otps SET verified = -1 WHERE phone = ? AND verified = 0').run(cleanPhone);
+    await db.prepare('UPDATE citizen_otps SET verified = -1 WHERE phone = ? AND verified = 0').run(cleanPhone);
 
     // Generate secure 6-digit numeric OTP
     const otp = generateSecureOtp();
     const otpHash = hashOtp(otp);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
     // Insert into citizen_otps with 10 minutes expiry
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO citizen_otps (phone, otp_hash, purpose, attempts, max_attempts, expires_at)
-      VALUES (?, ?, ?, 0, 5, datetime('now', '+10 minutes'))
-    `).run(cleanPhone, otpHash, purpose);
+      VALUES (?, ?, ?, 0, 5, ?)
+    `).run(cleanPhone, otpHash, purpose, expiresAt);
 
-    const existingCitizen = findCitizenByPhone(db, cleanPhone);
+    const existingCitizen = await findCitizenByPhone(db, cleanPhone);
     const isExisting = Boolean(existingCitizen);
 
     // If real telecom SMS gateway is configured, dispatch SMS
@@ -678,7 +682,7 @@ app.post('/api/auth/citizen/send-otp', async (req, res) => {
 });
 
 // POST /api/auth/citizen/verify-otp
-app.post('/api/auth/citizen/verify-otp', (req, res) => {
+app.post('/api/auth/citizen/verify-otp', async (req, res) => {
   try {
     const { phone, otp, _purpose = 'login' } = req.body;
     if (!phone || !otp) {
@@ -689,7 +693,7 @@ app.post('/api/auth/citizen/verify-otp', (req, res) => {
     const cleanOtp = String(otp).trim();
 
     // Find active non-expired OTP
-    const otpRecord = db.prepare(`
+    const otpRecord = await db.prepare(`
       SELECT * FROM citizen_otps
       WHERE phone = ? AND verified = 0 AND expires_at > CURRENT_TIMESTAMP
       ORDER BY id DESC LIMIT 1
@@ -700,13 +704,13 @@ app.post('/api/auth/citizen/verify-otp', (req, res) => {
     }
 
     if (otpRecord.attempts >= otpRecord.max_attempts) {
-      db.prepare('UPDATE citizen_otps SET verified = -1 WHERE id = ?').run(otpRecord.id);
+      await db.prepare('UPDATE citizen_otps SET verified = -1 WHERE id = ?').run(otpRecord.id);
       return res.status(400).json({ error: 'Maximum verification attempts exceeded. Please generate a new OTP.' });
     }
 
     const inputHash = hashOtp(cleanOtp);
     if (inputHash !== otpRecord.otp_hash) {
-      db.prepare('UPDATE citizen_otps SET attempts = attempts + 1 WHERE id = ?').run(otpRecord.id);
+      await db.prepare('UPDATE citizen_otps SET attempts = attempts + 1 WHERE id = ?').run(otpRecord.id);
       const remaining = otpRecord.max_attempts - (otpRecord.attempts + 1);
       return res.status(400).json({
         error: `Incorrect OTP. ${remaining} attempt(s) remaining.`
@@ -714,18 +718,18 @@ app.post('/api/auth/citizen/verify-otp', (req, res) => {
     }
 
     // Mark OTP verified
-    db.prepare('UPDATE citizen_otps SET verified = 1 WHERE id = ?').run(otpRecord.id);
+    await db.prepare('UPDATE citizen_otps SET verified = 1 WHERE id = ?').run(otpRecord.id);
 
     // Check citizen record using normalized mobile lookup
-    const citizen = findCitizenByPhone(db, cleanPhone);
+    const citizen = await findCitizenByPhone(db, cleanPhone);
 
     if (citizen) {
       // Existing citizen: issue session token and refresh verification
-      db.prepare('UPDATE citizens SET mobile_verified = 1 WHERE id = ?').run(citizen.id);
+      await db.prepare('UPDATE citizens SET mobile_verified = 1 WHERE id = ?').run(citizen.id);
 
       // Auto-link any unassociated complaints with this verified phone number
       try {
-        db.prepare(`
+        await db.prepare(`
           UPDATE complaints
           SET citizen_id = ?
           WHERE citizen_phone = ? AND (citizen_id IS NULL OR citizen_id = 0)
@@ -778,7 +782,7 @@ app.post('/api/auth/citizen/verify-otp', (req, res) => {
 });
 
 // POST /api/auth/citizen/register-with-otp
-app.post('/api/auth/citizen/register-with-otp', (req, res) => {
+app.post('/api/auth/citizen/register-with-otp', async (req, res) => {
   try {
     const { name, phone, otp, registrationToken, email, district, municipality, ward, password } = req.body;
     if (!name || !name.trim()) {
@@ -806,7 +810,7 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
       const cleanOtp = String(otp).trim();
       const inputHash = hashOtp(cleanOtp);
 
-      const otpRecord = db.prepare(`
+      const otpRecord = await db.prepare(`
         SELECT * FROM citizen_otps
         WHERE phone = ? AND otp_hash = ? AND (verified = 1 OR (verified = 0 AND expires_at > CURRENT_TIMESTAMP))
         ORDER BY id DESC LIMIT 1
@@ -814,7 +818,7 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
 
       if (otpRecord) {
         verifiedPhone = cleanPhone;
-        db.prepare('UPDATE citizen_otps SET verified = 1 WHERE id = ?').run(otpRecord.id);
+        await db.prepare('UPDATE citizen_otps SET verified = 1 WHERE id = ?').run(otpRecord.id);
       }
     }
 
@@ -829,7 +833,7 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
     const cleanEmail = email && email.trim() ? email.toLowerCase().trim() : `citizen.${cleanPhone}@civicresolve.gov`;
 
     // Check if phone already registered (idempotent / safe returning citizen resolution)
-    const existing = findCitizenByPhone(db, cleanPhone);
+    const existing = await findCitizenByPhone(db, cleanPhone);
     if (existing) {
       // Non-destructive update: only fill fields that are non-empty; never overwrite existing details with empty/blank values
       const updateName = (name && name.trim()) ? name.trim() : existing.name;
@@ -837,7 +841,7 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
       const updateMunicipality = (municipality && municipality.trim()) ? municipality.trim() : existing.municipality;
       const updateWard = (ward && ward.trim()) ? ward.trim() : existing.ward;
 
-      db.prepare(`
+      await db.prepare(`
         UPDATE citizens
         SET name = ?,
             district = ?,
@@ -848,7 +852,7 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
         WHERE id = ?
       `).run(updateName, updateDistrict, updateMunicipality, updateWard, existing.id);
 
-      const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified FROM citizens WHERE id = ?').get(existing.id);
+      const citizen = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified FROM citizens WHERE id = ?').get(existing.id);
       const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, phone: citizen.phone, type: 'citizen' });
       res.cookie('civic_citizen_token', token, getCookieOptions());
 
@@ -866,14 +870,14 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
 
     // Check if email already used by a different citizen
     if (email && email.trim()) {
-      const emailConflict = db.prepare('SELECT id FROM citizens WHERE LOWER(email) = ? AND phone != ?').get(cleanEmail, cleanPhone);
+      const emailConflict = await db.prepare('SELECT id FROM citizens WHERE LOWER(email) = ? AND phone != ?').get(cleanEmail, cleanPhone);
       if (emailConflict) {
         return res.status(409).json({ error: 'This email address is already associated with another citizen account.' });
       }
     }
 
     const passwordHash = hashPassword(password || 'Citizen#2026!MobileVerified');
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO citizens (name, email, phone, password_hash, district, municipality, ward, mobile_verified, email_verified, sms_notifications, email_notifications)
       VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, 1, 1)
     `).run(
@@ -886,11 +890,11 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
       ward || 'Ward 114'
     );
 
-    const citizen = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified FROM citizens WHERE id = ?').get(result.lastInsertRowid);
+    const citizen = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified FROM citizens WHERE id = ?').get(result.lastInsertRowid);
 
     // Auto-link any complaints previously submitted with this phone number
     try {
-      db.prepare(`
+      await db.prepare(`
         UPDATE complaints
         SET citizen_id = ?
         WHERE citizen_phone = ? AND (citizen_id IS NULL OR citizen_id = 0)
@@ -901,7 +905,7 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
 
     res.cookie('civic_citizen_token', token, getCookieOptions());
 
-    createNotification('citizen', citizen.id, null, 'Welcome to CivicResolve', `வணக்கம் ${citizen.name}! Your citizen portal account is verified and ready.`);
+    await createNotification('citizen', citizen.id, null, 'Welcome to CivicResolve', `வணக்கம் ${citizen.name}! Your citizen portal account is verified and ready.`);
 
     return res.status(201).json({
       success: true,
@@ -920,7 +924,7 @@ app.post('/api/auth/citizen/register-with-otp', (req, res) => {
 });
 
 // POST /api/auth/citizen/register
-app.post('/api/auth/citizen/register', (req, res) => {
+app.post('/api/auth/citizen/register', async (req, res) => {
   try {
     const { name, email, phone, password, district } = req.body;
 
@@ -935,18 +939,18 @@ app.post('/api/auth/citizen/register', (req, res) => {
     }
 
     // Check existing
-    const existing = db.prepare('SELECT id FROM citizens WHERE LOWER(email) = ?').get(cleanEmail) || findCitizenByPhone(db, cleanPhone);
+    const existing = await db.prepare('SELECT id FROM citizens WHERE LOWER(email) = ?').get(cleanEmail) || await findCitizenByPhone(db, cleanPhone);
     if (existing) {
       return res.status(409).json({ error: 'An account with this email or phone number already exists.' });
     }
 
     const passwordHash = hashPassword(password);
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO citizens (name, email, phone, password_hash, district, email_verified, email_notifications)
       VALUES (?, ?, ?, ?, ?, 1, 1)
     `).run(name.trim(), cleanEmail, cleanPhone, passwordHash, district || 'Chennai');
 
-    const citizen = db.prepare('SELECT id, name, email, phone, district, email_verified, email_notifications FROM citizens WHERE id = ?').get(result.lastInsertRowid);
+    const citizen = await db.prepare('SELECT id, name, email, phone, district, email_verified, email_notifications FROM citizens WHERE id = ?').get(result.lastInsertRowid);
     const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, phone: citizen.phone, type: 'citizen' });
 
     res.cookie('civic_citizen_token', token, getCookieOptions());
@@ -971,7 +975,7 @@ app.post('/api/auth/citizen/register', (req, res) => {
 });
 
 // POST /api/auth/citizen/login
-app.post('/api/auth/citizen/login', (req, res) => {
+app.post('/api/auth/citizen/login', async (req, res) => {
   try {
     const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
     const rateCheck = checkLoginRateLimit(clientIp);
@@ -986,7 +990,7 @@ app.post('/api/auth/citizen/login', (req, res) => {
       return res.status(400).json({ error: 'Email or phone and password are required.' });
     }
 
-    const citizen = db.prepare('SELECT * FROM citizens WHERE LOWER(email) = ? OR phone = ?').get(cleanId, cleanId);
+    const citizen = await db.prepare('SELECT * FROM citizens WHERE LOWER(email) = ? OR phone = ?').get(cleanId, cleanId);
 
     if (!citizen || !comparePassword(password, citizen.password_hash)) {
       recordFailedLogin(clientIp);
@@ -1018,7 +1022,7 @@ app.post('/api/auth/citizen/login', (req, res) => {
 });
 
 // GET /api/auth/citizen/me
-app.get('/api/auth/citizen/me', authenticateCitizen, (req, res) => {
+app.get('/api/auth/citizen/me', authenticateCitizen, async (req, res) => {
   const token = generateToken({
     id: req.citizen.id,
     email: req.citizen.email,
@@ -1045,15 +1049,15 @@ app.get('/api/auth/citizen/me', authenticateCitizen, (req, res) => {
 });
 
 // POST /api/auth/citizen/logout
-app.post('/api/auth/citizen/logout', (req, res) => {
+app.post('/api/auth/citizen/logout', async (req, res) => {
   res.clearCookie('civic_citizen_token', getClearCookieOptions());
   res.json({ message: 'Citizen logged out successfully' });
 });
 
 // GET /api/citizen/profile
-app.get('/api/citizen/profile', authenticateCitizen, (req, res) => {
+app.get('/api/citizen/profile', authenticateCitizen, async (req, res) => {
   try {
-    const c = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent, created_at FROM citizens WHERE id = ?').get(req.citizen.id);
+    const c = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent, created_at FROM citizens WHERE id = ?').get(req.citizen.id);
     if (!c) return res.status(404).json({ error: 'Citizen not found' });
     res.json({ profile: c });
   } catch (err) {
@@ -1063,11 +1067,11 @@ app.get('/api/citizen/profile', authenticateCitizen, (req, res) => {
 });
 
 // PUT /api/citizen/profile
-app.put('/api/citizen/profile', authenticateCitizen, (req, res) => {
+app.put('/api/citizen/profile', authenticateCitizen, async (req, res) => {
   try {
     const { name, phone, district, municipality, ward, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent } = req.body;
     
-    db.prepare(`
+    await db.prepare(`
       UPDATE citizens 
       SET name = COALESCE(?, name),
           phone = COALESCE(?, phone),
@@ -1095,7 +1099,7 @@ app.put('/api/citizen/profile', authenticateCitizen, (req, res) => {
       req.citizen.id
     );
 
-    const updated = db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent FROM citizens WHERE id = ?').get(req.citizen.id);
+    const updated = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent FROM citizens WHERE id = ?').get(req.citizen.id);
     res.json({ message: 'Profile updated successfully', profile: updated });
   } catch (err) {
     console.error('[Profile Update Error]:', err);
@@ -1104,7 +1108,7 @@ app.put('/api/citizen/profile', authenticateCitizen, (req, res) => {
 });
 
 // POST /api/auth/citizen/password-reset
-app.post('/api/auth/citizen/password-reset', (req, res) => {
+app.post('/api/auth/citizen/password-reset', async (req, res) => {
   try {
     const { email, phone, newPassword } = req.body;
     if (!email || !phone || !newPassword) {
@@ -1117,13 +1121,13 @@ app.post('/api/auth/citizen/password-reset', (req, res) => {
     const cleanEmail = email.toLowerCase().trim();
     const cleanPhone = phone.trim();
 
-    const citizen = db.prepare('SELECT id FROM citizens WHERE LOWER(email) = ? AND phone = ?').get(cleanEmail, cleanPhone);
+    const citizen = await db.prepare('SELECT id FROM citizens WHERE LOWER(email) = ? AND phone = ?').get(cleanEmail, cleanPhone);
     if (!citizen) {
       return res.status(404).json({ error: 'No citizen account found with matching email and phone.' });
     }
 
     const newHash = hashPassword(newPassword);
-    db.prepare('UPDATE citizens SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(newHash, citizen.id);
+    await db.prepare('UPDATE citizens SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(newHash, citizen.id);
 
     res.json({ message: 'Password has been reset successfully. You can now log in.' });
   } catch (err) {
@@ -1133,9 +1137,9 @@ app.post('/api/auth/citizen/password-reset', (req, res) => {
 });
 
 // GET /api/citizen/my-complaints (Private to authenticated citizen)
-app.get('/api/citizen/my-complaints', authenticateCitizen, (req, res) => {
+app.get('/api/citizen/my-complaints', authenticateCitizen, async (req, res) => {
   try {
-    const raw = db.prepare(`
+    const raw = await db.prepare(`
       SELECT * FROM complaints 
       WHERE citizen_id = ? 
          OR (citizen_phone IS NOT NULL AND citizen_phone = ?) 
@@ -1156,7 +1160,7 @@ app.get('/api/citizen/my-complaints', authenticateCitizen, (req, res) => {
 // -------------------------------------------------------------
 
 // POST /api/auth/login
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -1174,7 +1178,7 @@ app.post('/api/auth/login', (req, res) => {
       return res.status(429).json({ error: rateCheck.message });
     }
 
-    const admin = db.prepare('SELECT * FROM admins WHERE LOWER(email) = ?').get(cleanEmail);
+    const admin = await db.prepare('SELECT * FROM admins WHERE LOWER(email) = ?').get(cleanEmail);
 
     if (!admin || !comparePassword(password, admin.password_hash)) {
       recordFailedLogin(rateLimitKey);
@@ -1211,13 +1215,13 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // POST /api/auth/logout
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', async (req, res) => {
   res.clearCookie('civic_admin_token', getClearCookieOptions());
   res.json({ message: 'Officer logged out successfully' });
 });
 
 // GET /api/auth/me (Verify session)
-app.get('/api/auth/me', authenticateAdmin, (req, res) => {
+app.get('/api/auth/me', authenticateAdmin, async (req, res) => {
   res.json({
     authenticated: true,
     admin: req.admin
@@ -1229,7 +1233,7 @@ app.get('/api/auth/me', authenticateAdmin, (req, res) => {
 // -------------------------------------------------------------
 
 // GET /api/complaints (Optimized Summary Projection & Deterministic Pagination)
-app.get('/api/complaints', optionalCitizenAuth, (req, res) => {
+app.get('/api/complaints', optionalCitizenAuth, async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -1299,7 +1303,7 @@ app.get('/api/complaints', optionalCitizenAuth, (req, res) => {
     }
 
     // Count total matching records for pagination
-    const countRow = db.prepare(`SELECT COUNT(*) as total FROM complaints ${whereSql}`).get(...params);
+    const countRow = await db.prepare(`SELECT COUNT(*) as total FROM complaints ${whereSql}`).get(...params);
     const total = countRow ? countRow.total : 0;
 
     // Explicit summary projection columns: excludes AI reasoning, confidential internal notes, and raw JSON history
@@ -1317,7 +1321,7 @@ app.get('/api/complaints', optionalCitizenAuth, (req, res) => {
     `;
 
     const queryParams = [...params, limitNum, offset];
-    const rawComplaints = db.prepare(selectSql).all(...queryParams);
+    const rawComplaints = await db.prepare(selectSql).all(...queryParams);
     let complaints = rawComplaints.map(c => parseComplaintSummary(c, isAuthorized));
 
     // Filter by SLA status if requested
@@ -1346,10 +1350,10 @@ app.get('/api/complaints', optionalCitizenAuth, (req, res) => {
 });
 
 // GET /api/complaints/track/:refId (Privacy-Safe Public Tracking)
-app.get('/api/complaints/track/:refId', optionalCitizenAuth, (req, res) => {
+app.get('/api/complaints/track/:refId', optionalCitizenAuth, async (req, res) => {
   try {
     const refId = req.params.refId.trim().toUpperCase();
-    const complaint = db.prepare('SELECT * FROM complaints WHERE UPPER(ref_id) = ?').get(refId);
+    const complaint = await db.prepare('SELECT * FROM complaints WHERE UPPER(ref_id) = ?').get(refId);
 
     if (!complaint) {
       return res.status(404).json({ error: `No complaint found with Reference ID "${refId}"` });
@@ -1378,7 +1382,7 @@ app.get('/api/complaints/track/:refId', optionalCitizenAuth, (req, res) => {
 });
 
 // POST /api/complaints/track/:refId/verify-access (Verify Phone/Email to unmask private file)
-app.post('/api/complaints/track/:refId/verify-access', (req, res) => {
+app.post('/api/complaints/track/:refId/verify-access', async (req, res) => {
   try {
     const { refId } = req.params;
     const { credential } = req.body;
@@ -1387,7 +1391,7 @@ app.post('/api/complaints/track/:refId/verify-access', (req, res) => {
     }
 
     const cleanRef = refId.trim().toUpperCase();
-    const c = db.prepare('SELECT * FROM complaints WHERE UPPER(ref_id) = ?').get(cleanRef);
+    const c = await db.prepare('SELECT * FROM complaints WHERE UPPER(ref_id) = ?').get(cleanRef);
     if (!c) {
       return res.status(404).json({ error: `Grievance ${cleanRef} not found.` });
     }
@@ -1411,17 +1415,17 @@ app.post('/api/complaints/track/:refId/verify-access', (req, res) => {
 });
 
 // GET /api/complaints/:id
-app.get('/api/complaints/:id', optionalCitizenAuth, (req, res) => {
+app.get('/api/complaints/:id', optionalCitizenAuth, async (req, res) => {
   try {
     const idParam = req.params.id;
     let complaint;
 
     if (/^\d+$/.test(idParam)) {
-      complaint = db.prepare('SELECT * FROM complaints WHERE id = ?').get(parseInt(idParam, 10));
+      complaint = await db.prepare('SELECT * FROM complaints WHERE id = ?').get(parseInt(idParam, 10));
     }
     
     if (!complaint) {
-      complaint = db.prepare('SELECT * FROM complaints WHERE ref_id = ?').get(idParam);
+      complaint = await db.prepare('SELECT * FROM complaints WHERE ref_id = ?').get(idParam);
     }
 
     if (!complaint) {
@@ -1586,7 +1590,7 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
     const initialStatus = aiResult.ai_status === 'SUCCESS' ? 'Under Review' : 'Submitted';
 
     // Check for potential duplicates
-    const duplicates = findDuplicateCandidates({
+    const duplicates = await findDuplicateCandidates({
       title,
       description,
       category: effectiveCategory,
@@ -1596,7 +1600,7 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
       longitude: hasCoordinates ? parseFloat(longitude) : null
     });
 
-    const insert = db.prepare(`
+    const insert = await db.prepare(`
       INSERT INTO complaints (
         ref_id, title, description, category, location, latitude, longitude,
         image_url, status, priority, department,
@@ -1660,10 +1664,10 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
       effectiveLang
     );
 
-    const created = db.prepare('SELECT * FROM complaints WHERE id = ?').get(result.lastInsertRowid);
+    const created = await db.prepare('SELECT * FROM complaints WHERE id = ?').get(result.lastInsertRowid);
 
     // In-App Notification
-    createNotification(
+    await createNotification(
       'citizen',
       citizenId,
       ref_id,
@@ -1707,12 +1711,12 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
 // -------------------------------------------------------------
 
 // POST /api/complaints/:id/feedback
-app.post('/api/complaints/:id/feedback', optionalCitizenAuth, (req, res) => {
+app.post('/api/complaints/:id/feedback', optionalCitizenAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { rating, feedback, credential } = req.body;
 
-    const complaint = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const complaint = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
     if (!complaint) return res.status(404).json({ error: 'Complaint not found' });
 
     // Enforce ownership: citizen token or matching credential
@@ -1735,7 +1739,7 @@ app.post('/api/complaints/:id/feedback', optionalCitizenAuth, (req, res) => {
       return res.status(403).json({ error: 'Access denied: Only the citizen who registered this grievance can submit feedback.' });
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE complaints 
       SET citizen_rating = ?, citizen_feedback = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? OR ref_id = ?
@@ -1749,7 +1753,7 @@ app.post('/api/complaints/:id/feedback', optionalCitizenAuth, (req, res) => {
 });
 
 // POST /api/complaints/:id/appeal (Citizen requests reopening)
-app.post('/api/complaints/:id/appeal', optionalCitizenAuth, (req, res) => {
+app.post('/api/complaints/:id/appeal', optionalCitizenAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { appeal_reason, reason, credential } = req.body;
@@ -1759,7 +1763,7 @@ app.post('/api/complaints/:id/appeal', optionalCitizenAuth, (req, res) => {
       return res.status(400).json({ error: 'Please explain why the resolution was unsatisfactory (min 10 characters).' });
     }
 
-    const complaint = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const complaint = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
     if (!complaint) return res.status(404).json({ error: 'Complaint not found' });
 
     // Enforce ownership: citizen token or matching credential
@@ -1792,7 +1796,7 @@ app.post('/api/complaints/:id/appeal', optionalCitizenAuth, (req, res) => {
       actor: complaint.citizen_name ? `${complaint.citizen_name} (Citizen)` : 'Citizen'
     });
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE complaints 
       SET status = 'Under Review',
           is_appealed = 1,
@@ -1803,7 +1807,7 @@ app.post('/api/complaints/:id/appeal', optionalCitizenAuth, (req, res) => {
       WHERE id = ? OR ref_id = ?
     `).run(finalReason, JSON.stringify(history), id, id);
 
-    createNotification(
+    await createNotification(
       'admin',
       null,
       complaint.ref_id,
@@ -1825,7 +1829,7 @@ app.post('/api/complaints/:id/appeal', optionalCitizenAuth, (req, res) => {
       }
     });
 
-    const updated = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const updated = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
     invalidateStatsCache();
     res.json({ message: 'Appeal submitted successfully. Escalated for senior officer review.', complaint: parseComplaint(updated, true) });
   } catch (err) {
@@ -1839,7 +1843,7 @@ app.post('/api/complaints/:id/appeal', optionalCitizenAuth, (req, res) => {
 // -------------------------------------------------------------
 
 // GET /api/officer/tasks (Assigned Tasks for Logged-In Officer)
-app.get('/api/officer/tasks', authenticateAdmin, (req, res) => {
+app.get('/api/officer/tasks', authenticateAdmin, async (req, res) => {
   try {
     const officer = req.admin;
     const isSuperAdmin = officer.role === 'super_admin';
@@ -1852,7 +1856,7 @@ app.get('/api/officer/tasks', authenticateAdmin, (req, res) => {
     }
 
     query += " ORDER BY CASE priority WHEN 'Critical' THEN 1 WHEN 'High' THEN 2 WHEN 'Medium' THEN 3 ELSE 4 END, created_at DESC";
-    const raw = db.prepare(query).all(...params);
+    const raw = await db.prepare(query).all(...params);
     const parsed = raw.map(c => parseComplaint(c, true));
 
     const pending = parsed.filter(c => c.status === 'Submitted' || c.status === 'Under Review');
@@ -1880,13 +1884,13 @@ app.get('/api/officer/tasks', authenticateAdmin, (req, res) => {
 });
 
 // POST /api/officer/tasks/:id/report (Officer Updates Task, Remarks & Resolution Evidence)
-app.post('/api/officer/tasks/:id/report', authenticateAdmin, upload.single('evidence'), (req, res) => {
+app.post('/api/officer/tasks/:id/report', authenticateAdmin, upload.single('evidence'), async (req, res) => {
   try {
     const { id } = req.params;
     const { status, remarks, internalNotes } = req.body;
     const evidenceUrl = req.file ? `/uploads/${req.file.filename}` : req.body.evidenceUrl;
 
-    const current = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const current = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
     if (!current) return res.status(404).json({ error: 'Complaint not found' });
 
     const newStatus = status || 'In Progress';
@@ -1901,7 +1905,7 @@ app.post('/api/officer/tasks/:id/report', authenticateAdmin, upload.single('evid
       actor: `${req.admin.name} (${req.admin.designation || 'Officer'})`
     });
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE complaints 
       SET status = ?,
           resolution_remarks = COALESCE(?, resolution_remarks),
@@ -1920,10 +1924,10 @@ app.post('/api/officer/tasks/:id/report', authenticateAdmin, upload.single('evid
       id
     );
 
-    const updated = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const updated = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
 
     // Record administrative audit trail
-    recordAuditLog({
+    await recordAuditLog({
       complaintRef: updated.ref_id,
       actorId: req.admin ? req.admin.id : null,
       actorName: req.admin ? req.admin.name : 'Officer',
@@ -1961,9 +1965,9 @@ app.post('/api/officer/tasks/:id/report', authenticateAdmin, upload.single('evid
 // -------------------------------------------------------------
 // 7. NOTIFICATIONS INBOX & DELIVERY AUDIT LOGS
 // -------------------------------------------------------------
-app.get('/api/notifications', (req, res) => {
+app.get('/api/notifications', async (req, res) => {
   try {
-    const notifications = db.prepare(`
+    const notifications = await db.prepare(`
       SELECT * FROM notifications 
       ORDER BY created_at DESC 
       LIMIT 20
@@ -1975,9 +1979,9 @@ app.get('/api/notifications', (req, res) => {
   }
 });
 
-app.patch('/api/notifications/:id/read', (req, res) => {
+app.patch('/api/notifications/:id/read', async (req, res) => {
   try {
-    db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(req.params.id);
+    await db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (err) {
     console.error('[Notification Mark Error]:', err);
@@ -1986,7 +1990,7 @@ app.patch('/api/notifications/:id/read', (req, res) => {
 });
 
 // GET /api/admin/notifications/logs (Real-Time Notification Delivery Logs)
-app.get('/api/admin/notifications/logs', authenticateAdmin, (req, res) => {
+app.get('/api/admin/notifications/logs', authenticateAdmin, async (req, res) => {
   try {
     const { channel, status, search, limit = 50 } = req.query;
     let query = 'SELECT * FROM notification_logs WHERE 1=1';
@@ -2009,7 +2013,7 @@ app.get('/api/admin/notifications/logs', authenticateAdmin, (req, res) => {
     query += ' ORDER BY created_at DESC LIMIT ?';
     params.push(parseInt(limit, 10));
 
-    const logs = db.prepare(query).all(...params);
+    const logs = await db.prepare(query).all(...params);
     res.json({ logs });
   } catch (err) {
     console.error('[Notification Logs Fetch Error]:', err);
@@ -2051,7 +2055,7 @@ app.post('/api/admin/notifications/:id/retry', authenticateAdmin, async (req, re
 // -------------------------------------------------------------
 
 // PATCH /api/complaints/:id/manage
-app.patch('/api/complaints/:id/manage', authenticateAdmin, (req, res) => {
+app.patch('/api/complaints/:id/manage', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { 
@@ -2070,7 +2074,7 @@ app.patch('/api/complaints/:id/manage', authenticateAdmin, (req, res) => {
       return res.status(400).json({ error: `Invalid status. Must be one of: ${allowedStatuses.join(', ')}` });
     }
 
-    const current = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const current = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
     if (!current) {
       return res.status(404).json({ error: 'Complaint not found' });
     }
@@ -2123,7 +2127,7 @@ app.patch('/api/complaints/:id/manage', authenticateAdmin, (req, res) => {
       actor: adminActorName
     });
 
-    const update = db.prepare(`
+    const update = await db.prepare(`
       UPDATE complaints 
       SET category = ?,
           department = ?,
@@ -2156,7 +2160,7 @@ app.patch('/api/complaints/:id/manage', authenticateAdmin, (req, res) => {
       id
     );
 
-    const updated = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const updated = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
 
     // Multi-Channel Notification to citizen
     notifyCitizenEvent({
@@ -2176,7 +2180,7 @@ app.patch('/api/complaints/:id/manage', authenticateAdmin, (req, res) => {
     });
 
     // Record administrative audit trail
-    recordAuditLog({
+    await recordAuditLog({
       complaintRef: updated.ref_id,
       actorId: req.admin ? req.admin.id : null,
       actorName: req.admin ? req.admin.name : 'Municipal Officer',
@@ -2201,7 +2205,7 @@ app.patch('/api/complaints/:id/manage', authenticateAdmin, (req, res) => {
 });
 
 // PATCH /api/complaints/:id/status
-app.patch('/api/complaints/:id/status', authenticateAdmin, (req, res) => {
+app.patch('/api/complaints/:id/status', authenticateAdmin, async (req, res) => {
   try {
     const { status } = req.body;
     const { id } = req.params;
@@ -2216,7 +2220,7 @@ app.patch('/api/complaints/:id/status', authenticateAdmin, (req, res) => {
       return res.status(400).json({ error: `Invalid status. Must be one of: ${allowedStatuses.join(', ')}` });
     }
 
-    const current = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const current = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
     if (!current) {
       return res.status(404).json({ error: 'Complaint not found' });
     }
@@ -2232,16 +2236,16 @@ app.patch('/api/complaints/:id/status', authenticateAdmin, (req, res) => {
       actor: adminActorName
     });
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE complaints 
       SET status = ?, status_history = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE id = ? OR ref_id = ?
     `).run(status, JSON.stringify(history), id, id);
 
-    const updated = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const updated = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
 
     // Record audit log
-    recordAuditLog({
+    await recordAuditLog({
       complaintRef: updated.ref_id,
       actorId: req.admin ? req.admin.id : null,
       actorName: req.admin ? req.admin.name : 'Municipal Officer',
@@ -2276,7 +2280,7 @@ app.patch('/api/complaints/:id/status', authenticateAdmin, (req, res) => {
 });
 
 // PATCH /api/complaints/:id/assign (Assign department & field officer)
-app.patch('/api/complaints/:id/assign', authenticateAdmin, (req, res) => {
+app.patch('/api/complaints/:id/assign', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { department, assigned_officer, internal_notes } = req.body;
@@ -2284,7 +2288,7 @@ app.patch('/api/complaints/:id/assign', authenticateAdmin, (req, res) => {
       return res.status(400).json({ error: 'Department or assigned officer is required for assignment.' });
     }
 
-    const current = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const current = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
     if (!current) return res.status(404).json({ error: 'Complaint not found' });
 
     const newDept = department || current.department;
@@ -2301,15 +2305,15 @@ app.patch('/api/complaints/:id/assign', authenticateAdmin, (req, res) => {
       actor: `${req.admin.name} (${req.admin.designation || 'Officer'})`
     });
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE complaints
       SET department = ?, assigned_officer = ?, internal_notes = ?, status = ?, status_history = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? OR ref_id = ?
     `).run(newDept, newOfficer, newNotes, newStatus, JSON.stringify(history), id, id);
 
-    const updated = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const updated = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
 
-    recordAuditLog({
+    await recordAuditLog({
       complaintRef: updated.ref_id,
       actorId: req.admin.id,
       actorName: req.admin.name,
@@ -2330,12 +2334,12 @@ app.patch('/api/complaints/:id/assign', authenticateAdmin, (req, res) => {
 });
 
 // POST /api/complaints/:id/escalate (Escalate overdue or critical complaint)
-app.post('/api/complaints/:id/escalate', authenticateAdmin, (req, res) => {
+app.post('/api/complaints/:id/escalate', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { reason, escalation_level = 'Supervisor Review' } = req.body;
 
-    const current = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const current = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
     if (!current) return res.status(404).json({ error: 'Complaint not found' });
 
     const parsed = parseComplaint(current, true);
@@ -2349,15 +2353,15 @@ app.post('/api/complaints/:id/escalate', authenticateAdmin, (req, res) => {
       actor: `${req.admin.name} (${req.admin.designation || 'Officer'})`
     });
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE complaints
       SET status = ?, priority = 'Critical', status_history = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? OR ref_id = ?
     `).run(escalation_level, JSON.stringify(history), id, id);
 
-    const updated = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    const updated = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
 
-    recordAuditLog({
+    await recordAuditLog({
       complaintRef: updated.ref_id,
       actorId: req.admin.id,
       actorName: req.admin.name,
@@ -2378,12 +2382,12 @@ app.post('/api/complaints/:id/escalate', authenticateAdmin, (req, res) => {
 });
 
 // GET /api/admin/duplicates/:id (Inspect duplicate candidates for a complaint)
-app.get('/api/admin/duplicates/:id', authenticateAdmin, (req, res) => {
+app.get('/api/admin/duplicates/:id', authenticateAdmin, async (req, res) => {
   try {
-    const target = db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(req.params.id, req.params.id);
+    const target = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(req.params.id, req.params.id);
     if (!target) return res.status(404).json({ error: 'Complaint not found' });
 
-    const duplicates = findDuplicateCandidates({
+    const duplicates = await findDuplicateCandidates({
       title: target.title,
       description: target.description,
       category: target.category,
@@ -2402,14 +2406,14 @@ app.get('/api/admin/duplicates/:id', authenticateAdmin, (req, res) => {
 });
 
 // POST /api/admin/link-duplicate (Link complaint to primary incident)
-app.post('/api/admin/link-duplicate', authenticateAdmin, (req, res) => {
+app.post('/api/admin/link-duplicate', authenticateAdmin, async (req, res) => {
   try {
     const { primaryRefId, duplicateRefId } = req.body;
     if (!primaryRefId || !duplicateRefId) {
       return res.status(400).json({ error: 'Both primaryRefId and duplicateRefId are required.' });
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE complaints 
       SET duplicate_of_ref_id = ?, updated_at = CURRENT_TIMESTAMP
       WHERE ref_id = ?
@@ -2428,7 +2432,7 @@ app.post('/api/admin/link-duplicate', authenticateAdmin, (req, res) => {
 // 9. DASHBOARD STATISTICS & CIVIC ANALYTICS
 // -------------------------------------------------------------
 
-app.get('/api/dashboard/stats', (req, res) => {
+app.get('/api/dashboard/stats', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=15');
     const { district } = req.query;
@@ -2447,7 +2451,7 @@ app.get('/api/dashboard/stats', (req, res) => {
     }
 
     // Consolidated single-pass aggregation query for maximum efficiency
-    const countsRow = db.prepare(`
+    const countsRow = await db.prepare(`
       SELECT 
         COUNT(*) as total,
         SUM(CASE WHEN status IN ('Submitted', 'Under Review') THEN 1 ELSE 0 END) as pending,
@@ -2455,12 +2459,12 @@ app.get('/api/dashboard/stats', (req, res) => {
         SUM(CASE WHEN priority = 'Critical' THEN 1 ELSE 0 END) as critical,
         SUM(CASE WHEN status IN ('Assigned', 'In Progress') THEN 1 ELSE 0 END) as in_progress,
         SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved,
-        SUM(CASE WHEN status != 'Resolved' AND sla_deadline IS NOT NULL AND datetime('now') > datetime(sla_deadline) THEN 1 ELSE 0 END) as overdue
+        SUM(CASE WHEN status != 'Resolved' AND sla_deadline IS NOT NULL AND CURRENT_TIMESTAMP > sla_deadline THEN 1 ELSE 0 END) as overdue
       FROM complaints ${whereClause}
     `).get(...params) || {};
 
     // Distinct departments with counts
-    const departments = db.prepare(`
+    const departments = await db.prepare(`
       SELECT department, COUNT(*) as count 
       FROM complaints 
       ${whereClause} AND department IS NOT NULL AND department != ''
@@ -2469,7 +2473,7 @@ app.get('/api/dashboard/stats', (req, res) => {
     `).all(...params);
 
     // District distribution
-    const districtRows = db.prepare(`
+    const districtRows = await db.prepare(`
       SELECT district, COUNT(*) as count 
       FROM complaints 
       ${whereClause}
@@ -2478,7 +2482,7 @@ app.get('/api/dashboard/stats', (req, res) => {
     `).all(...params);
 
     // Category distribution
-    const categoryRows = db.prepare(`
+    const categoryRows = await db.prepare(`
       SELECT category, COUNT(*) as count 
       FROM complaints 
       ${whereClause}
@@ -2487,7 +2491,7 @@ app.get('/api/dashboard/stats', (req, res) => {
     `).all(...params);
 
     // Priority distribution
-    const priorityRows = db.prepare(`
+    const priorityRows = await db.prepare(`
       SELECT priority, COUNT(*) as count 
       FROM complaints 
       ${whereClause}
@@ -2534,10 +2538,10 @@ app.get('/api/dashboard/stats', (req, res) => {
 // -------------------------------------------------------------
 
 // GET /api/announcements (Public active announcements)
-app.get('/api/announcements', (req, res) => {
+app.get('/api/announcements', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
-    const announcements = db.prepare(`
+    const announcements = await db.prepare(`
       SELECT id, title, title_ta, content, content_ta, category, priority, department, created_at
       FROM announcements
       WHERE is_active = 1
@@ -2552,14 +2556,14 @@ app.get('/api/announcements', (req, res) => {
 });
 
 // POST /api/admin/announcements (Authorized Admin announcement creation)
-app.post('/api/admin/announcements', authenticateAdmin, (req, res) => {
+app.post('/api/admin/announcements', authenticateAdmin, async (req, res) => {
   try {
     const { title, title_ta, content, content_ta, category, priority, department } = req.body;
     if (!title || !content) {
       return res.status(400).json({ error: 'Title and content are required.' });
     }
 
-    const insert = db.prepare(`
+    const insert = await db.prepare(`
       INSERT INTO announcements (title, title_ta, content, content_ta, category, priority, department, created_by)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
@@ -2573,7 +2577,7 @@ app.post('/api/admin/announcements', authenticateAdmin, (req, res) => {
       req.admin.name
     );
 
-    recordAuditLog({
+    await recordAuditLog({
       complaintRef: null,
       actorId: req.admin.id,
       actorName: req.admin.name,
@@ -2592,17 +2596,17 @@ app.post('/api/admin/announcements', authenticateAdmin, (req, res) => {
 });
 
 // DELETE /api/admin/announcements/:id (Admin announcement removal)
-app.delete('/api/admin/announcements/:id', authenticateAdmin, (req, res) => {
+app.delete('/api/admin/announcements/:id', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const existing = db.prepare('SELECT id, title FROM announcements WHERE id = ?').get(id);
+    const existing = await db.prepare('SELECT id, title FROM announcements WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ error: 'Announcement not found' });
     }
 
-    db.prepare('DELETE FROM announcements WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM announcements WHERE id = ?').run(id);
 
-    recordAuditLog({
+    await recordAuditLog({
       complaintRef: null,
       actorId: req.admin.id,
       actorName: req.admin.name,
@@ -2621,10 +2625,10 @@ app.delete('/api/admin/announcements/:id', authenticateAdmin, (req, res) => {
 });
 
 // GET /api/admin/audit-logs (Authorized Admin Audit Trails)
-app.get('/api/admin/audit-logs', authenticateAdmin, (req, res) => {
+app.get('/api/admin/audit-logs', authenticateAdmin, async (req, res) => {
   try {
     const { limit = 100 } = req.query;
-    const logs = db.prepare(`
+    const logs = await db.prepare(`
       SELECT * FROM audit_logs
       ORDER BY created_at DESC
       LIMIT ?
@@ -2637,15 +2641,40 @@ app.get('/api/admin/audit-logs', authenticateAdmin, (req, res) => {
 });
 
 // GET /api/admin/database/info (Inspect database storage location, persistence, and record counts)
-app.get('/api/admin/database/info', authenticateAdmin, (req, res) => {
+app.get('/api/admin/database/info', authenticateAdmin, async (req, res) => {
   try {
+    if (db && db.isPostgres) {
+      const complaintRow = await db.prepare('SELECT COUNT(*) as c FROM complaints').get();
+      const citizenRow = await db.prepare('SELECT COUNT(*) as c FROM citizens').get();
+      const adminRow = await db.prepare('SELECT COUNT(*) as c FROM admins').get();
+      return res.json({
+        engine: 'postgresql',
+        dbPath: 'Supabase PostgreSQL Managed Cluster',
+        exists: true,
+        sizeBytes: 0,
+        sizeKb: 0,
+        persistentDiskMounted: true,
+        storageType: 'Supabase Managed PostgreSQL (AWS ap-northeast-1)',
+        journalMode: 'WAL (PostgreSQL Engine)',
+        synchronous: 'Full (Remote Replica Guaranteed)',
+        counts: {
+          complaints: Number(complaintRow?.c ?? 0),
+          citizens: Number(citizenRow?.c ?? 0),
+          admins: Number(adminRow?.c ?? 0)
+        }
+      });
+    }
+
     const dbPath = db.dbPath || process.env.SQLITE_DB_PATH ||
       (process.env.DATA_DIR ? path.join(process.env.DATA_DIR, 'civicresolve.db') : path.join(__dirname, 'civicresolve.db'));
     const isPersistentDisk = Boolean(process.env.DATA_DIR && process.env.DATA_DIR.includes('/var/data'));
     const fileStats = fs.existsSync(dbPath) ? fs.statSync(dbPath) : null;
-    const complaintCount = db.prepare('SELECT COUNT(*) as c FROM complaints').get().c;
-    const citizenCount = db.prepare('SELECT COUNT(*) as c FROM citizens').get().c;
-    const adminCount = db.prepare('SELECT COUNT(*) as c FROM admins').get().c;
+    const complaintRow = await db.prepare('SELECT COUNT(*) as c FROM complaints').get();
+    const citizenRow = await db.prepare('SELECT COUNT(*) as c FROM citizens').get();
+    const adminRow = await db.prepare('SELECT COUNT(*) as c FROM admins').get();
+    const complaintCount = complaintRow ? complaintRow.c : 0;
+    const citizenCount = citizenRow ? citizenRow.c : 0;
+    const adminCount = adminRow ? adminRow.c : 0;
 
     let journalMode = 'unknown';
     let syncMode = 'unknown';
@@ -2678,12 +2707,26 @@ app.get('/api/admin/database/info', authenticateAdmin, (req, res) => {
 app.get('/api/admin/database/backup', authenticateAdmin, requireRole('super_admin'), async (req, res) => {
   let tempSnapshotPath = null;
   try {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const downloadName = `civicresolve-backup-${timestamp}.db`;
     const tempDir = path.join(__dirname, 'backups_temp');
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
+
+    if (db && db.isPostgres) {
+      const { createDatabaseBackup } = require('./backup_manager');
+      const backupResult = await createDatabaseBackup(db, { backupDir: tempDir });
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${backupResult.filename}"`);
+      const stream = fs.createReadStream(backupResult.backupPath);
+      stream.pipe(res);
+      stream.on('end', () => {
+        try { fs.unlinkSync(backupResult.backupPath); } catch (_) {}
+      });
+      return;
+    }
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const downloadName = `civicresolve-backup-${timestamp}.db`;
     tempSnapshotPath = path.join(tempDir, `snapshot-${timestamp}-${Math.random().toString(36).slice(2, 8)}.db`);
 
     // Execute non-destructive online backup using SQLite Online Backup API
@@ -2780,10 +2823,10 @@ app.get('/api/geocode/reverse', async (req, res) => {
 });
 
 // GET /api/complaints/:refId/receipt (Official Complaint Acknowledgement Receipt)
-app.get('/api/complaints/:refId/receipt', optionalCitizenAuth, (req, res) => {
+app.get('/api/complaints/:refId/receipt', optionalCitizenAuth, async (req, res) => {
   try {
     const { refId } = req.params;
-    const complaint = db.prepare('SELECT * FROM complaints WHERE ref_id = ?').get(refId);
+    const complaint = await db.prepare('SELECT * FROM complaints WHERE ref_id = ?').get(refId);
     if (!complaint) {
       return res.status(404).json({ error: 'Grievance record not found.' });
     }

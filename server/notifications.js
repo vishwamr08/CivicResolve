@@ -561,13 +561,13 @@ async function retryNotificationLog(logId) {
   }
 
   // Increment attempts
-  db.prepare('UPDATE notification_logs SET attempts = attempts + 1, status = "sending" WHERE id = ?').run(logId);
+  db.prepare("UPDATE notification_logs SET attempts = attempts + 1, status = 'sending' WHERE id = ?").run(logId);
 
   if (log.channel === 'email') {
     const transporter = getSmtpTransporter();
     if (!transporter) {
       const errorMsg = 'SMTP provider still unconfigured. Cannot retry email.';
-      db.prepare('UPDATE notification_logs SET status = "failed", error_message = ? WHERE id = ?').run(errorMsg, logId);
+      db.prepare("UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?").run(errorMsg, logId);
       return { success: false, error: errorMsg };
     }
 
@@ -588,7 +588,7 @@ async function retryNotificationLog(logId) {
 
       return { success: true, message: 'Notification successfully delivered on retry' };
     } catch (err) {
-      db.prepare('UPDATE notification_logs SET status = "failed", error_message = ? WHERE id = ?').run(err.message, logId);
+      db.prepare("UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?").run(err.message, logId);
       return { success: false, error: err.message };
     }
   }
