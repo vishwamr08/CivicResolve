@@ -456,7 +456,7 @@ export default function ComplaintFormModal({
             />
             <div>
               <h2 className="text-sm sm:text-base font-bold">
-                {lang === 'ta' ? 'à®•à¯à®±à¯ˆà®¤à¯€à®°à¯à®ªà¯à®ªà¯ à®®à®©à¯ à®ªà®¤à®¿à®µà¯ à®šà¯†à®¯à¯à®•' : 'Register Civic Grievance'}
+                {lang === 'ta' ? 'குறைதீர்ப்பு மனு பதிவு செய்க' : 'Register Civic Grievance'}
               </h2>
               <p className="text-[11px] sm:text-xs text-slate-300">
                 Tamil Nadu Municipal AI Triage & Direct Field Dispatch
@@ -466,8 +466,7 @@ export default function ComplaintFormModal({
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-navy-900 transition-colors disabled:opacity-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="Close modal"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-900 transition-colors disabled:opacity-50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -507,7 +506,7 @@ export default function ComplaintFormModal({
               <span className={`w-4 h-4 sm:w-5 sm:h-5 rounded-md flex items-center justify-center text-[9px] sm:text-[10px] font-bold ${
                 step === s.num ? 'bg-saffron text-white' : step > s.num ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' : 'bg-slate-100 text-slate-500'
               }`}>
-                {step > s.num ? 'âœ“' : s.num}
+                {step > s.num ? '✓' : s.num}
               </span>
               <span className="hidden sm:inline">{s.label}</span>
             </div>
@@ -566,7 +565,7 @@ export default function ComplaintFormModal({
                       <span className="font-mono">Lat {latitude}, Lng {longitude}</span>
                       {locationAccuracy !== null && (
                         <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-900 border border-emerald-300">
-                          {accuracyTier} (Â±{locationAccuracy}m)
+                          {accuracyTier} (±{locationAccuracy}m)
                         </span>
                       )}
                     </div>
@@ -585,7 +584,7 @@ export default function ComplaintFormModal({
               {accuracyTier === 'Low accuracy' && (
                 <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-800 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                  <span>Low accuracy detected (Â±{locationAccuracy}m). Please verify the street address or manually adjust location.</span>
+                  <span>Low accuracy detected (±{locationAccuracy}m). Please verify the street address or manually adjust location.</span>
                 </div>
               )}
 
@@ -650,7 +649,7 @@ export default function ComplaintFormModal({
                         const optionValue = hasWards ? `${z.name} (Wards: ${z.wards.slice(0, 3).join(', ')}...)` : z.name;
                         const optionLabel = hasWards
                           ? `${z.name} (Wards: ${z.wards.slice(0, 3).join(', ')}...)`
-                          : `${z.name} (${lang === 'ta' ? 'à®µà®¾à®°à¯à®Ÿà¯ à®Žà®²à¯à®²à¯ˆà®•à®³à¯ à®µà¯†à®³à®¿à®¯à®¿à®Ÿà®ªà¯à®ªà®Ÿà®µà®¿à®²à¯à®²à¯ˆ' : 'Official ward boundaries pending publication'})`;
+                          : `${z.name} (${lang === 'ta' ? 'வார்டு எல்லைகள் வெளியிடப்படவில்லை' : 'Official ward boundaries pending publication'})`;
                         return (
                           <option key={z.id} value={optionValue}>
                             {optionLabel}
@@ -659,7 +658,7 @@ export default function ComplaintFormModal({
                       })
                     ) : (
                       <option value="General Municipal Area">
-                        {lang === 'ta' ? 'à®ªà¯Šà®¤à¯ à®¨à®•à®°à®¾à®Ÿà¯à®šà®¿ à®ªà®•à¯à®¤à®¿ (à®µà®¾à®°à¯à®Ÿà¯ à®µà¯†à®³à®¿à®¯à®¿à®Ÿà®ªà¯à®ªà®Ÿà®µà®¿à®²à¯à®²à¯ˆ)' : 'General Municipal Area (Ward pending publication)'}
+                        {lang === 'ta' ? 'பொது நகராட்சி பகுதி (வார்டு வெளியிடப்படவில்லை)' : 'General Municipal Area (Ward pending publication)'}
                       </option>
                     )}
                   </select>
@@ -852,7 +851,7 @@ export default function ComplaintFormModal({
                     <strong>Location Mode:</strong>{' '}
                     {isGpsDetected ? (
                       <span className="text-emerald-700 font-semibold">
-                        GPS Geotagged (Verified, {accuracyTier} Â±{locationAccuracy}m)
+                        GPS Geotagged (Verified, {accuracyTier} ±{locationAccuracy}m)
                       </span>
                     ) : latitude && longitude ? (
                       <span className="text-navy-800 font-semibold">
@@ -876,7 +875,7 @@ export default function ComplaintFormModal({
                   </span>
                   {(citizenName || citizenPhone || citizenEmail) && (
                     <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      âœ“ Session Pre-filled
+                      ✓ Session Pre-filled
                     </span>
                   )}
                 </div>
@@ -928,7 +927,7 @@ export default function ComplaintFormModal({
               type="button"
               onClick={() => setStep(step - 1)}
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors min-h-[44px]"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors min-h-[40px]"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>{t.backBtn || 'Back'}</span>
@@ -938,9 +937,9 @@ export default function ComplaintFormModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2.5 rounded-lg text-slate-600 hover:text-slate-900 font-semibold text-xs transition-colors min-h-[44px] flex items-center justify-center"
+              className="px-4 py-2 rounded-lg text-slate-600 hover:text-slate-900 font-semibold text-xs transition-colors min-h-[40px]"
             >
-              {lang === 'ta' ? 'à®°à®¤à¯à®¤à¯' : 'Cancel'}
+              {lang === 'ta' ? 'ரத்து' : 'Cancel'}
             </button>
           )}
 
@@ -948,7 +947,7 @@ export default function ComplaintFormModal({
             <button
               type="button"
               onClick={handleNextStep}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-saffron hover:bg-saffron-dark text-white font-semibold text-xs shadow-sm transition-colors min-h-[44px]"
+              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-saffron hover:bg-saffron-dark text-white font-semibold text-xs shadow-sm transition-colors min-h-[40px]"
             >
               <span>{t.continueBtn || 'Next Step'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -958,7 +957,7 @@ export default function ComplaintFormModal({
               type="button"
               onClick={handleSubmitFinal}
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-saffron hover:bg-saffron-dark text-white font-semibold text-xs shadow-sm transition-colors disabled:opacity-50 min-h-[44px]"
+              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-saffron hover:bg-saffron-dark text-white font-semibold text-xs shadow-sm transition-colors disabled:opacity-50 min-h-[40px]"
             >
               {isSubmitting ? (
                 <>

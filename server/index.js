@@ -571,7 +571,7 @@ app.get('/api/geo/corporations', async (req, res) => {
 app.get('/api/geo/hierarchy', async (req, res) => {
   res.json({
     state: 'Tamil Nadu',
-    state_ta: 'à®¤à®®à®¿à®´à¯à®¨à®¾à®Ÿà¯',
+    state_ta: 'தமிழ்நாடு',
     total_districts: TAMIL_NADU_DISTRICTS.length,
     districts: TAMIL_NADU_DISTRICTS
   });
@@ -953,7 +953,7 @@ app.post('/api/auth/citizen/register-with-otp', async (req, res) => {
 
     res.cookie('civic_citizen_token', token, getCookieOptions());
 
-    await createNotification('citizen', citizen.id, null, 'Welcome to CivicResolve', `à®µà®£à®•à¯à®•à®®à¯ ${citizen.name}! Your citizen portal account is verified and ready.`);
+    await createNotification('citizen', citizen.id, null, 'Welcome to CivicResolve', `வணக்கம் ${citizen.name}! Your citizen portal account is verified and ready.`);
 
     return res.status(201).json({
       success: true,
@@ -1450,7 +1450,7 @@ app.get('/api/complaints/track/:refId', optionalCitizenAuth, async (req, res) =>
     }
 
     const parsed = parseComplaint(complaint, isAuthorized);
-    res.json({ ...parsed, complaint: parsed });
+    res.json(Object.assign({}, parsed, { complaint: parsed }));
   } catch (err) {
     console.error('Error tracking complaint:', err);
     res.status(500).json({ error: 'Failed to track complaint' });
@@ -1522,7 +1522,7 @@ app.get('/api/complaints/:id', optionalCitizenAuth, async (req, res) => {
     }
 
     const parsed = parseComplaint(complaint, isAuthorized);
-    res.json({ ...parsed, complaint: parsed });
+    res.json(Object.assign({}, parsed, { complaint: parsed }));
   } catch (err) {
     console.error('Error fetching complaint details:', err);
     res.status(500).json({ error: 'Failed to fetch complaint details' });
@@ -1850,7 +1850,6 @@ app.post(['/api/complaints/:id/feedback', '/api/complaints/:id/rate'], optionalC
       const phoneMatch = complaint.citizen_phone && (complaint.citizen_phone.replace(/\D/g, '') === cred.replace(/\D/g, ''));
       if (emailMatch || phoneMatch) isOwner = true;
     }
-
     if (!isOwner) {
       return res.status(403).json({ error: 'Access denied: Only the citizen who registered this grievance can submit feedback.' });
     }
@@ -1898,7 +1897,6 @@ app.post('/api/complaints/:id/appeal', optionalCitizenAuth, async (req, res) => 
       const phoneMatch = complaint.citizen_phone && (complaint.citizen_phone.replace(/\D/g, '') === cred.replace(/\D/g, ''));
       if (emailMatch || phoneMatch) isOwner = true;
     }
-
     if (!isOwner) {
       return res.status(403).json({ error: 'Access denied: Only the citizen who registered this grievance can request an appeal / reopening.' });
     }

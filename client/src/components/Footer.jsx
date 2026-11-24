@@ -105,11 +105,11 @@ export default function Footer({ onNavigate, onOpenSubmit, _lang = 'en' }) {
         {/* Legal Disclaimer Box */}
         <div className="mt-8 pt-8 border-t border-navy-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-[11px] text-slate-400">
           <p>
-            Â© {new Date().getFullYear()} CivicResolve â€” Citizen Grievance Redressal Platform. Built for transparent civic governance.
+            © {new Date().getFullYear()} CivicResolve — Citizen Grievance Redressal Platform. Built for transparent civic governance.
           </p>
           <div className="flex items-center gap-4 text-slate-400">
             <span>PII Masking Guaranteed</span>
-            <span>â€¢</span>
+            <span>•</span>
             <span>Statutory SLA Tracking</span>
           </div>
         </div>

@@ -156,52 +156,45 @@ export default function AdminDashboard({
 
       {/* Admin Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div className="flex items-start gap-3.5 sm:gap-4">
-          <img
-            src="/civicresolve-logo.png"
-            alt="CivicResolve Logo"
-            className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-sm flex-shrink-0 mt-0.5"
-          />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-                Municipal Administration Console
-              </h1>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300">
-                {adminUser?.designation || 'Zonal Officer Session'}
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+              Municipal Administration Console
+            </h1>
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300">
+              {adminUser?.designation || 'Zonal Officer Session'}
+            </span>
+            {adminUser?.district && (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-navy-50 text-navy-800 border border-navy-200">
+                {adminUser.district}
               </span>
-              {adminUser?.district && (
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-navy-50 text-navy-800 border border-navy-200">
-                  {adminUser.district}
-                </span>
-              )}
-              {stats?.isDemoData ? (
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                  Demonstration Data
-                </span>
-              ) : total > 0 ? (
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  Live Database Data
-                </span>
-              ) : (
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                  No Data Available
-                </span>
-              )}
-            </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Logged in as <strong className="text-slate-900 font-semibold">{adminUser?.name || 'Administrator'}</strong> ({adminUser?.email || 'admin@civicresolve.gov'})
-            </p>
+            )}
+            {stats?.isDemoData ? (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                Demonstration Data
+              </span>
+            ) : total > 0 ? (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Live Database Data
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                No Data Available
+              </span>
+            )}
           </div>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Logged in as <strong className="text-slate-900 font-semibold">{adminUser?.name || 'Administrator'}</strong> ({adminUser?.email || 'admin@civicresolve.gov'})
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-3">
           <button
             onClick={onRefresh}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-colors min-h-[44px]"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
             <span>Sync Telemetry</span>
@@ -210,7 +203,7 @@ export default function AdminDashboard({
           {onLogout && (
             <button
               onClick={onLogout}
-              className="px-3.5 py-2.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold border border-slate-200 transition-colors min-h-[44px]"
+              className="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold border border-slate-200 transition-colors"
             >
               Sign Out
             </button>
@@ -408,8 +401,8 @@ export default function AdminDashboard({
             {filteredComplaints.length === 0 ? (
               <div className="py-10 text-center text-slate-500 text-xs px-4">
                 {complaints.length === 0
-                  ? (lang === 'ta' ? 'à®®à®©à¯ à®ªà®¤à®¿à®µà¯à®•à®³à¯ à®Žà®¤à¯à®µà¯à®®à¯ à®‡à®²à¯à®²à¯ˆ.' : 'No verified grievance records are available yet.')
-                  : (lang === 'ta' ? 'à®¤à¯‡à®Ÿà®²à¯à®•à¯à®•à¯ à®à®±à¯à®ª à®®à®©à¯à®•à¯à®•à®³à¯ à®‡à®²à¯à®²à¯ˆ.' : 'No grievance records match the current filters.')}
+                  ? (lang === 'ta' ? 'மனு பதிவுகள் எதுவும் இல்லை.' : 'No verified grievance records are available yet.')
+                  : (lang === 'ta' ? 'தேடலுக்கு ஏற்ப மனுக்கள் இல்லை.' : 'No grievance records match the current filters.')}
               </div>
             ) : (
               filteredComplaints.map((c) => (
@@ -426,12 +419,12 @@ export default function AdminDashboard({
                         c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
                         c.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
                         c.status === 'Assigned' ? 'bg-indigo-100 text-indigo-800' : 'bg-amber-100 text-amber-800'
-                      }`}>â— {c.status}</span>
+                      }`}>● {c.status}</span>
                     </div>
                   </div>
                   <div>
                     <h4 className="font-semibold text-slate-900 text-xs line-clamp-2">{c.title}</h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5">{c.category} â€¢ {c.district || 'Chennai'} {c.ward ? `â€¢ ${c.ward}` : ''}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">{c.category} • {c.district || 'Chennai'} {c.ward ? `• ${c.ward}` : ''}</p>
                   </div>
                   <div className="text-[11px] text-slate-600 flex flex-wrap justify-between gap-1 pt-1 border-t border-slate-50">
                     <span className="truncate max-w-[180px]">{c.department}</span>
@@ -477,8 +470,8 @@ export default function AdminDashboard({
                   <tr>
                     <td colSpan="7" className="py-12 text-center text-slate-500 text-xs">
                       {complaints.length === 0
-                        ? (lang === 'ta' ? 'à®®à®©à¯ à®ªà®¤à®¿à®µà¯à®•à®³à¯ à®Žà®¤à¯à®µà¯à®®à¯ à®‡à®²à¯à®²à¯ˆ.' : 'No verified grievance records are available yet.')
-                        : (lang === 'ta' ? 'à®¤à¯‡à®Ÿà®²à¯à®•à¯à®•à¯ à®à®±à¯à®ª à®®à®©à¯à®•à¯à®•à®³à¯ à®‡à®²à¯à®²à¯ˆ.' : 'No grievance records match the current filters.')}
+                        ? (lang === 'ta' ? 'மனு பதிவுகள் எதுவும் இல்லை.' : 'No verified grievance records are available yet.')
+                        : (lang === 'ta' ? 'தேடலுக்கு ஏற்ப மனுக்கள் இல்லை.' : 'No grievance records match the current filters.')}
                     </td>
                   </tr>
                 ) : (
@@ -498,7 +491,7 @@ export default function AdminDashboard({
                         <span className="text-[11px] text-slate-500">{c.category}</span>
                         {c.is_appealed ? (
                           <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 text-[9px] font-bold border border-rose-200">
-                            {lang === 'ta' ? 'à®®à®±à¯à®†à®¯à¯à®µà¯ à®•à¯‹à®°à®ªà¯à®ªà®Ÿà¯à®Ÿà®¤à¯' : 'Citizen Appeal'}
+                            {lang === 'ta' ? 'மறுஆய்வு கோரப்பட்டது' : 'Citizen Appeal'}
                           </span>
                         ) : null}
                       </td>
@@ -726,51 +719,7 @@ export default function AdminDashboard({
               Notification Audit & Delivery History <span className="tabular-nums">({notificationLogs.length})</span>
             </h3>
 
-            {/* Mobile Cards for Notification Logs (< md) */}
-            <div className="md:hidden divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden">
-              {loadingLogs ? (
-                <div className="py-8 text-center text-slate-400 text-xs">Loading delivery telemetry...</div>
-              ) : notificationLogs.length === 0 ? (
-                <div className="py-8 text-center text-slate-400 text-xs">No notification logs recorded yet.</div>
-              ) : (
-                notificationLogs.map((log) => (
-                  <div key={log.id} className="p-3.5 bg-white space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold uppercase text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[10px]">
-                        {log.channel}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                        log.status === 'sent' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                        log.status === 'sending' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                        'bg-rose-100 text-rose-800 border border-rose-200'
-                      }`}>
-                        {log.status}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-600">
-                      <div><strong>Recipient:</strong> <span className="font-mono">{log.recipient}</span></div>
-                      <div><strong>Event:</strong> {log.event_type} {log.ref_id && `(${log.ref_id})`}</div>
-                      <div className="text-slate-400 text-[10px] pt-1">
-                        {new Date(log.created_at).toLocaleString('en-IN', { timeStyle: 'short', dateStyle: 'short' })}
-                      </div>
-                    </div>
-                    {log.status === 'failed' && (
-                      <button
-                        onClick={() => handleRetryLog(log.id)}
-                        disabled={retryingLogId === log.id}
-                        className="w-full py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs inline-flex items-center justify-center gap-1 transition-colors min-h-[44px]"
-                      >
-                        <RotateCcw className={`w-3.5 h-3.5 ${retryingLogId === log.id ? 'animate-spin' : ''}`} />
-                        <span>Retry Delivery</span>
-                      </button>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Desktop Table (>= md) */}
-            <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200">
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider border-b border-slate-200 text-[11px]">
                   <tr>

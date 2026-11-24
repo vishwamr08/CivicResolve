@@ -86,17 +86,11 @@ export default function PublicDashboard({
             <div className="flex items-center gap-3">
               <button
                 onClick={onBack}
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white transition-colors"
                 title="Return to Home"
-                aria-label="Return to Home"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <img
-                src="/civicresolve-logo.png"
-                alt="CivicResolve Logo"
-                className="w-10 h-10 object-contain drop-shadow-sm flex-shrink-0"
-              />
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">

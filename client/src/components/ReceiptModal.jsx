@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import {
-  CheckCircle2, Printer, Copy, Check, X,
+  CheckCircle2, Printer, Copy, Check, X, ShieldCheck,
   MapPin, Calendar, Clock, Building2, User, ArrowRight
 } from 'lucide-react';
 import { translations } from '../data/translations';
@@ -51,11 +51,9 @@ export default function ReceiptModal({
         {/* Top Header */}
         <div className="bg-navy-950 text-white px-6 py-4 border-b border-navy-900 flex items-center justify-between print:bg-white print:text-navy-950 print:border-b-2 print:border-navy-950">
           <div className="flex items-center gap-3">
-            <img
-              src="/civicresolve-logo.png"
-              alt="CivicResolve Logo"
-              className="w-10 h-10 object-contain drop-shadow-sm flex-shrink-0"
-            />
+            <div className="w-9 h-9 rounded-lg bg-navy-900 border border-navy-800 flex items-center justify-center text-saffron print:border-navy-950 print:text-navy-950">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-base sm:text-lg tracking-tight">CivicResolve</span>
@@ -64,7 +62,7 @@ export default function ReceiptModal({
                 </span>
               </div>
               <p className="text-xs text-slate-300 print:text-slate-600">
-                {lang === 'ta' ? 'à®•à¯à®Ÿà®¿à®®à®•à¯à®•à®³à¯ à®•à¯à®±à¯ˆà®¤à¯€à®°à¯à®ªà¯à®ªà¯ à®°à®šà¯€à®¤à¯' : 'Public Grievance Acknowledgement Slip'}
+                {lang === 'ta' ? 'குடிமக்கள் குறைதீர்ப்பு ரசீது' : 'Public Grievance Acknowledgement Slip'}
               </p>
             </div>
           </div>
@@ -149,7 +147,7 @@ export default function ReceiptModal({
                 <span className="text-[10px] uppercase font-semibold text-slate-500 block">Jurisdiction (District & Ward)</span>
                 <span className="font-semibold text-slate-800 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                  {complaint.district || 'Chennai'}{complaint.ward ? ` â€¢ ${complaint.ward}` : ''}
+                  {complaint.district || 'Chennai'}{complaint.ward ? ` • ${complaint.ward}` : ''}
                 </span>
               </div>
               <div className="p-3 space-y-0.5">
@@ -200,7 +198,7 @@ export default function ReceiptModal({
           {/* Acknowledgement Footer */}
           <div className="text-[11px] text-slate-500 bg-slate-100 p-3 rounded-lg border border-slate-200 text-center leading-normal">
             <p className="font-semibold text-slate-700">
-              CivicResolve â€” Citizen Grievance Redressal
+              CivicResolve — Citizen Grievance Redressal
             </p>
             <p className="text-[10px] text-slate-500 mt-0.5">
               This acknowledgement is generated electronically upon submission. Guaranteed turnaround enforced by automated escalation timers.

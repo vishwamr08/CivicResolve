@@ -58,7 +58,7 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200/90 shadow-lg overflow-hidden animate-in fade-in duration-200">
         {/* Card Header */}
-        <div className="bg-[#0f2040] px-6 sm:px-8 py-8 text-white text-center border-b border-navy-900 relative">
+        <div className="bg-navy-950 px-8 py-8 text-white text-center border-b border-navy-900 relative">
           <img
             src="/civicresolve-logo.png"
             alt="CivicResolve Logo"
@@ -86,7 +86,7 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
             >
               Super Admin
             </button>
-            <span className="text-slate-300">â€¢</span>
+            <span className="text-slate-300">•</span>
             <button
               type="button"
               onClick={() => handleQuickFill('gcc.officer@civicresolve.gov')}
@@ -134,7 +134,7 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
               <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type={showPassword ? 'text' : 'password'}
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="••••••••••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
@@ -155,7 +155,7 @@ export default function AdminLogin({ onLoginSuccess, onCancel }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-sm text-white bg-navy-900 hover:bg-navy-950 shadow-sm transition-colors disabled:opacity-60 cursor-pointer mt-2 min-h-[44px]"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-sm text-white bg-navy-900 hover:bg-navy-950 shadow-sm transition-colors disabled:opacity-60 cursor-pointer mt-2"
           >
             {loading ? (
               <>

@@ -97,11 +97,11 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-white rounded-2xl max-w-3xl w-full border border-slate-200 shadow-xl overflow-hidden my-auto animate-in fade-in duration-200 max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-3xl w-full border border-slate-200 shadow-xl overflow-hidden my-8 animate-in fade-in duration-200 max-h-[92vh] flex flex-col">
 
         {/* Header */}
-        <div className="bg-navy-950 px-4 sm:px-6 py-3.5 sm:py-4 text-white flex items-center justify-between border-b border-navy-900 flex-shrink-0">
+        <div className="bg-navy-950 px-6 py-4 text-white flex items-center justify-between border-b border-navy-900 flex-shrink-0">
           <div className="flex items-center gap-3">
             <img
               src="/civicresolve-logo.png"
@@ -113,7 +113,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
                 <span className="font-mono text-xs font-bold text-saffron bg-navy-900 px-2 py-0.5 rounded border border-saffron/30 tabular-nums">
                   {complaint.ref_id}
                 </span>
-                <span className="text-[11px] sm:text-xs uppercase font-semibold text-slate-300">
+                <span className="text-xs uppercase font-semibold text-slate-300">
                   Municipal Action & Task Desk
                 </span>
               </div>
@@ -126,8 +126,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-navy-900 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="Close manage modal"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-900 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -400,12 +399,12 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-3">
+              <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={onClose}
                   disabled={isSaving}
-                  className="px-4 py-2.5 rounded-lg text-slate-600 hover:text-navy-950 font-semibold text-xs min-h-[44px] flex items-center justify-center"
+                  className="px-4 py-2 rounded-lg text-slate-600 hover:text-navy-950 font-semibold text-xs"
                 >
                   Cancel
                 </button>
@@ -413,7 +412,7 @@ export default function AdminManageModal({ complaint, isOpen, onClose, onSave, l
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-navy-900 hover:bg-navy-950 text-white font-semibold text-xs shadow-sm disabled:opacity-50 transition-colors min-h-[44px]"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy-900 hover:bg-navy-950 text-white font-semibold text-xs shadow-sm disabled:opacity-50 transition-colors"
                 >
                   {isSaving ? (
                     <>

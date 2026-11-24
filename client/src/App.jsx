@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import LandingPage from './components/LandingPage';
 import Footer from './components/Footer';
-import { Loader2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { getApiUrl } from './config/api';
 
 // Code-split secondary dashboards, views, and modals to minimize initial page JS bundle
@@ -37,12 +37,9 @@ function ViewSkeleton() {
         <div className="h-24 bg-slate-100 border border-slate-200/80 rounded-xl"></div>
       </div>
       <div className="h-72 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-center">
-        <div className="flex flex-col items-center gap-2 text-slate-500 text-xs font-medium">
-          <img src="/civicresolve-logo.png" alt="CivicResolve Logo" className="w-8 h-8 object-contain animate-pulse" />
-          <div className="flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin text-[#f47920]" />
-            <span>Loading CivicResolve...</span>
-          </div>
+        <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
+          <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+          <span>Loading module...</span>
         </div>
       </div>
     </div>
@@ -127,7 +124,7 @@ export default function App() {
       setIsCitizenAuthOpen(true);
       showToast(
         lang === 'ta'
-          ? 'à®®à®©à¯ à®šà®®à®°à¯à®ªà¯à®ªà®¿à®•à¯à®• à®•à¯à®Ÿà®¿à®®à®•à¯à®•à®³à¯ à®•à®£à®•à¯à®•à®¿à®²à¯ à®‰à®³à¯à®¨à¯à®´à¯ˆà®¯à®µà¯à®®à¯ à®…à®²à¯à®²à®¤à¯ à®ªà®¤à®¿à®µà¯ à®šà¯†à®¯à¯à®¯à®µà¯à®®à¯.'
+          ? 'மனு சமர்ப்பிக்க குடிமக்கள் கணக்கில் உள்நுழையவும் அல்லது பதிவு செய்யவும்.'
           : 'Please sign in or register a citizen account to submit a grievance.',
         'info'
       );
@@ -243,37 +240,22 @@ export default function App() {
     let pollCount = 0;
     const maxPolls = 8;
     let pollTimer = null;
-    let isProbing = false;
 
     const wakingTimer = setTimeout(() => {
       if (!cancelled) setIsServerWaking(true);
     }, 2000);
 
     const probeAndPoll = async () => {
-      if (isProbing || cancelled) return;
-      isProbing = true;
-      try {
-        const ok = await fetchData();
-        clearTimeout(wakingTimer);
-        if (ok) {
-          if (!cancelled) {
-            setIsServerWaking(false);
-            setError(null);
-          }
-        } else if (!cancelled && pollCount < maxPolls) {
-          setIsServerWaking(true);
-          pollCount++;
-          pollTimer = setTimeout(probeAndPoll, 3500);
-        } else if (!cancelled) {
-          setIsServerWaking(false);
-          setError(
-            lang === 'ta'
-              ? 'à®šà®¿à®µà®¿à®•à¯à®°à®¿à®šà®¾à®²à¯à®µà¯ à®šà¯‡à®µà¯ˆà®¯à®•à®®à¯ à®¤à®±à¯à®ªà¯‹à®¤à¯ à®‡à®£à¯ˆà®•à¯à®• à®®à¯à®Ÿà®¿à®¯à®µà®¿à®²à¯à®²à¯ˆ. à®¤à®¯à®µà¯à®šà¯†à®¯à¯à®¤à¯ à®®à¯€à®£à¯à®Ÿà¯à®®à¯ à®®à¯à®¯à®±à¯à®šà®¿à®•à¯à®•à®µà¯à®®à¯.'
-              : 'Unable to connect to CivicResolve services. Please tap Retry to reconnect.'
-          );
-        }
-      } finally {
-        isProbing = false;
+      const ok = await fetchData();
+      clearTimeout(wakingTimer);
+      if (ok) {
+        if (!cancelled) setIsServerWaking(false);
+      } else if (!cancelled && pollCount < maxPolls) {
+        setIsServerWaking(true);
+        pollCount++;
+        pollTimer = setTimeout(probeAndPoll, 4000);
+      } else if (!cancelled) {
+        setIsServerWaking(false);
       }
     };
 
@@ -284,7 +266,7 @@ export default function App() {
       clearTimeout(wakingTimer);
       if (pollTimer) clearTimeout(pollTimer);
     };
-  }, [fetchData, lang]);
+  }, [fetchData]);
 
   // Fetch complaints on-demand when navigating to tabs that require individual complaints
   useEffect(() => {
@@ -350,7 +332,7 @@ export default function App() {
     setCitizenUser(citizen);
     if (token) localStorage.setItem('civic_citizen_token', token);
     if (citizen) localStorage.setItem('civic_citizen_user', JSON.stringify(citizen));
-    showToast(lang === 'ta' ? `à®µà®£à®•à¯à®•à®®à¯, ${citizen?.name || 'à®•à¯à®Ÿà®¿à®®à®•à®©à¯'}!` : `Welcome back, ${citizen?.name || 'Citizen'}!`, 'success');
+    showToast(lang === 'ta' ? `வணக்கம், ${citizen?.name || 'குடிமகன்'}!` : `Welcome back, ${citizen?.name || 'Citizen'}!`, 'success');
 
     // If citizen was trying to submit a grievance, seamlessly resume submission
     if (pendingSubmitCategory) {
@@ -543,16 +525,11 @@ export default function App() {
         </div>
       )}
 
-      {/* Cloud Cold-Start Branded Loading Experience */}
+      {/* Cloud Cold-Start Transparent Waking Banner */}
       {isServerWaking && (
-        <div className="bg-[#0f2040] text-white border-b border-navy-900 px-4 py-2.5 text-xs sm:text-sm font-medium flex items-center justify-center gap-2.5 shadow-sm transition-all animate-in fade-in">
-          <img
-            src="/civicresolve-logo.png"
-            alt="CivicResolve Logo"
-            className="w-5 h-5 object-contain flex-shrink-0 animate-pulse"
-          />
-          <Loader2 className="w-4 h-4 animate-spin text-[#f47920] flex-shrink-0" />
-          <span>{lang === 'ta' ? 'à®šà®¿à®µà®¿à®•à¯à®°à®¿à®šà®¾à®²à¯à®µà¯ à®à®±à¯à®±à®ªà¯à®ªà®Ÿà¯à®•à®¿à®±à®¤à¯...' : 'Loading CivicResolve...'}</span>
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 transition-all">
+          <Loader2 className="w-4 h-4 animate-spin text-amber-700 flex-shrink-0" />
+          <span>CivicResolve Application Server is waking from standby (standard cloud spin-up, typically 15–25 seconds). Services will be ready momentarily.</span>
         </div>
       )}
 
@@ -560,37 +537,19 @@ export default function App() {
       <main id="main-content" role="main" tabIndex="-1" className="flex-1 outline-none">
         {loading ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-            <img
-              src="/civicresolve-logo.png"
-              alt="CivicResolve Logo"
-              className="w-14 h-14 object-contain animate-pulse mb-1"
-            />
-            <div className="flex items-center gap-2 text-slate-700">
-              <Loader2 className="w-5 h-5 animate-spin text-[#f47920]" />
-              <p className="text-xs sm:text-sm font-semibold">
-                {lang === 'ta' ? 'à®šà®¿à®µà®¿à®•à¯à®°à®¿à®šà®¾à®²à¯à®µà¯ à®à®±à¯à®±à®ªà¯à®ªà®Ÿà¯à®•à®¿à®±à®¤à¯...' : 'Loading CivicResolve...'}
-              </p>
-            </div>
+            <Loader2 className="w-8 h-8 animate-spin text-navy-900" />
+            <p className="text-xs font-medium text-slate-600">Loading CivicResolve Telemetry...</p>
           </div>
         ) : error ? (
-          <div className="max-w-md mx-auto my-16 p-6 bg-white border border-slate-200 rounded-2xl shadow-md text-center space-y-3">
-            <img
-              src="/civicresolve-logo.png"
-              alt="CivicResolve Logo"
-              className="w-12 h-12 object-contain mx-auto"
-            />
-            <h3 className="font-bold text-slate-900 text-sm">
-              {lang === 'ta' ? 'à®šà¯‡à®µà¯ˆà®¯à®• à®‡à®£à¯ˆà®ªà¯à®ªà¯ à®…à®±à®¿à®µà®¿à®ªà¯à®ªà¯' : 'Backend Connection Notice'}
-            </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              {error}
-            </p>
+          <div className="max-w-md mx-auto my-16 p-5 bg-rose-50 border border-rose-200 rounded-xl text-center space-y-2.5">
+            <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
+            <h3 className="font-bold text-rose-900 text-sm">Backend Connection Notice</h3>
+            <p className="text-xs text-rose-700">{error}</p>
             <button
-              onClick={() => { setError(null); fetchData(); }}
-              className="mt-3 px-5 py-2.5 bg-[#1a3c6e] hover:bg-[#15305a] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors min-h-[44px] inline-flex items-center justify-center gap-2"
+              onClick={fetchData}
+              className="mt-2 px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-lg transition-colors"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>{lang === 'ta' ? 'à®®à¯€à®£à¯à®Ÿà¯à®®à¯ à®‡à®£à¯ˆà®•à¯à®• à®®à¯à®¯à®²à¯à®•' : 'Retry Connection'}</span>
+              Retry Connection
             </button>
           </div>
         ) : (

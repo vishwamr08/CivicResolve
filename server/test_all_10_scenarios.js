@@ -8,7 +8,7 @@ let server = null;
 
 async function runAll10Scenarios() {
   console.log('================================================================================');
-  console.log('  CIVICRESOLVE â€” 10 MASTER END-TO-END VERIFICATION SCENARIOS');
+  console.log('  CIVICRESOLVE — 10 MASTER END-TO-END VERIFICATION SCENARIOS');
   console.log('  Municipal AI Grievance Management System (Tamil Nadu)');
   console.log('================================================================================\n');
 
@@ -23,8 +23,7 @@ async function runAll10Scenarios() {
     console.log(`[Test Server] Started embedded server on ${BASE_URL}\n`);
   }
 
-  try {
-    let passedScenarios = 0;
+  let passedScenarios = 0;
 
   // --------------------------------------------------------------------------
   // SCENARIO 1: Citizen Registration, Welcome Notification & Profile Settings
@@ -50,7 +49,7 @@ async function runAll10Scenarios() {
   if (!regRes.ok) throw new Error(`Scenario 1 Failed (Registration): ${regData.error}`);
   const citizenToken = regData.token;
   const citizenId = regData.citizen.id;
-  console.log(`  âœ“ Registered Citizen: "${regData.citizen.name}" (ID: ${citizenId})`);
+  console.log(`  ✓ Registered Citizen: "${regData.citizen.name}" (ID: ${citizenId})`);
 
   // Verify welcome notification logged in notification_logs
   const profileRes = await fetch(`${BASE_URL}/api/citizen/profile`, {
@@ -58,7 +57,7 @@ async function runAll10Scenarios() {
   });
   const profileData = await profileRes.json();
   if (!profileRes.ok) throw new Error(`Scenario 1 Failed (Profile): ${profileData.error}`);
-  console.log(`  âœ“ Citizen Profile Verified: Email: ${profileData.citizen.email}, District: ${profileData.citizen.district}`);
+  console.log(`  ✓ Citizen Profile Verified: Email: ${profileData.citizen.email}, District: ${profileData.citizen.district}`);
 
   // Update preferences
   const updatePrefRes = await fetch(`${BASE_URL}/api/citizen/profile`, {
@@ -77,7 +76,7 @@ async function runAll10Scenarios() {
   });
   const updatedData = await updatePrefRes.json();
   if (!updatePrefRes.ok) throw new Error(`Scenario 1 Failed (Update Profile): ${updatedData.error}`);
-  console.log(`  âœ“ Updated Citizen Preferences: WhatsApp notifications active = ${updatedData.citizen.whatsapp_notifications}`);
+  console.log(`  ✓ Updated Citizen Preferences: WhatsApp notifications active = ${updatedData.citizen.whatsapp_notifications}`);
   passedScenarios++;
   console.log('  --> Scenario 1 PASSED\n');
 
@@ -108,10 +107,10 @@ async function runAll10Scenarios() {
   const subData = await subRes.json();
   if (!subRes.ok) throw new Error(`Scenario 2 Failed (Submission): ${subData.error}`);
   const complaint = subData.complaint;
-  console.log(`  âœ“ Grievance Created! Ref ID: ${complaint.ref_id}`);
-  console.log(`  âœ“ AI Priority: ${complaint.priority} (Confidence: ${complaint.confidence_score}%)`);
-  console.log(`  âœ“ Assigned Department: ${complaint.department}`);
-  console.log(`  âœ“ Target SLA: ${complaint.sla_hours} hrs (Deadline: ${complaint.sla_deadline})`);
+  console.log(`  ✓ Grievance Created! Ref ID: ${complaint.ref_id}`);
+  console.log(`  ✓ AI Priority: ${complaint.priority} (Confidence: ${complaint.confidence_score}%)`);
+  console.log(`  ✓ Assigned Department: ${complaint.department}`);
+  console.log(`  ✓ Target SLA: ${complaint.sla_hours} hrs (Deadline: ${complaint.sla_deadline})`);
   passedScenarios++;
   console.log('  --> Scenario 2 PASSED\n');
 
@@ -125,9 +124,9 @@ async function runAll10Scenarios() {
   if (!publicTrackRes.ok) throw new Error(`Scenario 3 Failed (Track): ${publicTrackData.error}`);
   const maskedComplaint = publicTrackData.complaint;
 
-  console.log(`  âœ“ Public view citizen_name: "${maskedComplaint.citizen_name}" (PII Masked: ${maskedComplaint.isMasked})`);
-  console.log(`  âœ“ Public view citizen_phone: "${maskedComplaint.citizen_phone}"`);
-  console.log(`  âœ“ Public view citizen_email: "${maskedComplaint.citizen_email}"`);
+  console.log(`  ✓ Public view citizen_name: "${maskedComplaint.citizen_name}" (PII Masked: ${maskedComplaint.isMasked})`);
+  console.log(`  ✓ Public view citizen_phone: "${maskedComplaint.citizen_phone}"`);
+  console.log(`  ✓ Public view citizen_email: "${maskedComplaint.citizen_email}"`);
   if (!maskedComplaint.citizen_name.includes('*') && maskedComplaint.citizen_name === 'Kavitha R.') {
     throw new Error('Scenario 3 Failed: Raw citizen name exposed to unauthenticated public tracker!');
   }
@@ -140,7 +139,7 @@ async function runAll10Scenarios() {
   });
   const verifyAccessData = await verifyAccessRes.json();
   if (!verifyAccessRes.ok) throw new Error(`Scenario 3 Failed (Verify Access): ${verifyAccessData.error}`);
-  console.log(`  âœ“ Ownership Verified! Unmasked Citizen: "${verifyAccessData.complaint.citizen_name}" | Phone: "${verifyAccessData.complaint.citizen_phone}"`);
+  console.log(`  ✓ Ownership Verified! Unmasked Citizen: "${verifyAccessData.complaint.citizen_name}" | Phone: "${verifyAccessData.complaint.citizen_phone}"`);
   passedScenarios++;
   console.log('  --> Scenario 3 PASSED\n');
 
@@ -159,7 +158,7 @@ async function runAll10Scenarios() {
   const adminData = await adminLoginRes.json();
   if (!adminLoginRes.ok) throw new Error(`Scenario 4 Failed (Admin Login): ${adminData.error}`);
   const adminToken = adminData.token;
-  console.log(`  âœ“ Admin Authenticated: ${adminData.admin.name} (Role: ${adminData.admin.role})`);
+  console.log(`  ✓ Admin Authenticated: ${adminData.admin.name} (Role: ${adminData.admin.role})`);
 
   // Assign department and designated field officer
   const assignRes = await fetch(`${BASE_URL}/api/complaints/${complaint.id}/manage`, {
@@ -178,7 +177,7 @@ async function runAll10Scenarios() {
   });
   const assignData = await assignRes.json();
   if (!assignRes.ok) throw new Error(`Scenario 4 Failed (Assign): ${assignData.error}`);
-  console.log(`  âœ“ Assigned Officer: "${assignData.complaint.assigned_officer}" | Status: ${assignData.complaint.status}`);
+  console.log(`  ✓ Assigned Officer: "${assignData.complaint.assigned_officer}" | Status: ${assignData.complaint.status}`);
   passedScenarios++;
   console.log('  --> Scenario 4 PASSED\n');
 
@@ -192,7 +191,7 @@ async function runAll10Scenarios() {
   });
   const tasksData = await tasksRes.json();
   if (!tasksRes.ok) throw new Error(`Scenario 5 Failed (Tasks): ${tasksData.error}`);
-  console.log(`  âœ“ Officer Task Desk Loaded: ${tasksData.counts.all} total assigned, ${tasksData.counts.inProgress} in progress`);
+  console.log(`  ✓ Officer Task Desk Loaded: ${tasksData.counts.all} total assigned, ${tasksData.counts.inProgress} in progress`);
 
   // 5b: Officer submits inspection and action report
   const reportRes = await fetch(`${BASE_URL}/api/officer/tasks/${complaint.id}/report`, {
@@ -210,7 +209,7 @@ async function runAll10Scenarios() {
   });
   const reportData = await reportRes.json();
   if (!reportRes.ok) throw new Error(`Scenario 5 Failed (Report): ${reportData.error}`);
-  console.log(`  âœ“ Officer Report Recorded: "${reportData.complaint.resolution_remarks.slice(0, 50)}..."`);
+  console.log(`  ✓ Officer Report Recorded: "${reportData.complaint.resolution_remarks.slice(0, 50)}..."`);
   passedScenarios++;
   console.log('  --> Scenario 5 PASSED\n');
 
@@ -232,7 +231,7 @@ async function runAll10Scenarios() {
   });
   const certData = await certRes.json();
   if (!certRes.ok) throw new Error(`Scenario 6 Failed (Certify): ${certData.error}`);
-  console.log(`  âœ“ Case Formally Certified & Resolved! Status: ${certData.complaint.status}`);
+  console.log(`  ✓ Case Formally Certified & Resolved! Status: ${certData.complaint.status}`);
   passedScenarios++;
   console.log('  --> Scenario 6 PASSED\n');
 
@@ -255,7 +254,7 @@ async function runAll10Scenarios() {
   });
   const rateData = await rateRes.json();
   if (!rateRes.ok) throw new Error(`Scenario 7 Failed (Rate): ${rateData.error}`);
-  console.log(`  âœ“ Citizen Rating Saved: ${rateData.complaint.citizen_rating} / 5 stars`);
+  console.log(`  ✓ Citizen Rating Saved: ${rateData.complaint.citizen_rating} / 5 stars`);
 
   // 7b: Citizen files an appeal to reopen
   const appealRes = await fetch(`${BASE_URL}/api/complaints/${complaint.id}/appeal`, {
@@ -271,7 +270,7 @@ async function runAll10Scenarios() {
   });
   const appealData = await appealRes.json();
   if (!appealRes.ok) throw new Error(`Scenario 7 Failed (Appeal): ${appealData.error}`);
-  console.log(`  âœ“ Appeal Filed Successfully! Complaint Status: ${appealData.complaint.status} (Is Appealed: ${appealData.complaint.is_appealed})`);
+  console.log(`  ✓ Appeal Filed Successfully! Complaint Status: ${appealData.complaint.status} (Is Appealed: ${appealData.complaint.is_appealed})`);
   passedScenarios++;
   console.log('  --> Scenario 7 PASSED\n');
 
@@ -285,7 +284,7 @@ async function runAll10Scenarios() {
   });
   const logsData = await logsRes.json();
   if (!logsRes.ok) throw new Error(`Scenario 8 Failed (Logs): ${logsData.error}`);
-  console.log(`  âœ“ Notification Logs Retrieved: ${logsData.total} events recorded in audit log`);
+  console.log(`  ✓ Notification Logs Retrieved: ${logsData.total} events recorded in audit log`);
   if (logsData.logs && logsData.logs.length > 0) {
     const latest = logsData.logs[0];
     console.log(`    Latest Notification: [${latest.channel.toUpperCase()}] Event: ${latest.event_type} | Status: ${latest.status} | Recipient: ${latest.recipient}`);
@@ -303,7 +302,7 @@ async function runAll10Scenarios() {
     })
   });
   const testEmailData = await testEmailRes.json();
-  console.log(`  âœ“ SMTP Diagnostic Tool: Success=${testEmailData.success} | Message: "${testEmailData.message || testEmailData.error}"`);
+  console.log(`  ✓ SMTP Diagnostic Tool: Success=${testEmailData.success} | Message: "${testEmailData.message || testEmailData.error}"`);
   passedScenarios++;
   console.log('  --> Scenario 8 PASSED\n');
 
@@ -335,7 +334,7 @@ async function runAll10Scenarios() {
   if (hasKavithaComplaint) {
     throw new Error('Scenario 9 Failed: Citizen B can see Citizen A\'s confidential grievances!');
   }
-  console.log(`  âœ“ Privacy Isolation Confirmed: Citizen B sees ${myComplaintsB.count} grievances; Citizen A's case is strictly isolated.`);
+  console.log(`  ✓ Privacy Isolation Confirmed: Citizen B sees ${myComplaintsB.count} grievances; Citizen A's case is strictly isolated.`);
 
   // Citizen B attempts to call admin management endpoint -> must be 403 Forbidden
   const unauthorizedAdminRes = await fetch(`${BASE_URL}/api/complaints/${complaint.id}/manage`, {
@@ -349,7 +348,7 @@ async function runAll10Scenarios() {
   if (unauthorizedAdminRes.status !== 403) {
     throw new Error(`Scenario 9 Failed: Unauthorized citizen call expected 403 but got ${unauthorizedAdminRes.status}`);
   }
-  console.log(`  âœ“ Role-Based Access Control Confirmed: Citizen token barred from Admin endpoints with HTTP 403 Forbidden.`);
+  console.log(`  ✓ Role-Based Access Control Confirmed: Citizen token barred from Admin endpoints with HTTP 403 Forbidden.`);
   passedScenarios++;
   console.log('  --> Scenario 9 PASSED\n');
 
@@ -359,18 +358,18 @@ async function runAll10Scenarios() {
   console.log('>>> [Scenario 10] Groq Cloud AI Health & Fallback Safety Verification');
   const healthRes = await fetch(`${BASE_URL}/api/health`);
   const health = await healthRes.json();
-  console.log(`  âœ“ Backend Health: ${health.status} | Mode: ${health.mode}`);
-  console.log(`  âœ“ AI Provider: ${health.aiProvider} | AI Model: ${health.aiModel || 'llama-3.3-70b-versatile'}`);
-  console.log(`  âœ“ Groq API Key Configured: ${health.aiConfigured}`);
+  console.log(`  ✓ Backend Health: ${health.status} | Mode: ${health.mode}`);
+  console.log(`  ✓ AI Provider: ${health.aiProvider} | AI Model: ${health.aiModel || 'llama-3.3-70b-versatile'}`);
+  console.log(`  ✓ Groq API Key Configured: ${health.aiConfigured}`);
 
   // Submit a Tamil language input to test linguistic and fallback capability
   const formTa = new FormData();
-  formTa.append('title', 'à®šà®¾à®²à¯ˆ à®¨à®Ÿà¯à®µà¯‡ à®†à®ªà®¤à¯à®¤à®¾à®© à®•à¯à®´à®¿ - à®µà®¿à®ªà®¤à¯à®¤à¯ à®…à®ªà®¾à®¯à®®à¯');
-  formTa.append('description', 'à®®à¯†à®¯à®¿à®©à¯ à®°à¯‹à®Ÿà¯à®Ÿà®¿à®²à¯ à®ªà®¾à®¤à®¾à®³ à®šà®¾à®•à¯à®•à®Ÿà¯ˆ à®®à¯‚à®Ÿà®¿ à®‰à®Ÿà¯ˆà®¨à¯à®¤à¯ 4 à®…à®Ÿà®¿ à®†à®´ à®•à¯à®´à®¿ à®‰à®°à¯à®µà®¾à®•à®¿à®¯à¯à®³à¯à®³à®¤à¯.');
+  formTa.append('title', 'சாலை நடுவே ஆபத்தான குழி - விபத்து அபாயம்');
+  formTa.append('description', 'மெயின் ரோட்டில் பாதாள சாக்கடை மூடி உடைந்து 4 அடி ஆழ குழி உருவாகியுள்ளது.');
   formTa.append('category', 'Road Damage');
   formTa.append('location', 'Cross Road, Simmakkal, Madurai');
   formTa.append('district', 'Madurai');
-  formTa.append('citizen_name', 'à®®à¯à®°à¯à®•à®©à¯ à®šà¯à®¨à¯à®¤à®°à®®à¯');
+  formTa.append('citizen_name', 'முருகன் சுந்தரம்');
   formTa.append('citizen_email', citizenBData.citizen.email);
 
   const subTaRes = await fetch(`${BASE_URL}/api/complaints`, {
@@ -380,7 +379,7 @@ async function runAll10Scenarios() {
   });
   const subTaData = await subTaRes.json();
   if (!subTaRes.ok) throw new Error(`Scenario 10 Failed (Tamil Submission): ${subTaData.error}`);
-  console.log(`  âœ“ Multilingual Input Accepted! Ref ID: ${subTaData.complaint.ref_id}`);
+  console.log(`  ✓ Multilingual Input Accepted! Ref ID: ${subTaData.complaint.ref_id}`);
   console.log(`    Category: ${subTaData.complaint.category} | Priority: ${subTaData.complaint.priority} | Department: ${subTaData.complaint.department}`);
   passedScenarios++;
   console.log('  --> Scenario 10 PASSED\n');
@@ -392,19 +391,11 @@ async function runAll10Scenarios() {
   console.log(`  CONGRATULATIONS! ALL ${passedScenarios} / 10 SCENARIOS PASSED WITH ZERO FAILURES!`);
   console.log('  CivicResolve is 100% functional, secure, and production ready for Hackathon!');
   console.log('================================================================================');
-  } finally {
-    if (server) server.close();
-    const db = require('./db');
-    if (db && typeof db.close === 'function') {
-      try { db.close(); } catch {}
-    }
-    if (testDbIsolation) {
-      testDbIsolation.cleanup();
-    }
-  }
 }
 
-runAll10Scenarios().catch(err => {
-  console.error('\nâŒ SCENARIO RUN FAILED:', err.message);
+runAll10Scenarios().then(() => {
+  process.exit(0);
+}).catch(err => {
+  console.error('\n❌ SCENARIO RUN FAILED:', err.message);
   process.exit(1);
 });

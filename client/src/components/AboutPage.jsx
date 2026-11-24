@@ -42,18 +42,18 @@ export default function AboutPage({
           />
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded text-xs font-semibold bg-navy-900 text-slate-300 border border-navy-800 tracking-wide mx-auto">
             <ShieldCheck className="w-4 h-4 text-saffron-400" />
-            <span>{lang === 'ta' ? 'à®…à®®à¯ˆà®ªà¯à®ªà®¿à®©à¯ à®¨à¯‹à®•à¯à®•à®®à¯' : 'Mission & Institutional Framework'}</span>
+            <span>{lang === 'ta' ? 'அமைப்பின் நோக்கம்' : 'Mission & Institutional Framework'}</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white max-w-3xl mx-auto">
             {lang === 'ta'
-              ? 'à®šà®¿à®µà®¿à®•à¯à®°à®¿à®šà®¾à®²à¯à®µà¯: à®•à¯à®Ÿà®¿à®®à¯ˆà®¤à¯ à®¤à¯€à®°à¯à®µà¯ à®¤à®³à®®à¯'
+              ? 'சிவிக்ரிசால்வ்: குடிமைத் தீர்வு தளம்'
               : 'About CivicResolve'}
           </h1>
 
           <p className="text-slate-300 text-xs sm:text-sm max-w-2xl mx-auto leading-relaxed">
             {lang === 'ta'
-              ? 'à®¤à®®à®¿à®´à¯à®¨à®¾à®Ÿà¯ à®®à¯à®´à¯à®µà®¤à¯à®®à¯ à®µà¯†à®³à®¿à®ªà¯à®ªà®Ÿà¯ˆà®¯à®¾à®©, à®¤à®¾à®®à®¤à®®à®¿à®²à¯à®²à®¾à®¤ à®®à®±à¯à®±à¯à®®à¯ à®ªà¯Šà®±à¯à®ªà¯à®ªà¯à®®à®¿à®•à¯à®• à®®à®•à¯à®•à®³à¯ à®•à¯à®±à¯ˆà®¤à¯€à®°à¯à®•à¯à®•à¯à®®à¯ à®¤à®³à®®à¯.'
+              ? 'தமிழ்நாடு முழுவதும் வெளிப்படையான, தாமதமில்லாத மற்றும் பொறுப்புமிக்க மக்கள் குறைதீர்க்கும் தளம்.'
               : 'An independent civic technology platform engineered to bring algorithmic transparency, guaranteed turnaround times, and verified field resolutions to municipal administration.'}
           </p>
 
@@ -62,14 +62,14 @@ export default function AboutPage({
               onClick={() => onOpenSubmit && onOpenSubmit('Road Damage')}
               className="px-5 py-2.5 rounded-lg bg-saffron-500 hover:bg-saffron-600 text-navy-950 font-semibold text-xs shadow-xs transition-colors flex items-center gap-2"
             >
-              <span>{lang === 'ta' ? 'à®®à®©à¯ à®ªà®¤à®¿à®µà¯' : 'Report Civic Issue'}</span>
+              <span>{lang === 'ta' ? 'மனு பதிவு' : 'Report Civic Issue'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
             <button
               onClick={() => onGoToTracker && onGoToTracker()}
               className="px-5 py-2.5 rounded-lg bg-navy-900 hover:bg-navy-950 text-white border border-navy-800 font-medium text-xs transition-colors"
             >
-              <span>{lang === 'ta' ? 'à®®à®©à¯ à®•à®£à¯à®•à®¾à®£à®¿à®•à¯à®•' : 'Track Existing Issue'}</span>
+              <span>{lang === 'ta' ? 'மனு கண்காணிக்க' : 'Track Existing Issue'}</span>
             </button>
           </div>
         </div>

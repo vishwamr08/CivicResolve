@@ -134,35 +134,28 @@ export default function OfficerPortal({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
       {/* Officer Header Card */}
-      <div className="bg-[#0f2040] rounded-xl p-5 sm:p-8 text-white shadow-sm border border-navy-850 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-start gap-3.5 sm:gap-4">
-          <img
-            src="/civicresolve-logo.png"
-            alt="CivicResolve Logo"
-            className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-sm flex-shrink-0 mt-0.5"
-          />
-          <div className="space-y-1.5 min-w-0">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold border border-saffron/30">
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>Field Duty & Inspection Desk</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              {adminUser?.name || 'Municipal Officer'}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1">
-              <span>Role: <strong className="text-white font-semibold">{adminUser?.designation || 'Zonal Officer'}</strong></span>
-              <span>â€¢</span>
-              <span>Department: <strong className="text-white font-semibold">{adminUser?.department || 'Municipal Operations'}</strong></span>
-              <span>â€¢</span>
-              <span>Jurisdiction: <strong className="text-white font-semibold">{adminUser?.district || 'Statewide'}</strong></span>
-            </p>
+      <div className="bg-[#0f2040] rounded-xl p-6 sm:p-8 text-white shadow-sm border border-navy-850 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold border border-saffron/30">
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>Field Duty & Inspection Desk</span>
           </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            {adminUser?.name || 'Municipal Officer'}
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span>Role: <strong className="text-white font-semibold">{adminUser?.designation || 'Zonal Officer'}</strong></span>
+            <span>•</span>
+            <span>Department: <strong className="text-white font-semibold">{adminUser?.department || 'Municipal Operations'}</strong></span>
+            <span>•</span>
+            <span>Jurisdiction: <strong className="text-white font-semibold">{adminUser?.district || 'Statewide'}</strong></span>
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-3">
           <button
             onClick={fetchTasks}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg border border-slate-600 hover:bg-navy-900 text-slate-200 text-xs font-semibold transition-colors min-h-[44px]"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-600 hover:bg-navy-900 text-slate-200 text-xs font-semibold transition-colors"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Sync Tasks</span>
@@ -170,7 +163,7 @@ export default function OfficerPortal({
           {onLogout && (
             <button
               onClick={onLogout}
-              className="px-3.5 py-2.5 rounded-lg bg-navy-900 hover:bg-rose-950 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition-colors min-h-[44px]"
+              className="px-3.5 py-2 rounded-lg bg-navy-900 hover:bg-rose-950 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition-colors"
             >
               Sign Out
             </button>
@@ -329,9 +322,9 @@ export default function OfficerPortal({
                   <p className="text-xs text-slate-500 flex flex-wrap items-center gap-x-4 gap-y-1">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      {task.location} ({task.district} â€¢ {task.ward})
+                      {task.location} ({task.district} • {task.ward})
                     </span>
-                    <span>â€¢</span>
+                    <span>•</span>
                     <span className="flex items-center gap-1 text-slate-600 font-medium">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
                       SLA: <strong className="font-mono tabular-nums">{task.sla_hours || 24}h</strong> ({task.sla?.remainingHours || 0}h remaining)
