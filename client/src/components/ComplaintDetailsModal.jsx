@@ -1,26 +1,31 @@
 import React from 'react';
-import { 
-  X, MapPin, Calendar, CheckCircle2, Wrench 
+import {
+  X, MapPin, Calendar, CheckCircle2, Wrench
 } from 'lucide-react';
 import TrackingTimeline from './TrackingTimeline';
 import { getAssetUrl } from '../config/api';
 
-export default function ComplaintDetailsModal({ 
-  complaint, 
-  isOpen, 
-  onClose, 
-  onManageComplaint 
+export default function ComplaintDetailsModal({
+  complaint,
+  isOpen,
+  onClose,
+  onManageComplaint
 }) {
   if (!isOpen || !complaint) return null;
 
   const isAiSuccess = complaint.ai_status === 'SUCCESS';
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl max-w-3xl w-full border border-slate-200 shadow-xl overflow-hidden my-8 animate-in fade-in duration-200 max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-white rounded-xl max-w-3xl w-full border border-slate-200 shadow-xl overflow-hidden my-auto animate-in fade-in duration-200 max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="bg-navy-950 px-6 py-4 text-white flex items-center justify-between border-b border-navy-900 flex-shrink-0">
-          <div className="flex items-center gap-3">
+        <div className="bg-navy-950 px-4 sm:px-6 py-3.5 sm:py-4 text-white flex items-center justify-between border-b border-navy-900 flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <img
+              src="/civicresolve-logo.png"
+              alt="CivicResolve Logo"
+              className="w-7 h-7 sm:w-8 sm:h-8 object-contain flex-shrink-0 drop-shadow-sm"
+            />
             <span className="font-mono text-xs font-bold text-navy-950 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200 tabular-nums">
               {complaint.ref_id}
             </span>
@@ -36,14 +41,15 @@ export default function ComplaintDetailsModal({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-900 transition-colors"
+            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-navy-900 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label="Close details"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Scrollable Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 sm:space-y-6 flex-1">
           {/* Title & Metadata */}
           <div>
             <h2 className="text-xl font-bold text-slate-900 leading-snug">
@@ -63,7 +69,7 @@ export default function ComplaintDetailsModal({
                   </span>
                 )}
               </span>
-              <span>•</span>
+              <span>â€¢</span>
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 <span className="tabular-nums">{new Date(complaint.created_at).toLocaleString('en-IN')}</span>

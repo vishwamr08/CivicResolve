@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   ShieldCheck, ArrowLeft, RefreshCw, Filter } from 'lucide-react';
-import { 
-  ResponsiveContainer, BarChart, Bar, PieChart, Pie, 
+import {
+  ResponsiveContainer, BarChart, Bar, PieChart, Pie,
   Cell, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
 import { translations } from '../data/translations';
@@ -10,8 +10,8 @@ import { getApiUrl } from '../config/api';
 
 const COLORS = ['#1a3c6e', '#f47920', '#138808', '#2a5298', '#64748b', '#0d9488', '#d97706', '#475569'];
 
-export default function PublicDashboard({ 
-  onBack, 
+export default function PublicDashboard({
+  onBack,
   _onOpenSubmit,
   stats: initialStats,
   lang = 'en'
@@ -77,20 +77,26 @@ export default function PublicDashboard({
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 pb-16 font-sans">
-      
+
       {/* Top Banner */}
       <section className="bg-gradient-to-b from-[#0a1628] to-[#1a3c6e] text-white pt-8 pb-14 px-4 sm:px-6 lg:px-8 border-b border-navy-900">
         <div className="max-w-7xl mx-auto space-y-6">
-          
+
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <button
                 onClick={onBack}
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white transition-colors"
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 title="Return to Home"
+                aria-label="Return to Home"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
+              <img
+                src="/civicresolve-logo.png"
+                alt="CivicResolve Logo"
+                className="w-10 h-10 object-contain drop-shadow-sm flex-shrink-0"
+              />
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
@@ -184,10 +190,10 @@ export default function PublicDashboard({
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 space-y-6">
-        
+
         {/* Row 1: Charts (Category Pie & Department Bar) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
+
           {/* Chart 1: Grievance Categories Breakdown */}
           <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
@@ -238,7 +244,7 @@ export default function PublicDashboard({
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip 
+                    <Tooltip
                       formatter={(val, name) => [`${val} grievances`, name]}
                       contentStyle={{ borderRadius: '8px', fontSize: '12px', borderColor: '#e2e8f0', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}
                     />
@@ -286,15 +292,15 @@ export default function PublicDashboard({
                 <ResponsiveContainer width="100%" height="100%" aria-hidden="true">
                   <BarChart data={departmentData} margin={{ top: 10, right: 10, left: -20, bottom: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-25} 
-                      textAnchor="end" 
-                      interval={0} 
-                      tick={{ fontSize: 10, fill: '#64748b' }} 
+                    <XAxis
+                      dataKey="name"
+                      angle={-25}
+                      textAnchor="end"
+                      interval={0}
+                      tick={{ fontSize: 10, fill: '#64748b' }}
                     />
                     <YAxis tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
-                    <Tooltip 
+                    <Tooltip
                       formatter={(val, name, item) => [`${val} grievances`, item.payload.fullName]}
                       contentStyle={{ borderRadius: '8px', fontSize: '12px', borderColor: '#e2e8f0', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}
                     />
@@ -313,7 +319,7 @@ export default function PublicDashboard({
 
         {/* Row 2: Status Breakdown & Active Announcements */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
+
           {/* Resolution Pipeline Card */}
           <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 lg:col-span-1">
             <div>

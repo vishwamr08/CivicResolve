@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, Lock, Mail, Phone, 
-  CheckCircle2, AlertCircle, Loader2, 
-  ShieldCheck, ArrowRight, RotateCw
+import {
+  X, Lock, Mail, Phone,
+  CheckCircle2, AlertCircle, Loader2,
+  ArrowRight, RotateCw
 } from 'lucide-react';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
 import { translations } from '../data/translations';
 import { getApiUrl } from '../config/api';
 
-export default function CitizenAuthModal({ 
-  isOpen, 
-  onClose, 
+export default function CitizenAuthModal({
+  isOpen,
+  onClose,
   onSuccess,
   initialMode = 'otp', // 'otp' or 'password'
   lang = 'en'
@@ -73,7 +73,7 @@ export default function CitizenAuthModal({
 
     const clean = mobileNumber.replace(/\D/g, '').slice(-10);
     if (!/^[6-9]\d{9}$/.test(clean)) {
-      setError(t.invalidPhoneMsg || (lang === 'ta' ? 'சரியான 10 இலக்க இந்திய அலைபேசி எண்ணை உள்ளிடவும்.' : 'Please enter a valid 10-digit Indian mobile number starting with 6-9.'));
+      setError(t.invalidPhoneMsg || (lang === 'ta' ? 'à®šà®°à®¿à®¯à®¾à®© 10 à®‡à®²à®•à¯à®• à®‡à®¨à¯à®¤à®¿à®¯ à®…à®²à¯ˆà®ªà¯‡à®šà®¿ à®Žà®£à¯à®£à¯ˆ à®‰à®³à¯à®³à®¿à®Ÿà®µà¯à®®à¯.' : 'Please enter a valid 10-digit Indian mobile number starting with 6-9.'));
       return;
     }
 
@@ -114,7 +114,7 @@ export default function CitizenAuthModal({
     const cleanOtp = enteredOtp.trim();
 
     if (cleanOtp.length !== 6) {
-      setError(t.invalidOtpMsg || (lang === 'ta' ? 'சரியான 6 இலக்க OTP எண்ணை உள்ளிடவும்.' : 'Please enter the complete 6-digit verification code.'));
+      setError(t.invalidOtpMsg || (lang === 'ta' ? 'à®šà®°à®¿à®¯à®¾à®© 6 à®‡à®²à®•à¯à®• OTP à®Žà®£à¯à®£à¯ˆ à®‰à®³à¯à®³à®¿à®Ÿà®µà¯à®®à¯.' : 'Please enter the complete 6-digit verification code.'));
       return;
     }
 
@@ -137,7 +137,7 @@ export default function CitizenAuthModal({
         setIsNewUser(true);
         setRegistrationToken(data.registrationToken || '');
         setOtpStep('complete-profile');
-        setSuccessMsg(t.otpVerifiedSuccess || (lang === 'ta' ? 'அலைபேசி எண் சரிபார்க்கப்பட்டது! விவரங்களை பூர்த்தி செய்யவும்.' : 'Mobile verified! Please provide your name and municipal details to complete setup.'));
+        setSuccessMsg(t.otpVerifiedSuccess || (lang === 'ta' ? 'à®…à®²à¯ˆà®ªà¯‡à®šà®¿ à®Žà®£à¯ à®šà®°à®¿à®ªà®¾à®°à¯à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿà®¤à¯! à®µà®¿à®µà®°à®™à¯à®•à®³à¯ˆ à®ªà¯‚à®°à¯à®¤à¯à®¤à®¿ à®šà¯†à®¯à¯à®¯à®µà¯à®®à¯.' : 'Mobile verified! Please provide your name and municipal details to complete setup.'));
       } else {
         // Returning citizen -> immediately establish authenticated session
         if (onSuccess) {
@@ -158,12 +158,12 @@ export default function CitizenAuthModal({
     setError('');
 
     if (!fullName.trim()) {
-      setError(t.nameRequiredMsg || (lang === 'ta' ? 'உங்கள் பெயரை உள்ளிடவும்.' : 'Citizen full name is required.'));
+      setError(t.nameRequiredMsg || (lang === 'ta' ? 'à®‰à®™à¯à®•à®³à¯ à®ªà¯†à®¯à®°à¯ˆ à®‰à®³à¯à®³à®¿à®Ÿà®µà¯à®®à¯.' : 'Citizen full name is required.'));
       return;
     }
 
     if (!consentTerms) {
-      setError(t.consentRequiredMsg || (lang === 'ta' ? 'விதிமுறைகளுக்கு ஒப்புதல் அளிக்க வேண்டும்.' : 'Please accept the citizen charter terms.'));
+      setError(t.consentRequiredMsg || (lang === 'ta' ? 'à®µà®¿à®¤à®¿à®®à¯à®±à¯ˆà®•à®³à¯à®•à¯à®•à¯ à®’à®ªà¯à®ªà¯à®¤à®²à¯ à®…à®³à®¿à®•à¯à®• à®µà¯‡à®£à¯à®Ÿà¯à®®à¯.' : 'Please accept the citizen charter terms.'));
       return;
     }
 
@@ -242,23 +242,26 @@ export default function CitizenAuthModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh]">
+
         {/* Modal Header */}
-        <div className="bg-navy-950 text-white p-5 border-b border-navy-900 relative">
-          <button 
+        <div className="bg-navy-950 text-white p-4 sm:p-5 border-b border-navy-900 relative">
+          <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-900 transition-colors"
+            className="absolute top-3.5 right-3.5 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-navy-900 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label="Close dialog"
           >
             <X className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-saffron-500/15 text-saffron-400 flex items-center justify-center border border-saffron-500/30">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
+          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3">
+            <img
+              src="/civicresolve-logo.png"
+              alt="CivicResolve Logo"
+              className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md flex-shrink-0"
+            />
+            <div className="min-w-0">
               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-navy-900 text-slate-300 border border-navy-800 mb-1">
                 {t.authModalTitle}
               </div>
@@ -269,11 +272,11 @@ export default function CitizenAuthModal({
           </div>
 
           {/* Auth Method Selector Tabs */}
-          <div className="mt-4 flex bg-navy-900 p-1 rounded-lg text-xs font-medium">
+          <div className="mt-4 flex bg-navy-900 p-1 rounded-lg text-xs font-medium gap-1">
             <button
               type="button"
               onClick={() => { setAuthMethod('otp'); setError(''); }}
-              className={`flex-1 py-1.5 rounded-md transition-colors flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 px-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[44px] ${
                 authMethod === 'otp' ? 'bg-navy-800 text-white shadow-xs font-semibold' : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -283,7 +286,7 @@ export default function CitizenAuthModal({
             <button
               type="button"
               onClick={() => { setAuthMethod('password'); setError(''); }}
-              className={`flex-1 py-1.5 rounded-md transition-colors flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 px-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[44px] ${
                 authMethod === 'password' ? 'bg-navy-800 text-white shadow-xs font-semibold' : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -294,8 +297,8 @@ export default function CitizenAuthModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-4">
-          
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
+
           {error && (
             <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -346,7 +349,7 @@ export default function CitizenAuthModal({
                   <button
                     type="submit"
                     disabled={loading || mobileNumber.length !== 10}
-                    className="w-full py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors shadow-xs"
+                    className="w-full py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors shadow-xs min-h-[44px]"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                     <span>{t.getOtpBtn}</span>
@@ -365,7 +368,7 @@ export default function CitizenAuthModal({
                     <button
                       type="button"
                       onClick={() => setOtpStep('input-phone')}
-                      className="text-xs font-semibold text-navy-900 hover:underline"
+                      className="text-xs font-semibold text-navy-900 hover:underline min-h-[40px] flex items-center"
                     >
                       {t.changeNumber}
                     </button>
@@ -379,10 +382,10 @@ export default function CitizenAuthModal({
                       id="citizen-otp-token"
                       type="text"
                       maxLength="6"
-                      placeholder="• • • • • •"
+                      placeholder="â€¢ â€¢ â€¢ â€¢ â€¢ â€¢"
                       value={enteredOtp}
                       onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
-                      className="w-full text-center tracking-[0.4em] font-mono text-lg py-2 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900"
+                      className="w-full text-center tracking-[0.4em] font-mono text-lg py-2.5 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900 min-h-[44px]"
                       autoFocus
                       required
                       aria-required="true"
@@ -398,7 +401,7 @@ export default function CitizenAuthModal({
                         <button
                           type="button"
                           onClick={handleSendOtp}
-                          className="font-semibold text-navy-900 hover:underline flex items-center gap-1"
+                          className="font-semibold text-navy-900 hover:underline flex items-center gap-1 min-h-[40px]"
                         >
                           <RotateCw className="w-3 h-3" /> {t.resendOtp}
                         </button>
@@ -410,7 +413,7 @@ export default function CitizenAuthModal({
                   <button
                     type="submit"
                     disabled={loading || enteredOtp.length !== 6}
-                    className="w-full py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors shadow-xs"
+                    className="w-full py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors shadow-xs min-h-[44px]"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                     <span>{t.verifyAndSignInBtn}</span>
@@ -513,9 +516,9 @@ export default function CitizenAuthModal({
                   <button
                     type="submit"
                     disabled={loading || !fullName.trim()}
-                    className="w-full py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors shadow-xs"
+                    className="w-full py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors shadow-xs min-h-[44px]"
                   >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <img src="/civicresolve-logo.png" alt="CivicResolve Logo" className="w-4 h-4 object-contain" />}
                     <span>{t.completeSetupBtn}</span>
                   </button>
                 </form>
@@ -540,7 +543,7 @@ export default function CitizenAuthModal({
                     placeholder="citizen@civicresolve.gov"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900"
+                    className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900 min-h-[44px]"
                     required
                     aria-label="Registered email address"
                   />
@@ -558,10 +561,10 @@ export default function CitizenAuthModal({
                   <input
                     id="login-password-input"
                     type="password"
-                    placeholder="••••••••••••"
+                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900"
+                    className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-navy-900 focus:border-navy-900 min-h-[44px]"
                     required
                     aria-label="Account password"
                   />
@@ -571,7 +574,7 @@ export default function CitizenAuthModal({
               <button
                 type="submit"
                 disabled={loading || !loginEmail.trim() || !loginPassword}
-                className="w-full py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors shadow-xs"
+                className="w-full py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors shadow-xs min-h-[44px]"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
                 <span>{t.signIn}</span>
@@ -583,7 +586,7 @@ export default function CitizenAuthModal({
                   onClick={() => { setAuthMethod('otp'); setError(''); }}
                   className="text-xs font-semibold text-navy-900 hover:underline"
                 >
-                  {lang === 'ta' ? 'புதிய குடிமகன்? மொபைல் OTP மூலம் பதிவு செய்க' : 'New Citizen? Register with Mobile OTP'}
+                  {lang === 'ta' ? 'à®ªà¯à®¤à®¿à®¯ à®•à¯à®Ÿà®¿à®®à®•à®©à¯? à®®à¯Šà®ªà¯ˆà®²à¯ OTP à®®à¯‚à®²à®®à¯ à®ªà®¤à®¿à®µà¯ à®šà¯†à®¯à¯à®•' : 'New Citizen? Register with Mobile OTP'}
                 </button>
               </div>
             </form>
@@ -593,7 +596,7 @@ export default function CitizenAuthModal({
 
         {/* Modal Footer Notice */}
         <div className="py-3 px-4 bg-slate-50 border-t border-slate-200 text-center text-[11px] text-slate-500">
-          <span>Protected under Tamil Nadu Municipal Grievance Redressal Architecture • PII Encrypted</span>
+          <span>Protected under Tamil Nadu Municipal Grievance Redressal Architecture â€¢ PII Encrypted</span>
         </div>
 
       </div>

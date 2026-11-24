@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { 
-  PlusCircle, Search, Filter, AlertCircle, Clock, CheckCircle2, 
-  MapPin, ChevronRight, Calendar, 
+import {
+  PlusCircle, Search, Filter, AlertCircle, Clock, CheckCircle2,
+  MapPin, ChevronRight, Calendar,
   Map as MapIcon, List, SearchCheck, Wrench } from 'lucide-react';
 import ComplaintMap from './ComplaintMap';
 import ComplaintTracker from './ComplaintTracker';
 
-export default function CitizenDashboard({ 
-  complaints, 
-  stats, 
-  onOpenSubmit, 
-  onSelectComplaint 
+export default function CitizenDashboard({
+  complaints,
+  stats,
+  onOpenSubmit,
+  onSelectComplaint
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -33,12 +33,12 @@ export default function CitizenDashboard({
   const statuses = ['All', 'Submitted', 'Under Review', 'Assigned', 'In Progress', 'Resolved'];
 
   const filteredComplaints = (complaints || []).filter(c => {
-    const matchesSearch = 
+    const matchesSearch =
       c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.ref_id.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory;
     const matchesStatus = selectedStatus === 'All' || c.status === selectedStatus;
 
@@ -48,25 +48,32 @@ export default function CitizenDashboard({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Welcome & Action Banner */}
-      <div className="bg-[#0f2040] rounded-xl p-6 sm:p-8 text-white shadow-sm relative overflow-hidden border border-navy-850">
+      <div className="bg-[#0f2040] rounded-xl p-5 sm:p-8 text-white shadow-sm relative overflow-hidden border border-navy-850">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold mb-3 border border-saffron/30">
-              <SearchCheck className="w-3.5 h-3.5" />
-              <span>Public Accountability & Tracking Portal</span>
+          <div className="flex items-start gap-3.5 sm:gap-4 max-w-2xl">
+            <img
+              src="/civicresolve-logo.png"
+              alt="CivicResolve Logo"
+              className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-sm flex-shrink-0 mt-1"
+            />
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold mb-2 sm:mb-3 border border-saffron/30">
+                <SearchCheck className="w-3.5 h-3.5" />
+                <span>Public Accountability & Tracking Portal</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                Citizen Grievance Redressal Center
+              </h1>
+              <p className="mt-2 text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Submit community issues with GPS geotagging, track official audit lifecycles with Reference IDs, and view neighborhood hazard resolution maps.
+              </p>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Citizen Grievance Redressal Center
-            </h1>
-            <p className="mt-2 text-sm text-slate-300 leading-relaxed">
-              Submit community issues with GPS geotagging, track official audit lifecycles with Reference IDs, and view neighborhood hazard resolution maps.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 flex-shrink-0 w-full sm:w-auto">
             <button
               onClick={() => setShowTrackerSection(!showTrackerSection)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-slate-200 bg-navy-900 hover:bg-navy-850 border border-slate-700 text-xs transition-colors"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-slate-200 bg-navy-900 hover:bg-navy-850 border border-slate-700 text-xs transition-colors min-h-[44px]"
             >
               <SearchCheck className="w-4 h-4 text-saffron" />
               <span>{showTrackerSection ? 'Hide Tracker' : 'Track by Ref ID'}</span>
@@ -74,7 +81,7 @@ export default function CitizenDashboard({
 
             <button
               onClick={onOpenSubmit}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-white bg-saffron hover:bg-saffron-dark shadow-sm transition-colors text-xs"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-white bg-saffron hover:bg-saffron-dark shadow-sm transition-colors text-xs min-h-[44px]"
             >
               <PlusCircle className="w-4 h-4 text-white" />
               <span>Submit New Grievance</span>
@@ -228,9 +235,9 @@ export default function CitizenDashboard({
       {/* Main Content Area: Map or List */}
       {viewMode === 'map' ? (
         <div className="space-y-3">
-          <ComplaintMap 
-            complaints={filteredComplaints} 
-            onSelectComplaint={onSelectComplaint} 
+          <ComplaintMap
+            complaints={filteredComplaints}
+            onSelectComplaint={onSelectComplaint}
           />
         </div>
       ) : (
@@ -307,7 +314,7 @@ export default function CitizenDashboard({
                           GPS Geotagged
                         </span>
                       )}
-                      <span>•</span>
+                      <span>â€¢</span>
                       <span className="font-medium text-slate-600">{item.department || item.category}</span>
                     </div>
 
@@ -333,8 +340,8 @@ export default function CitizenDashboard({
                   {/* Footer Meta */}
                   <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
                     <span className="tabular-nums">
-                      {new Date(item.created_at).toLocaleDateString('en-IN', { 
-                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                      {new Date(item.created_at).toLocaleDateString('en-IN', {
+                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                       })}
                     </span>
                     <div className="flex items-center gap-1 font-semibold text-navy-800 group-hover:translate-x-0.5 transition-transform">

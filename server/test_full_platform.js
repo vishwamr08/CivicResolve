@@ -1,22 +1,40 @@
-const BASE_URL = 'http://127.0.0.1:5000';
+const { setupIsolatedTestDb } = require('./test_helper');
+let testDbIsolation = null;
+if (!process.env.BASE_URL) {
+  testDbIsolation = setupIsolatedTestDb('full_platform');
+}
+let BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5000';
+let server = null;
 
 async function runFullPlatformTests() {
   console.log('===============================================================');
-  console.log('  CIVICRESOLVE – FULL TAMIL NADU COMPETITION TEST SUITE       ');
+  console.log('  CIVICRESOLVE â€“ FULL TAMIL NADU COMPETITION TEST SUITE       ');
   console.log('===============================================================\n');
 
+  try {
+    const probe = await fetch(`${BASE_URL}/health`, { signal: AbortSignal.timeout(1000) });
+    if (!probe.ok) throw new Error('Not running');
+  } catch {
+    const app = require('./index');
+    server = app.listen(0);
+    const port = server.address().port;
+    BASE_URL = `http://127.0.0.1:${port}`;
+    console.log(`[Test Server] Started embedded server on ${BASE_URL}`);
+  }
+
+  try {
   // Test 1: Health Check
   console.log('[Test 1] Probing /api/health...');
   const healthRes = await fetch(`${BASE_URL}/api/health`);
   const health = await healthRes.json();
-  console.log('✓ Health Status:', health.status, '| App:', health.app, '| AI Provider:', health.aiProvider);
+  console.log('âœ“ Health Status:', health.status, '| App:', health.app, '| AI Provider:', health.aiProvider);
   if (health.status !== 'healthy') throw new Error('Health check failed');
 
   // Test 2: Geo Endpoints
   console.log('\n[Test 2] Probing Tamil Nadu Geo hierarchy endpoints...');
   const geoRes = await fetch(`${BASE_URL}/api/geo/districts`);
   const geoData = await geoRes.json();
-  console.log(`✓ Districts Loaded: ${geoData.districts.length} Tamil Nadu districts (e.g. ${geoData.districts[0].name} / ${geoData.districts[0].name_ta})`);
+  console.log(`âœ“ Districts Loaded: ${geoData.districts.length} Tamil Nadu districts (e.g. ${geoData.districts[0].name} / ${geoData.districts[0].name_ta})`);
 
   // Test 3: Citizen Authentication
   console.log('\n[Test 3] Testing Citizen Registration & Login...');
@@ -34,7 +52,7 @@ async function runFullPlatformTests() {
   });
   const regData = await regRes.json();
   if (!regRes.ok) throw new Error(`Citizen registration failed: ${regData.error}`);
-  console.log(`✓ Citizen Registered: "${regData.citizen.name}" (ID: ${regData.citizen.id})`);
+  console.log(`âœ“ Citizen Registered: "${regData.citizen.name}" (ID: ${regData.citizen.id})`);
   const citizenToken = regData.token;
 
   // Test 4: Citizen Grievance Submission with TN Ref ID (CR-TN-2026-XXXXXX)
@@ -64,7 +82,7 @@ async function runFullPlatformTests() {
   const submitData = await submitRes.json();
   if (!submitRes.ok) throw new Error(`Submission failed: ${submitData.error}`);
   const complaint = submitData.complaint;
-  console.log(`✓ Grievance registered successfully! Ref ID: ${complaint.ref_id}`);
+  console.log(`âœ“ Grievance registered successfully! Ref ID: ${complaint.ref_id}`);
   console.log(`  Target SLA: ${complaint.sla_hours} hours | Deadline: ${complaint.sla_deadline}`);
   console.log(`  Initial Status: ${complaint.status} | Department: ${complaint.department}`);
 
@@ -85,7 +103,7 @@ async function runFullPlatformTests() {
     body: dupForm
   });
   const dupData = await dupRes.json();
-  console.log(`✓ Duplicate detection output for second report: ${dupData.duplicates ? dupData.duplicates.length : 0} candidate(s) detected`);
+  console.log(`âœ“ Duplicate detection output for second report: ${dupData.duplicates ? dupData.duplicates.length : 0} candidate(s) detected`);
   if (dupData.duplicates && dupData.duplicates.length > 0) {
     console.log(`  Matched Primary Ref: ${dupData.duplicates[0].ref_id} (Similarity: ${dupData.duplicates[0].matchScore}%)`);
   }
@@ -102,7 +120,7 @@ async function runFullPlatformTests() {
   });
   const officerData = await officerLogin.json();
   if (!officerLogin.ok) throw new Error(`Officer login failed: ${officerData.error}`);
-  console.log(`✓ Officer Authenticated: ${officerData.admin.name} | Role: ${officerData.admin.role} | Designation: ${officerData.admin.designation}`);
+  console.log(`âœ“ Officer Authenticated: ${officerData.admin.name} | Role: ${officerData.admin.role} | Designation: ${officerData.admin.designation}`);
   const officerToken = officerData.token;
 
   // Test 7: Officer Assigns Field Officer and Marks In Progress
@@ -121,7 +139,7 @@ async function runFullPlatformTests() {
     })
   });
   const manageData = await manageRes.json();
-  console.log(`✓ Status updated to "${manageData.complaint.status}" by ${manageData.complaint.status_history.slice(-1)[0].actor}`);
+  console.log(`âœ“ Status updated to "${manageData.complaint.status}" by ${manageData.complaint.status_history.slice(-1)[0].actor}`);
 
   // Test 8: Officer Certifies & Resolves Incident with Evidence
   console.log('\n[Test 8] Officer certifies resolution...');
@@ -138,19 +156,22 @@ async function runFullPlatformTests() {
     })
   });
   const resolveData = await resolveRes.json();
-  console.log(`✓ Complaint ${complaint.ref_id} resolved! Remarks: "${resolveData.complaint.resolution_remarks}"`);
+  console.log(`âœ“ Complaint ${complaint.ref_id} resolved! Remarks: "${resolveData.complaint.resolution_remarks}"`);
 
   // Test 9: Citizen Submits Appeal / Reopen Request
   console.log('\n[Test 9] Citizen submits appeal / reopening request...');
   const appealRes = await fetch(`${BASE_URL}/api/complaints/${complaint.id}/appeal`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${citizenToken}`
+    },
     body: JSON.stringify({
       reason: 'Slab placed but alignment is loose and creating gap where two-wheelers can slip. Requesting cementing.'
     })
   });
   const appealData = await appealRes.json();
-  console.log(`✓ Appeal processed: "${appealData.message}"`);
+  console.log(`âœ“ Appeal processed: "${appealData.message}"`);
   console.log(`  Updated Status: ${appealData.complaint.status} | Is Appealed: ${appealData.complaint.is_appealed}`);
 
   // Test 10: Citizen Personal Complaints Privacy Isolation
@@ -159,7 +180,7 @@ async function runFullPlatformTests() {
     headers: { 'Authorization': `Bearer ${citizenToken}` }
   });
   const myComplaints = await myComplaintsRes.json();
-  console.log(`✓ Citizen retrieved personal complaints list: ${myComplaints.count} grievance(s) belonging to ${testEmail}`);
+  console.log(`âœ“ Citizen retrieved personal complaints list: ${myComplaints.count} grievance(s) belonging to ${testEmail}`);
 
   // Test 11: Security Access Control (Citizen attempting Admin API)
   console.log('\n[Test 11] Security Check: Citizen token attempting Officer API...');
@@ -171,13 +192,13 @@ async function runFullPlatformTests() {
     },
     body: JSON.stringify({ status: 'Resolved' })
   });
-  console.log(`✓ Unauthorized access correctly rejected with HTTP ${unauthorizedRes.status} (Forbidden)`);
+  console.log(`âœ“ Unauthorized access correctly rejected with HTTP ${unauthorizedRes.status} (Forbidden)`);
 
   // Test 12: Public Dashboard Stats
   console.log('\n[Test 12] Fetching live public dashboard statistics...');
   const statsRes = await fetch(`${BASE_URL}/api/dashboard/stats`);
   const stats = await statsRes.json();
-  console.log(`✓ Total Complaints: ${stats.totalComplaints}`);
+  console.log(`âœ“ Total Complaints: ${stats.totalComplaints}`);
   console.log(`  Resolution SLA Rate: ${stats.resolutionRate}%`);
   console.log(`  Districts Tracked: ${stats.districtDistribution.length}`);
   console.log(`  Critical Priority Cases: ${stats.criticalComplaints}`);
@@ -185,9 +206,19 @@ async function runFullPlatformTests() {
   console.log('\n===============================================================');
   console.log('  ALL 12 TAMIL NADU COMPETITION WORKFLOW TESTS PASSED!       ');
   console.log('===============================================================\n');
+  } finally {
+    if (server) server.close();
+    const db = require('./db');
+    if (db && typeof db.close === 'function') {
+      try { db.close(); } catch {}
+    }
+    if (testDbIsolation) {
+      testDbIsolation.cleanup();
+    }
+  }
 }
 
 runFullPlatformTests().catch(err => {
-  console.error('\n❌ Platform Test Failed:', err.message);
+  console.error('\nâŒ Platform Test Failed:', err.message);
   process.exit(1);
 });

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  Search, ShieldCheck, Sparkles, CheckCircle2, Clock, AlertTriangle, ArrowRight, 
-  Loader2, Printer, Lock, Unlock 
+import {
+  Search, Sparkles, CheckCircle2, Clock, AlertTriangle, ArrowRight,
+  Loader2, Printer, Lock, Unlock
 } from 'lucide-react';
 import TrackingTimeline from './TrackingTimeline';
 import { getAssetUrl, getApiUrl } from '../config/api';
 import { translations } from '../data/translations';
 
-export default function ComplaintTracker({ 
-  initialRefId = '', 
+export default function ComplaintTracker({
+  initialRefId = '',
   _onSelectComplaint,
   onViewReceipt,
   lang = 'en'
@@ -84,8 +84,8 @@ export default function ComplaintTracker({
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-8 space-y-6 font-sans">
       <div className="max-w-2xl">
-        <span className="text-[#1a3c6e] font-semibold text-xs uppercase tracking-wider flex items-center gap-1.5 mb-1">
-          <ShieldCheck className="w-4 h-4 text-[#f47920]" />
+        <span className="text-[#1a3c6e] font-semibold text-xs uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+          <img src="/civicresolve-logo.png" alt="CivicResolve Logo" className="w-5 h-5 object-contain" />
           <span>{t.trackerBadge}</span>
         </span>
         <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
@@ -107,13 +107,13 @@ export default function ComplaintTracker({
             placeholder={t.refSearchPlaceholder}
             value={refInput}
             onChange={(e) => setRefInput(e.target.value.toUpperCase())}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 font-mono text-xs sm:text-sm uppercase focus:outline-none focus:ring-2 focus:ring-[#1a3c6e] focus:border-[#1a3c6e] bg-slate-50/60"
+            className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 font-mono text-xs sm:text-sm uppercase focus:outline-none focus:ring-2 focus:ring-[#1a3c6e] focus:border-[#1a3c6e] bg-slate-50/60 min-h-[44px]"
           />
         </div>
         <button
           type="submit"
           disabled={loading || !refInput.trim()}
-          className="px-5 py-2.5 rounded-lg font-semibold text-xs text-white bg-[#f47920] hover:bg-[#d96810] disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-sm min-h-[42px]"
+          className="px-5 py-3 rounded-lg font-semibold text-xs text-white bg-[#f47920] hover:bg-[#d96810] disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-sm min-h-[44px]"
         >
           {loading ? (
             <>
@@ -139,7 +139,7 @@ export default function ComplaintTracker({
         <div className="p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-3">
           <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-600" />
           <div>
-            <p className="font-semibold">{lang === 'ta' ? 'தேடல் தோல்வியுற்றது' : 'Lookup Unsuccessful'}</p>
+            <p className="font-semibold">{lang === 'ta' ? 'à®¤à¯‡à®Ÿà®²à¯ à®¤à¯‹à®²à¯à®µà®¿à®¯à¯à®±à¯à®±à®¤à¯' : 'Lookup Unsuccessful'}</p>
             <p>{error}</p>
           </div>
         </div>
@@ -148,7 +148,7 @@ export default function ComplaintTracker({
       {/* Tracking Result View */}
       {c && (
         <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm divide-y divide-slate-100 animate-in fade-in">
-          
+
           {/* Header Card */}
           <div className="p-4 sm:p-6 bg-slate-50/70 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -162,11 +162,11 @@ export default function ComplaintTracker({
                   c.status === 'Assigned' ? 'bg-indigo-100 text-indigo-800' :
                   'bg-amber-100 text-amber-800'
                 }`}>
-                  ● {c.status}
+                  â— {c.status}
                 </span>
                 {c.is_appealed ? (
                   <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-rose-100 text-rose-800 border border-rose-200">
-                    {lang === 'ta' ? 'மறுஆய்வு கோரப்பட்டது' : 'Appealed'}
+                    {lang === 'ta' ? 'à®®à®±à¯à®†à®¯à¯à®µà¯ à®•à¯‹à®°à®ªà¯à®ªà®Ÿà¯à®Ÿà®¤à¯' : 'Appealed'}
                   </span>
                 ) : null}
               </div>
@@ -178,7 +178,7 @@ export default function ComplaintTracker({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onViewReceipt && onViewReceipt(c)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-colors min-h-[40px]"
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-colors min-h-[44px]"
               >
                 <Printer className="w-3.5 h-3.5 text-slate-500" />
                 <span>{t.ackDownloadPdf}</span>
@@ -195,7 +195,7 @@ export default function ComplaintTracker({
                   <strong>{t.unmaskNoticeTitle}:</strong> {t.unmaskNoticeDesc}
                 </span>
               </div>
-              <form onSubmit={handleVerifyOwnership} className="flex items-center gap-2 w-full sm:w-auto">
+              <form onSubmit={handleVerifyOwnership} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <input
                   id="tracker-verify-credential"
                   aria-label={t.credentialInputPlaceholder || 'Registered phone number or email address'}
@@ -203,12 +203,12 @@ export default function ComplaintTracker({
                   placeholder={t.credentialInputPlaceholder}
                   value={verifyCredential}
                   onChange={(e) => setVerifyCredential(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#1a3c6e] w-full sm:w-60"
+                  className="px-3 py-2.5 rounded-lg border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#1a3c6e] w-full sm:w-60 min-h-[44px]"
                 />
                 <button
                   type="submit"
                   disabled={verifying || !verifyCredential.trim()}
-                  className="px-3.5 py-1.5 rounded-lg bg-[#1a3c6e] hover:bg-[#15305a] text-white font-semibold text-xs whitespace-nowrap transition-colors min-h-[36px]"
+                  className="px-4 py-2.5 rounded-lg bg-[#1a3c6e] hover:bg-[#15305a] text-white font-semibold text-xs whitespace-nowrap transition-colors min-h-[44px] flex items-center justify-center"
                 >
                   {verifying ? t.verifyingBtn : t.verifyIdentityBtn}
                 </button>
@@ -226,7 +226,7 @@ export default function ComplaintTracker({
           {isUnlocked && (
             <div className="p-3 bg-emerald-50 text-emerald-800 text-xs flex items-center gap-2 border-b border-emerald-100">
               <Unlock className="w-4 h-4 flex-shrink-0 text-emerald-600" />
-              <span><strong>{lang === 'ta' ? 'அடையாளம் சரிபார்க்கப்பட்டது:' : 'Identity Verified:'}</strong> {lang === 'ta' ? 'முழு தொடர்பு விவரங்கள் திறக்கப்பட்டுள்ளன.' : 'Full citizen case records and feedback actions unlocked.'}</span>
+              <span><strong>{lang === 'ta' ? 'à®…à®Ÿà¯ˆà®¯à®¾à®³à®®à¯ à®šà®°à®¿à®ªà®¾à®°à¯à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿà®¤à¯:' : 'Identity Verified:'}</strong> {lang === 'ta' ? 'à®®à¯à®´à¯ à®¤à¯Šà®Ÿà®°à¯à®ªà¯ à®µà®¿à®µà®°à®™à¯à®•à®³à¯ à®¤à®¿à®±à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿà¯à®³à¯à®³à®©.' : 'Full citizen case records and feedback actions unlocked.'}</span>
             </div>
           )}
 
@@ -239,7 +239,7 @@ export default function ComplaintTracker({
             <div>
               <span className="text-[10px] uppercase font-semibold text-slate-400 block">{t.districtLabel}</span>
               <strong className="text-slate-800 font-semibold mt-0.5 block truncate">
-                {c.district || 'Chennai'} {c.ward ? `• ${c.ward}` : ''}
+                {c.district || 'Chennai'} {c.ward ? `â€¢ ${c.ward}` : ''}
               </strong>
             </div>
             <div>
@@ -252,7 +252,7 @@ export default function ComplaintTracker({
               <span className="text-[10px] uppercase font-semibold text-slate-400 block">{t.slaTargetLabel}</span>
               <strong className="text-[#1a3c6e] font-semibold mt-0.5 flex items-center gap-1 tabular-nums">
                 <Clock className="w-3.5 h-3.5 text-[#f47920]" />
-                {c.sla_hours || 24} {lang === 'ta' ? 'மணிகள்' : 'Hours'} ({c.priority})
+                {c.sla_hours || 24} {lang === 'ta' ? 'à®®à®£à®¿à®•à®³à¯' : 'Hours'} ({c.priority})
               </strong>
             </div>
           </div>
@@ -265,11 +265,11 @@ export default function ComplaintTracker({
             </div>
             <div>
               <span className="text-[10px] uppercase font-semibold text-slate-400 block">{t.citizenPhone}</span>
-              <strong className="text-slate-800 font-mono tabular-nums">{c.citizen_phone || (lang === 'ta' ? 'பாதுகாக்கப்பட்டது' : 'Masked (Privacy Protected)')}</strong>
+              <strong className="text-slate-800 font-mono tabular-nums">{c.citizen_phone || (lang === 'ta' ? 'à®ªà®¾à®¤à¯à®•à®¾à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿà®¤à¯' : 'Masked (Privacy Protected)')}</strong>
             </div>
             <div>
               <span className="text-[10px] uppercase font-semibold text-slate-400 block">{t.citizenEmail}</span>
-              <strong className="text-slate-800 font-mono truncate block">{c.citizen_email || (lang === 'ta' ? 'பாதுகாக்கப்பட்டது' : 'Masked (Privacy Protected)')}</strong>
+              <strong className="text-slate-800 font-mono truncate block">{c.citizen_email || (lang === 'ta' ? 'à®ªà®¾à®¤à¯à®•à®¾à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿà®¤à¯' : 'Masked (Privacy Protected)')}</strong>
             </div>
           </div>
 
@@ -278,17 +278,17 @@ export default function ComplaintTracker({
             <div className="p-4 sm:p-5 bg-emerald-50/60 border-l-4 border-emerald-500 space-y-2 text-xs">
               <h4 className="font-semibold text-emerald-950 flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                {lang === 'ta' ? 'கள தீர்வு அறிக்கை' : 'Field Resolution Report'}
+                {lang === 'ta' ? 'à®•à®³ à®¤à¯€à®°à¯à®µà¯ à®…à®±à®¿à®•à¯à®•à¯ˆ' : 'Field Resolution Report'}
               </h4>
               {c.resolution_remarks && (
                 <p className="text-emerald-900 leading-relaxed">
-                  <strong>{lang === 'ta' ? 'குறிப்புகள்:' : 'Remarks:'}</strong> {c.resolution_remarks}
+                  <strong>{lang === 'ta' ? 'à®•à¯à®±à®¿à®ªà¯à®ªà¯à®•à®³à¯:' : 'Remarks:'}</strong> {c.resolution_remarks}
                 </p>
               )}
               {c.resolution_evidence_url && (
                 <div className="pt-2">
                   <span className="text-[10px] font-semibold text-emerald-800 block uppercase mb-1">
-                    {lang === 'ta' ? 'சீரமைப்பு புகைப்பட ஆதாரம்:' : 'Repair Evidence Photo:'}
+                    {lang === 'ta' ? 'à®šà¯€à®°à®®à¯ˆà®ªà¯à®ªà¯ à®ªà¯à®•à¯ˆà®ªà¯à®ªà®Ÿ à®†à®¤à®¾à®°à®®à¯:' : 'Repair Evidence Photo:'}
                   </span>
                   <img
                     src={getAssetUrl(c.resolution_evidence_url)}

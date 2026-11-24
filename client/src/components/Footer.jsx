@@ -1,18 +1,20 @@
 import React from 'react';
-import { ShieldCheck, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 export default function Footer({ onNavigate, onOpenSubmit, _lang = 'en' }) {
   return (
     <footer className="bg-[#0a1628] text-slate-400 border-t border-navy-800 text-xs font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          
+
           {/* Brand Col */}
           <div className="space-y-3 md:col-span-1">
             <div className="flex items-center gap-2.5 text-white">
-              <div className="w-8 h-8 rounded-lg bg-[#1a3c6e] border border-[#2a5298] flex items-center justify-center font-bold text-white">
-                <ShieldCheck className="w-4 h-4 text-[#f47920]" />
-              </div>
+              <img
+                src="/civicresolve-logo.png"
+                alt="CivicResolve Logo"
+                className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-sm"
+              />
               <span className="font-bold text-lg text-white">
                 Civic<span className="text-[#f47920]">Resolve</span>
               </span>
@@ -103,11 +105,11 @@ export default function Footer({ onNavigate, onOpenSubmit, _lang = 'en' }) {
         {/* Legal Disclaimer Box */}
         <div className="mt-8 pt-8 border-t border-navy-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-[11px] text-slate-400">
           <p>
-            © {new Date().getFullYear()} CivicResolve — Citizen Grievance Redressal Platform. Built for transparent civic governance.
+            Â© {new Date().getFullYear()} CivicResolve â€” Citizen Grievance Redressal Platform. Built for transparent civic governance.
           </p>
           <div className="flex items-center gap-4 text-slate-400">
             <span>PII Masking Guaranteed</span>
-            <span>•</span>
+            <span>â€¢</span>
             <span>Statutory SLA Tracking</span>
           </div>
         </div>

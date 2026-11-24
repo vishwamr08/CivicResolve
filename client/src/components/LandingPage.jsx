@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  AlertTriangle, CheckCircle2, 
-  MapPin, ArrowRight, Zap, Droplets, Trash2, Lightbulb, Activity, Building2, FileText, 
+import {
+  AlertTriangle, CheckCircle2,
+  MapPin, ArrowRight, Zap, Droplets, Trash2, Lightbulb, Activity, Building2, FileText,
   Search, UserCheck, ChevronDown, Eye, Lock, BarChart3, ArrowUpRight, Megaphone, Clock, Loader2
 } from 'lucide-react';
 import { translations } from '../data/translations';
@@ -10,10 +10,10 @@ import { getAssetUrl, getApiUrl } from '../config/api';
 
 const ComplaintMap = React.lazy(() => import('./ComplaintMap'));
 
-export default function LandingPage({ 
-  onOpenSubmit, 
-  onGoToCitizen, 
-  onGoToTracker, 
+export default function LandingPage({
+  onOpenSubmit,
+  onGoToCitizen,
+  onGoToTracker,
   _onGoToAdmin,
   onGoToOfficer,
   onGoToPublicDashboard,
@@ -37,21 +37,21 @@ export default function LandingPage({
     {
       id: 1,
       title: 'Emergency Storm Drain Desilting Drive Across Chennai & Coastal Districts',
-      title_ta: 'சென்னை மற்றும் கடலோர மாவட்டங்களில் அவசர மழைநீர் வடிகால் தூர்வாரும் பணி',
+      title_ta: 'à®šà¯†à®©à¯à®©à¯ˆ à®®à®±à¯à®±à¯à®®à¯ à®•à®Ÿà®²à¯‹à®° à®®à®¾à®µà®Ÿà¯à®Ÿà®™à¯à®•à®³à®¿à®²à¯ à®…à®µà®šà®° à®®à®´à¯ˆà®¨à¯€à®°à¯ à®µà®Ÿà®¿à®•à®¾à®²à¯ à®¤à¯‚à®°à¯à®µà®¾à®°à¯à®®à¯ à®ªà®£à®¿',
       department: 'Greater Chennai Corporation (GCC)',
       priority: 'High'
     },
     {
       id: 2,
       title: 'Underground Drainage Network Replacement in Coimbatore Central Zone',
-      title_ta: 'கோயம்புத்தூர் மத்திய மண்டலத்தில் பாதாள சாக்கடை விரிவாக்கப் பணி',
+      title_ta: 'à®•à¯‹à®¯à®®à¯à®ªà¯à®¤à¯à®¤à¯‚à®°à¯ à®®à®¤à¯à®¤à®¿à®¯ à®®à®£à¯à®Ÿà®²à®¤à¯à®¤à®¿à®²à¯ à®ªà®¾à®¤à®¾à®³ à®šà®¾à®•à¯à®•à®Ÿà¯ˆ à®µà®¿à®°à®¿à®µà®¾à®•à¯à®•à®ªà¯ à®ªà®£à®¿',
       department: 'Coimbatore City Municipal Corporation',
       priority: 'Normal'
     },
     {
       id: 3,
       title: 'LED Luminaire & Feeder Automation Along Madurai Heritage Corridors',
-      title_ta: 'மதுரை பாரம்பரிய பாதைகளில் எல்இடி விளக்குகள் மற்றும் மின் விநியோக மேம்பாடு',
+      title_ta: 'à®®à®¤à¯à®°à¯ˆ à®ªà®¾à®°à®®à¯à®ªà®°à®¿à®¯ à®ªà®¾à®¤à¯ˆà®•à®³à®¿à®²à¯ à®Žà®²à¯à®‡à®Ÿà®¿ à®µà®¿à®³à®•à¯à®•à¯à®•à®³à¯ à®®à®±à¯à®±à¯à®®à¯ à®®à®¿à®©à¯ à®µà®¿à®¨à®¿à®¯à¯‹à®• à®®à¯‡à®®à¯à®ªà®¾à®Ÿà¯',
       department: 'Madurai Municipal Corporation',
       priority: 'Normal'
     }
@@ -91,7 +91,7 @@ export default function LandingPage({
     {
       id: 'Road Damage',
       name: 'Road Damage & Potholes',
-      name_ta: 'சாலை பழுது மற்றும் குழிகள்',
+      name_ta: 'à®šà®¾à®²à¯ˆ à®ªà®´à¯à®¤à¯ à®®à®±à¯à®±à¯à®®à¯ à®•à¯à®´à®¿à®•à®³à¯',
       icon: AlertTriangle,
       sla: '24 Hours',
       dept: 'Highways & Municipal Roads',
@@ -100,7 +100,7 @@ export default function LandingPage({
     {
       id: 'Garbage and Sanitation',
       name: 'Solid Waste & Sanitation',
-      name_ta: 'திடக்கழிவு மற்றும் துப்புரவு',
+      name_ta: 'à®¤à®¿à®Ÿà®•à¯à®•à®´à®¿à®µà¯ à®®à®±à¯à®±à¯à®®à¯ à®¤à¯à®ªà¯à®ªà¯à®°à®µà¯',
       icon: Trash2,
       sla: '12 Hours',
       dept: 'Solid Waste Management',
@@ -109,7 +109,7 @@ export default function LandingPage({
     {
       id: 'Water Leakage',
       name: 'Drinking Water Supply',
-      name_ta: 'குடிநீர் கசிவு மற்றும் விநியோகம்',
+      name_ta: 'à®•à¯à®Ÿà®¿à®¨à¯€à®°à¯ à®•à®šà®¿à®µà¯ à®®à®±à¯à®±à¯à®®à¯ à®µà®¿à®¨à®¿à®¯à¯‹à®•à®®à¯',
       icon: Droplets,
       sla: '12 Hours',
       dept: 'CMWSSB / TWAD Board',
@@ -118,7 +118,7 @@ export default function LandingPage({
     {
       id: 'Drainage & Flooding',
       name: 'Stormwater & Drainage',
-      name_ta: 'மழைநீர் வடிகால் மற்றும் கழிவுநீர்',
+      name_ta: 'à®®à®´à¯ˆà®¨à¯€à®°à¯ à®µà®Ÿà®¿à®•à®¾à®²à¯ à®®à®±à¯à®±à¯à®®à¯ à®•à®´à®¿à®µà¯à®¨à¯€à®°à¯',
       icon: Droplets,
       sla: '24 Hours',
       dept: 'Stormwater Drainage Wing',
@@ -127,7 +127,7 @@ export default function LandingPage({
     {
       id: 'Streetlight',
       name: 'Streetlights & High-Mast',
-      name_ta: 'தெருவிளக்குகள் மற்றும் விளக்கு கம்பங்கள்',
+      name_ta: 'à®¤à¯†à®°à¯à®µà®¿à®³à®•à¯à®•à¯à®•à®³à¯ à®®à®±à¯à®±à¯à®®à¯ à®µà®¿à®³à®•à¯à®•à¯ à®•à®®à¯à®ªà®™à¯à®•à®³à¯',
       icon: Lightbulb,
       sla: '8 Hours',
       dept: 'Public Lighting Division',
@@ -136,7 +136,7 @@ export default function LandingPage({
     {
       id: 'Electricity Hazards',
       name: 'Electricity & Live Wires',
-      name_ta: 'மின்சார ஆபத்துகள்',
+      name_ta: 'à®®à®¿à®©à¯à®šà®¾à®° à®†à®ªà®¤à¯à®¤à¯à®•à®³à¯',
       icon: Zap,
       sla: '4 Hours (Emergency)',
       dept: 'TANGEDCO Distribution',
@@ -145,7 +145,7 @@ export default function LandingPage({
     {
       id: 'Public Health',
       name: 'Public Health & Fogging',
-      name_ta: 'பொது சுகாதாரம் மற்றும் கொசு ஒழிப்பு',
+      name_ta: 'à®ªà¯Šà®¤à¯ à®šà¯à®•à®¾à®¤à®¾à®°à®®à¯ à®®à®±à¯à®±à¯à®®à¯ à®•à¯Šà®šà¯ à®’à®´à®¿à®ªà¯à®ªà¯',
       icon: Activity,
       sla: '24 Hours',
       dept: 'Municipal Health Dept',
@@ -154,7 +154,7 @@ export default function LandingPage({
     {
       id: 'Parks & Encroachments',
       name: 'Parks & Civic Amenities',
-      name_ta: 'பூங்காக்கள் மற்றும் ஆக்கிரமிப்புகள்',
+      name_ta: 'à®ªà¯‚à®™à¯à®•à®¾à®•à¯à®•à®³à¯ à®®à®±à¯à®±à¯à®®à¯ à®†à®•à¯à®•à®¿à®°à®®à®¿à®ªà¯à®ªà¯à®•à®³à¯',
       icon: Building2,
       sla: '48 Hours',
       dept: 'Town Planning & Parks',
@@ -165,11 +165,11 @@ export default function LandingPage({
   const faqs = [
     {
       q: 'What is CivicResolve and how does it assist citizens?',
-      a: 'CivicResolve is Tamil Nadu’s AI-powered municipal grievance redressal platform. It allows citizens to report civic hazards with GPS geotagging and photo evidence. The system utilizes municipal AI to automatically classify the hazard, calculate guaranteed resolution SLAs, and directly dispatch field squads.'
+      a: 'CivicResolve is Tamil Naduâ€™s AI-powered municipal grievance redressal platform. It allows citizens to report civic hazards with GPS geotagging and photo evidence. The system utilizes municipal AI to automatically classify the hazard, calculate guaranteed resolution SLAs, and directly dispatch field squads.'
     },
     {
       q: 'Can I report grievances in Tamil or Tanglish?',
-      a: 'Yes, absolutely. CivicResolve natively understands complaints entered in Tamil script (தமிழ்), Tanglish, and English. The bilingual AI engine summarizes inputs and maps them accurately to the appropriate municipal department.'
+      a: 'Yes, absolutely. CivicResolve natively understands complaints entered in Tamil script (à®¤à®®à®¿à®´à¯), Tanglish, and English. The bilingual AI engine summarizes inputs and maps them accurately to the appropriate municipal department.'
     },
     {
       q: 'How does CivicResolve safeguard citizen privacy?',
@@ -199,12 +199,12 @@ export default function LandingPage({
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
-      
+
       {/* ------------------------------------------------------------- */}
       {/* SECTION 5: IMPORTANT SERVICE ANNOUNCEMENTS TICKER BANNER       */}
       {/* ------------------------------------------------------------- */}
       {activeAnnouncements.length > 0 && (
-        <div 
+        <div
           onClick={() => onGoToAnnouncements && onGoToAnnouncements()}
           className="bg-amber-500/10 border-b border-amber-500/20 text-slate-900 py-2.5 px-4 text-xs font-medium cursor-pointer hover:bg-amber-500/15 transition-colors"
           title="Click to view all municipal announcements"
@@ -213,10 +213,10 @@ export default function LandingPage({
             <div className="flex items-center gap-2 overflow-hidden">
               <span className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-bold text-[10px] uppercase tracking-wide">
                 <Megaphone className="w-3 h-3" />
-                {lang === 'ta' ? 'அறிவிப்பு' : 'Public Notice'}
+                {lang === 'ta' ? 'à®…à®±à®¿à®µà®¿à®ªà¯à®ªà¯' : 'Public Notice'}
               </span>
               <p className="truncate text-slate-800">
-                {lang === 'ta' 
+                {lang === 'ta'
                   ? (activeAnnouncements[announcementIdx]?.title_ta || activeAnnouncements[announcementIdx]?.title)
                   : activeAnnouncements[announcementIdx]?.title
                 }
@@ -237,12 +237,18 @@ export default function LandingPage({
       {/* ------------------------------------------------------------- */}
       <section className="bg-gradient-to-b from-[#0a1628] via-[#0f2040] to-[#1a3c6e] text-white pt-12 pb-16 px-4 sm:px-6 lg:px-8 border-b border-navy-900 relative">
         <div className="max-w-6xl mx-auto space-y-8 relative z-10 text-center">
-          
+
           <div className="max-w-3xl mx-auto space-y-4">
-            
+
+            <img
+              src="/civicresolve-logo.png"
+              alt="CivicResolve Logo"
+              className="w-16 h-16 sm:w-20 sm:h-20 object-contain mx-auto mb-2 drop-shadow-lg"
+            />
+
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-white/10 border border-white/20 text-slate-200 text-xs font-medium">
               <span className="w-2 h-2 rounded-full bg-[#138808]"></span>
-              <span>Government of Tamil Nadu • Citizen Grievance Portal</span>
+              <span>Government of Tamil Nadu â€¢ Citizen Grievance Portal</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
@@ -257,14 +263,14 @@ export default function LandingPage({
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <button
                 onClick={() => onOpenSubmit('Road Damage')}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-[#f47920] hover:bg-[#d96810] text-white font-semibold text-xs shadow-sm transition-colors"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-[#f47920] hover:bg-[#d96810] text-white font-semibold text-xs shadow-sm transition-colors min-h-[44px]"
               >
                 <span>File a Grievance</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
               <button
                 onClick={() => onGoToTracker()}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-white/10 hover:bg-white/15 text-white font-semibold text-xs border border-white/20 transition-colors"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-white/10 hover:bg-white/15 text-white font-semibold text-xs border border-white/20 transition-colors min-h-[44px]"
               >
                 <span>Track Existing Grievance</span>
               </button>
@@ -274,31 +280,31 @@ export default function LandingPage({
 
           {/* Quick Track Input Bar inside Hero */}
           <div className="max-w-xl mx-auto pt-2">
-            <form onSubmit={handleQuickTrack} className="bg-white/10 p-1.5 rounded-xl border border-white/20 shadow-lg flex items-center gap-2">
-              <div className="pl-3 text-[#f47920]">
-                <Search className="w-4 h-4" />
+            <form onSubmit={handleQuickTrack} className="bg-white/10 p-1.5 rounded-xl border border-white/20 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="flex items-center flex-1 gap-2 pl-3">
+                <Search className="w-4 h-4 text-[#f47920] flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder={lang === 'ta' ? 'à®®à®©à¯ à®Žà®£à¯ à®‰à®³à¯à®³à®¿à®Ÿà®µà¯à®®à¯ (e.g. CR-TN-2026-1042)' : 'Enter Reference ID (e.g. CR-TN-2026-1042)...'}
+                  value={quickTrackId}
+                  onChange={(e) => setQuickTrackId(e.target.value)}
+                  className="w-full bg-transparent text-white placeholder-slate-300 text-xs sm:text-sm font-mono focus:outline-none py-1.5 uppercase tracking-wide min-h-[40px]"
+                />
               </div>
-              <input
-                type="text"
-                placeholder={lang === 'ta' ? 'மனு எண் உள்ளிடவும் (e.g. CR-TN-2026-1042)' : 'Enter Reference ID (e.g. CR-TN-2026-1042)...'}
-                value={quickTrackId}
-                onChange={(e) => setQuickTrackId(e.target.value)}
-                className="w-full bg-transparent text-white placeholder-slate-300 text-xs sm:text-sm font-mono focus:outline-none px-2 uppercase tracking-wide"
-              />
               <button
                 type="submit"
-                className="flex-shrink-0 px-4 py-2 rounded-lg bg-[#f47920] hover:bg-[#d96810] text-white font-semibold text-xs transition-colors shadow-sm"
+                className="flex-shrink-0 px-4 py-2.5 rounded-lg bg-[#f47920] hover:bg-[#d96810] text-white font-semibold text-xs transition-colors shadow-sm min-h-[44px] flex items-center justify-center"
               >
-                {lang === 'ta' ? 'நிலை அறி' : 'Track Status'}
+                {lang === 'ta' ? 'à®¨à®¿à®²à¯ˆ à®…à®±à®¿' : 'Track Status'}
               </button>
             </form>
           </div>
 
           {/* 4 Prominent Civic Action Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 text-left">
-            
+
             {/* Tile 1: Report a Grievance */}
-            <div 
+            <div
               onClick={() => onOpenSubmit('Road Damage')}
               className="bg-white/10 hover:bg-white/15 border border-white/15 p-5 rounded-xl cursor-pointer transition-colors group flex flex-col justify-between"
             >
@@ -308,7 +314,7 @@ export default function LandingPage({
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm text-white group-hover:text-orange-200 transition-colors">
-                    {lang === 'ta' ? 'மனு பதிவு செய்க' : 'Report Grievance'}
+                    {lang === 'ta' ? 'à®®à®©à¯ à®ªà®¤à®¿à®µà¯ à®šà¯†à®¯à¯à®•' : 'Report Grievance'}
                   </h3>
                   <p className="text-xs text-slate-300 mt-1 leading-relaxed">
                     Geotag civic hazards, dictate in Tamil or English, and attach photo evidence.
@@ -322,7 +328,7 @@ export default function LandingPage({
             </div>
 
             {/* Tile 2: Track Your Complaint */}
-            <div 
+            <div
               onClick={() => onGoToTracker()}
               className="bg-white/10 hover:bg-white/15 border border-white/15 p-5 rounded-xl cursor-pointer transition-colors group flex flex-col justify-between"
             >
@@ -332,7 +338,7 @@ export default function LandingPage({
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm text-white group-hover:text-blue-200 transition-colors">
-                    {lang === 'ta' ? 'மனு நிலை அறிய' : 'Track Grievance'}
+                    {lang === 'ta' ? 'à®®à®©à¯ à®¨à®¿à®²à¯ˆ à®…à®±à®¿à®¯' : 'Track Grievance'}
                   </h3>
                   <p className="text-xs text-slate-300 mt-1 leading-relaxed">
                     Follow end-to-end status milestones, officer inspection remarks, and SLA timer.
@@ -346,7 +352,7 @@ export default function LandingPage({
             </div>
 
             {/* Tile 3: Public Dashboard & Transparency */}
-            <div 
+            <div
               onClick={() => onGoToPublicDashboard ? onGoToPublicDashboard() : onGoToCitizen()}
               className="bg-white/10 hover:bg-white/15 border border-white/15 p-5 rounded-xl cursor-pointer transition-colors group flex flex-col justify-between"
             >
@@ -356,7 +362,7 @@ export default function LandingPage({
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm text-white group-hover:text-slate-200 transition-colors">
-                    {lang === 'ta' ? 'பொது தகவல் பலகை' : 'Public Dashboard'}
+                    {lang === 'ta' ? 'à®ªà¯Šà®¤à¯ à®¤à®•à®µà®²à¯ à®ªà®²à®•à¯ˆ' : 'Public Dashboard'}
                   </h3>
                   <p className="text-xs text-slate-300 mt-1 leading-relaxed">
                     District-wise resolution rates, category volumes, and municipal performance metrics.
@@ -370,7 +376,7 @@ export default function LandingPage({
             </div>
 
             {/* Tile 4: Citizen Portal / Officer Desk */}
-            <div 
+            <div
               onClick={adminUser ? onGoToOfficer : onGoToCitizen}
               className="bg-white/10 hover:bg-white/15 border border-white/15 p-5 rounded-xl cursor-pointer transition-colors group flex flex-col justify-between"
             >
@@ -403,7 +409,7 @@ export default function LandingPage({
       {/* ------------------------------------------------------------- */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          
+
           {/* Card 1: Total Filed */}
           <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-sm flex flex-col justify-between">
             <div className="flex items-center justify-between mb-2">
@@ -485,7 +491,7 @@ export default function LandingPage({
           {categories.map((cat) => {
             const Icon = cat.icon;
             return (
-              <div 
+              <div
                 key={cat.id}
                 onClick={() => onOpenSubmit(cat.id)}
                 className="bg-white p-5 rounded-xl border border-slate-200/90 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer group flex flex-col justify-between"
@@ -510,7 +516,7 @@ export default function LandingPage({
                 </div>
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
                   <span className="text-slate-400 truncate max-w-[150px]">{cat.dept}</span>
-                  <span className="font-semibold text-[#f47920] group-hover:translate-x-0.5 transition-transform">Report →</span>
+                  <span className="font-semibold text-[#f47920] group-hover:translate-x-0.5 transition-transform">Report â†’</span>
                 </div>
               </div>
             );
@@ -548,25 +554,25 @@ export default function LandingPage({
               {
                 step: '01',
                 title: 'Geotag & Submit',
-                title_ta: 'புவிக்குறியீடு & மனு பதிவு',
+                title_ta: 'à®ªà¯à®µà®¿à®•à¯à®•à¯à®±à®¿à®¯à¯€à®Ÿà¯ & à®®à®©à¯ à®ªà®¤à®¿à®µà¯',
                 desc: 'Citizen pins precise location, uploads photo proof, and submits with optional voice/text in Tamil or English.'
               },
               {
                 step: '02',
                 title: 'Intelligent AI Triage',
-                title_ta: 'AI வகைப்பாடு & முன்னுரிமை',
+                title_ta: 'AI à®µà®•à¯ˆà®ªà¯à®ªà®¾à®Ÿà¯ & à®®à¯à®©à¯à®©à¯à®°à®¿à®®à¯ˆ',
                 desc: 'CivicResolve assesses hazard severity, flags safety risks, and attaches guaranteed SLA countdowns.'
               },
               {
                 step: '03',
                 title: 'Field Squad Dispatch',
-                title_ta: 'களப்பணி பிரிவு ஒதுக்கீடு',
+                title_ta: 'à®•à®³à®ªà¯à®ªà®£à®¿ à®ªà®¿à®°à®¿à®µà¯ à®’à®¤à¯à®•à¯à®•à¯€à®Ÿà¯',
                 desc: 'Grievance is auto-routed to the jurisdictional zonal engineer, municipal ward crew, or TANGEDCO division.'
               },
               {
                 step: '04',
                 title: 'Verified Resolution',
-                title_ta: 'சரிபார்க்கப்பட்ட தீர்வு',
+                title_ta: 'à®šà®°à®¿à®ªà®¾à®°à¯à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿ à®¤à¯€à®°à¯à®µà¯',
                 desc: 'Field squads upload repair proof photos. Citizens certify satisfaction or exercise 1-click reopening rights.'
               }
             ].map((st, idx) => (
@@ -681,7 +687,7 @@ export default function LandingPage({
                     onClick={() => onGoToTracker(item.ref_id)}
                     className="font-semibold text-[#1a3c6e] hover:text-[#2a5298] transition-colors"
                   >
-                    Verify History →
+                    Verify History â†’
                   </button>
                 </div>
               </div>
@@ -747,42 +753,42 @@ export default function LandingPage({
             {
               code: 'GCC',
               name: 'Greater Chennai Corporation',
-              name_ta: 'பெருநகர சென்னை மாநகராட்சி',
+              name_ta: 'à®ªà¯†à®°à¯à®¨à®•à®° à®šà¯†à®©à¯à®©à¯ˆ à®®à®¾à®¨à®•à®°à®¾à®Ÿà¯à®šà®¿',
               jurisdiction: '15 Zones, 200 Wards (Chennai District)',
               role: 'Road repairs, solid waste clearing, storm water drains, street illumination.'
             },
             {
               code: 'TANGEDCO',
               name: 'Tamil Nadu Power Generation & Distribution',
-              name_ta: 'தமிழ்நாடு மின் உற்பத்தி மற்றும் பகிர்மான கழகம்',
+              name_ta: 'à®¤à®®à®¿à®´à¯à®¨à®¾à®Ÿà¯ à®®à®¿à®©à¯ à®‰à®±à¯à®ªà®¤à¯à®¤à®¿ à®®à®±à¯à®±à¯à®®à¯ à®ªà®•à®¿à®°à¯à®®à®¾à®© à®•à®´à®•à®®à¯',
               jurisdiction: 'Statewide 38 Districts',
               role: 'Hazardous overhead lines, transformer sparks, leaning electric poles.'
             },
             {
               code: 'CMWSSB / TWAD',
               name: 'Metro Water & Tamil Nadu Water Supply Board',
-              name_ta: 'சென்னை பெருநகர் குடிநீர் வழங்கல் மற்றும் கழிவுநீரகற்று வாரியம்',
+              name_ta: 'à®šà¯†à®©à¯à®©à¯ˆ à®ªà¯†à®°à¯à®¨à®•à®°à¯ à®•à¯à®Ÿà®¿à®¨à¯€à®°à¯ à®µà®´à®™à¯à®•à®²à¯ à®®à®±à¯à®±à¯à®®à¯ à®•à®´à®¿à®µà¯à®¨à¯€à®°à®•à®±à¯à®±à¯ à®µà®¾à®°à®¿à®¯à®®à¯',
               jurisdiction: 'Urban & Rural Municipalities',
               role: 'Drinking water pipeline welding, sewage overflows, contamination prevention.'
             },
             {
               code: 'HIGHWAYS',
               name: 'Tamil Nadu Highways Department',
-              name_ta: 'நெடுஞ்சாலைத்துறை',
+              name_ta: 'à®¨à¯†à®Ÿà¯à®žà¯à®šà®¾à®²à¯ˆà®¤à¯à®¤à¯à®±à¯ˆ',
               jurisdiction: 'State & Major District Corridors',
               role: 'Arterial road craters, bridge expansion joints, highway median lighting.'
             },
             {
               code: 'HEALTH',
               name: 'Directorate of Public Health & Preventive Medicine',
-              name_ta: 'பொது சுகாதாரம் மற்றும் நோய் தடுப்பு மருந்துத்துறை',
+              name_ta: 'à®ªà¯Šà®¤à¯ à®šà¯à®•à®¾à®¤à®¾à®°à®®à¯ à®®à®±à¯à®±à¯à®®à¯ à®¨à¯‹à®¯à¯ à®¤à®Ÿà¯à®ªà¯à®ªà¯ à®®à®°à¯à®¨à¯à®¤à¯à®¤à¯à®¤à¯à®±à¯ˆ',
               jurisdiction: 'Municipal & Panchayat Unions',
               role: 'Mosquito abatement, anti-larval fogging, epidemic vector mitigation.'
             },
             {
               code: 'TOWN PLANNING',
               name: 'Directorate of Municipal Administration',
-              name_ta: 'நகராட்சி நிர்வாக இயக்ககம்',
+              name_ta: 'à®¨à®•à®°à®¾à®Ÿà¯à®šà®¿ à®¨à®¿à®°à¯à®µà®¾à®• à®‡à®¯à®•à¯à®•à®•à®®à¯',
               jurisdiction: '25 Corporations, 121 Municipalities',
               role: 'Footpath encroachments, municipal parks, public amenity repairs.'
             }
@@ -874,8 +880,8 @@ export default function LandingPage({
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
             {TAMIL_NADU_DISTRICTS.map((d) => (
-              <div 
-                key={d.id} 
+              <div
+                key={d.id}
                 className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-center hover:border-slate-300 hover:bg-slate-100 transition-colors"
               >
                 <span className="font-semibold text-xs text-slate-900 block">{d.name}</span>
@@ -898,7 +904,7 @@ export default function LandingPage({
 
           <div className="space-y-2.5">
             {faqs.map((faq, idx) => (
-              <div 
+              <div
                 key={idx}
                 className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden shadow-xs transition-colors"
               >

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Clock, Wrench, MapPin, Search, RefreshCw, 
+import {
+  Clock, Wrench, MapPin, Search, RefreshCw,
   Eye, Edit3, Image as Send, Loader2, X, UserCheck, AlertCircle
 } from 'lucide-react';
 import { translations } from '../data/translations';
 import { getApiUrl } from '../config/api';
 
-export default function OfficerPortal({ 
-  adminUser, 
+export default function OfficerPortal({
+  adminUser,
   onLogout,
   onSelectComplaint,
   lang = 'en'
@@ -105,7 +105,7 @@ export default function OfficerPortal({
   // Filter tasks
   const filteredTasks = tasks.filter(task => {
     const term = searchTerm.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       !searchTerm.trim() ||
       (task.title && task.title.toLowerCase().includes(term)) ||
       (task.ref_id && task.ref_id.toLowerCase().includes(term)) ||
@@ -132,30 +132,37 @@ export default function OfficerPortal({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      
+
       {/* Officer Header Card */}
-      <div className="bg-[#0f2040] rounded-xl p-6 sm:p-8 text-white shadow-sm border border-navy-850 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold border border-saffron/30">
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Field Duty & Inspection Desk</span>
+      <div className="bg-[#0f2040] rounded-xl p-5 sm:p-8 text-white shadow-sm border border-navy-850 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-start gap-3.5 sm:gap-4">
+          <img
+            src="/civicresolve-logo.png"
+            alt="CivicResolve Logo"
+            className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-sm flex-shrink-0 mt-0.5"
+          />
+          <div className="space-y-1.5 min-w-0">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold border border-saffron/30">
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Field Duty & Inspection Desk</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              {adminUser?.name || 'Municipal Officer'}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span>Role: <strong className="text-white font-semibold">{adminUser?.designation || 'Zonal Officer'}</strong></span>
+              <span>â€¢</span>
+              <span>Department: <strong className="text-white font-semibold">{adminUser?.department || 'Municipal Operations'}</strong></span>
+              <span>â€¢</span>
+              <span>Jurisdiction: <strong className="text-white font-semibold">{adminUser?.district || 'Statewide'}</strong></span>
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {adminUser?.name || 'Municipal Officer'}
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span>Role: <strong className="text-white font-semibold">{adminUser?.designation || 'Zonal Officer'}</strong></span>
-            <span>•</span>
-            <span>Department: <strong className="text-white font-semibold">{adminUser?.department || 'Municipal Operations'}</strong></span>
-            <span>•</span>
-            <span>Jurisdiction: <strong className="text-white font-semibold">{adminUser?.district || 'Statewide'}</strong></span>
-          </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
           <button
             onClick={fetchTasks}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-600 hover:bg-navy-900 text-slate-200 text-xs font-semibold transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg border border-slate-600 hover:bg-navy-900 text-slate-200 text-xs font-semibold transition-colors min-h-[44px]"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Sync Tasks</span>
@@ -163,7 +170,7 @@ export default function OfficerPortal({
           {onLogout && (
             <button
               onClick={onLogout}
-              className="px-3.5 py-2 rounded-lg bg-navy-900 hover:bg-rose-950 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition-colors"
+              className="px-3.5 py-2.5 rounded-lg bg-navy-900 hover:bg-rose-950 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition-colors min-h-[44px]"
             >
               Sign Out
             </button>
@@ -180,11 +187,11 @@ export default function OfficerPortal({
 
       {/* KPI Work Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
-        <div 
+        <div
           onClick={() => setFilterTab('all')}
           className={`p-4 rounded-xl border transition-colors cursor-pointer ${
-            filterTab === 'all' 
-              ? 'bg-navy-950 text-white border-navy-900 shadow-sm' 
+            filterTab === 'all'
+              ? 'bg-navy-950 text-white border-navy-900 shadow-sm'
               : 'bg-white border-slate-200/90 text-slate-700 hover:border-slate-300'
           }`}
         >
@@ -192,11 +199,11 @@ export default function OfficerPortal({
           <p className="text-2xl font-bold mt-1 tabular-nums tracking-tight">{counts.all}</p>
         </div>
 
-        <div 
+        <div
           onClick={() => setFilterTab('pending')}
           className={`p-4 rounded-xl border transition-colors cursor-pointer ${
-            filterTab === 'pending' 
-              ? 'bg-amber-700 text-white border-amber-800 shadow-sm' 
+            filterTab === 'pending'
+              ? 'bg-amber-700 text-white border-amber-800 shadow-sm'
               : 'bg-white border-slate-200/90 text-slate-700 hover:border-slate-300'
           }`}
         >
@@ -204,11 +211,11 @@ export default function OfficerPortal({
           <p className="text-2xl font-bold mt-1 tabular-nums tracking-tight">{counts.pending}</p>
         </div>
 
-        <div 
+        <div
           onClick={() => setFilterTab('inProgress')}
           className={`p-4 rounded-xl border transition-colors cursor-pointer ${
-            filterTab === 'inProgress' 
-              ? 'bg-navy-800 text-white border-navy-900 shadow-sm' 
+            filterTab === 'inProgress'
+              ? 'bg-navy-800 text-white border-navy-900 shadow-sm'
               : 'bg-white border-slate-200/90 text-slate-700 hover:border-slate-300'
           }`}
         >
@@ -216,11 +223,11 @@ export default function OfficerPortal({
           <p className="text-2xl font-bold mt-1 tabular-nums tracking-tight">{counts.inProgress}</p>
         </div>
 
-        <div 
+        <div
           onClick={() => setFilterTab('overdue')}
           className={`p-4 rounded-xl border transition-colors cursor-pointer ${
-            filterTab === 'overdue' 
-              ? 'bg-rose-700 text-white border-rose-800 shadow-sm' 
+            filterTab === 'overdue'
+              ? 'bg-rose-700 text-white border-rose-800 shadow-sm'
               : 'bg-white border-slate-200/90 text-slate-700 hover:border-slate-300'
           }`}
         >
@@ -228,11 +235,11 @@ export default function OfficerPortal({
           <p className="text-2xl font-bold mt-1 tabular-nums tracking-tight">{counts.overdue}</p>
         </div>
 
-        <div 
+        <div
           onClick={() => setFilterTab('resolved')}
           className={`p-4 rounded-xl border transition-colors cursor-pointer ${
-            filterTab === 'resolved' 
-              ? 'bg-emerald-700 text-white border-emerald-800 shadow-sm' 
+            filterTab === 'resolved'
+              ? 'bg-emerald-700 text-white border-emerald-800 shadow-sm'
               : 'bg-white border-slate-200/90 text-slate-700 hover:border-slate-300'
           }`}
         >
@@ -285,7 +292,7 @@ export default function OfficerPortal({
         ) : (
           <div className="space-y-3">
             {filteredTasks.map((task) => (
-              <div 
+              <div
                 key={task.id || task.ref_id}
                 className="p-4 sm:p-5 rounded-xl border border-slate-200/90 hover:border-slate-300 hover:shadow-sm transition-all bg-white flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
@@ -322,9 +329,9 @@ export default function OfficerPortal({
                   <p className="text-xs text-slate-500 flex flex-wrap items-center gap-x-4 gap-y-1">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      {task.location} ({task.district} • {task.ward})
+                      {task.location} ({task.district} â€¢ {task.ward})
                     </span>
-                    <span>•</span>
+                    <span>â€¢</span>
                     <span className="flex items-center gap-1 text-slate-600 font-medium">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
                       SLA: <strong className="font-mono tabular-nums">{task.sla_hours || 24}h</strong> ({task.sla?.remainingHours || 0}h remaining)

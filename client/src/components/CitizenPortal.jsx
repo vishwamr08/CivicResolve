@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  User, PlusCircle, Search, ShieldCheck, MapPin, 
-  Clock, CheckCircle2, AlertTriangle, 
+import {
+  User, PlusCircle, Search, ShieldCheck, MapPin,
+  Clock, CheckCircle2, AlertTriangle,
   Star, Printer, RefreshCw, Loader2, LogOut, ChevronRight,
   Settings, Lock, Save, Phone, Mail
 } from 'lucide-react';
@@ -9,8 +9,8 @@ import { translations } from '../data/translations';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
 import { getApiUrl } from '../config/api';
 
-export default function CitizenPortal({ 
-  citizenUser, 
+export default function CitizenPortal({
+  citizenUser,
   onLogoutCitizen,
   onOpenAuth,
   onOpenSubmit,
@@ -190,9 +190,9 @@ export default function CitizenPortal({
         }
       } catch {}
 
-      setProfileMsg({ 
-        type: 'success', 
-        text: lang === 'ta' ? 'சுயவிவரம் மற்றும் நகராட்சி வரம்பு வெற்றிகரமாக சேமிக்கப்பட்டது!' : 'Profile & administrative jurisdiction saved successfully!' 
+      setProfileMsg({
+        type: 'success',
+        text: lang === 'ta' ? 'à®šà¯à®¯à®µà®¿à®µà®°à®®à¯ à®®à®±à¯à®±à¯à®®à¯ à®¨à®•à®°à®¾à®Ÿà¯à®šà®¿ à®µà®°à®®à¯à®ªà¯ à®µà¯†à®±à¯à®±à®¿à®•à®°à®®à®¾à®• à®šà¯‡à®®à®¿à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿà®¤à¯!' : 'Profile & administrative jurisdiction saved successfully!'
       });
     } catch (err) {
       setProfileMsg({ type: 'error', text: err.message });
@@ -255,28 +255,28 @@ export default function CitizenPortal({
           method: 'POST',
           headers: authHeaders,
           credentials: 'include',
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             appeal_reason: appealReason,
             credential: citizenUser?.phone || citizenUser?.email
           })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to file appeal');
-        setFeedbackSuccess(lang === 'ta' ? 'மறு ஆய்வு கோரிக்கை மண்டல அதிகாரி பார்வைக்கு அனுப்பப்பட்டது!' : 'Grievance reopen request submitted for Zonal Officer review!');
+        setFeedbackSuccess(lang === 'ta' ? 'à®®à®±à¯ à®†à®¯à¯à®µà¯ à®•à¯‹à®°à®¿à®•à¯à®•à¯ˆ à®®à®£à¯à®Ÿà®² à®…à®¤à®¿à®•à®¾à®°à®¿ à®ªà®¾à®°à¯à®µà¯ˆà®•à¯à®•à¯ à®…à®©à¯à®ªà¯à®ªà®ªà¯à®ªà®Ÿà¯à®Ÿà®¤à¯!' : 'Grievance reopen request submitted for Zonal Officer review!');
       } else {
         const res = await fetch(getApiUrl(`/api/complaints/${feedbackComplaint.id || feedbackComplaint.ref_id}/feedback`), {
           method: 'POST',
           headers: authHeaders,
           credentials: 'include',
-          body: JSON.stringify({ 
-            rating, 
+          body: JSON.stringify({
+            rating,
             feedback: feedbackText,
             credential: citizenUser?.phone || citizenUser?.email
           })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to submit feedback');
-        setFeedbackSuccess(lang === 'ta' ? 'குடிமக்கள் திருப்திக் கருத்து பதிவு செய்யப்பட்டது. நன்றி!' : 'Thank you! Your satisfaction feedback has been recorded.');
+        setFeedbackSuccess(lang === 'ta' ? 'à®•à¯à®Ÿà®¿à®®à®•à¯à®•à®³à¯ à®¤à®¿à®°à¯à®ªà¯à®¤à®¿à®•à¯ à®•à®°à¯à®¤à¯à®¤à¯ à®ªà®¤à®¿à®µà¯ à®šà¯†à®¯à¯à®¯à®ªà¯à®ªà®Ÿà¯à®Ÿà®¤à¯. à®¨à®©à¯à®±à®¿!' : 'Thank you! Your satisfaction feedback has been recorded.');
       }
 
       await fetchMyComplaints();
@@ -307,51 +307,58 @@ export default function CitizenPortal({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      
+
       {/* Header Profile Card */}
       {citizenUser ? (
-        <div className="bg-[#0f2040] rounded-xl p-6 sm:p-8 text-white shadow-sm relative overflow-hidden border border-navy-850">
+        <div className="bg-[#0f2040] rounded-xl p-5 sm:p-8 text-white shadow-sm relative overflow-hidden border border-navy-850">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold border border-saffron/30">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Verified Citizen Session</span>
+            <div className="flex items-start gap-3.5 sm:gap-4">
+              <img
+                src="/civicresolve-logo.png"
+                alt="CivicResolve Logo"
+                className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-sm flex-shrink-0 mt-0.5"
+              />
+              <div className="space-y-1.5 min-w-0">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold border border-saffron/30">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Verified Citizen Session</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                  Welcome, {citizenUser.name}
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span>District: <strong className="text-white font-semibold">{citizenUser.district || 'Chennai'}</strong></span>
+                  {citizenUser.municipality && (
+                    <>
+                      <span>â€¢</span>
+                      <span>Admin Body: <strong className="text-white font-semibold">{citizenUser.municipality}</strong></span>
+                    </>
+                  )}
+                  {citizenUser.ward && (
+                    <>
+                      <span>â€¢</span>
+                      <span>Ward: <strong className="text-white font-semibold">{citizenUser.ward}</strong></span>
+                    </>
+                  )}
+                  <span>â€¢</span>
+                  <span>Mobile: <strong className="text-white font-mono">{citizenUser.phone || '9840XXXXXX'}</strong></span>
+                  <span>â€¢</span>
+                  <span>Email: <strong className="text-white font-semibold">{citizenUser.email}</strong></span>
+                </p>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                Welcome, {citizenUser.name}
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span>District: <strong className="text-white font-semibold">{citizenUser.district || 'Chennai'}</strong></span>
-                {citizenUser.municipality && (
-                  <>
-                    <span>•</span>
-                    <span>Admin Body: <strong className="text-white font-semibold">{citizenUser.municipality}</strong></span>
-                  </>
-                )}
-                {citizenUser.ward && (
-                  <>
-                    <span>•</span>
-                    <span>Ward: <strong className="text-white font-semibold">{citizenUser.ward}</strong></span>
-                  </>
-                )}
-                <span>•</span>
-                <span>Mobile: <strong className="text-white font-mono">{citizenUser.phone || '9840XXXXXX'}</strong></span>
-                <span>•</span>
-                <span>Email: <strong className="text-white font-semibold">{citizenUser.email}</strong></span>
-              </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
               <button
                 onClick={onOpenSubmit}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-white bg-saffron hover:bg-saffron-dark shadow-sm transition-colors text-xs"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-white bg-saffron hover:bg-saffron-dark shadow-sm transition-colors text-xs min-h-[44px]"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>Submit Grievance</span>
               </button>
               <button
                 onClick={onLogoutCitizen}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg border border-slate-600 hover:bg-navy-900 text-slate-200 text-xs font-semibold transition-colors"
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg border border-slate-600 hover:bg-navy-900 text-slate-200 text-xs font-semibold transition-colors min-h-[44px]"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sign Out</span>
@@ -360,30 +367,37 @@ export default function CitizenPortal({
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl p-6 sm:p-8 border border-slate-200/90 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-50 text-navy-800 text-xs font-semibold border border-navy-200">
-              <User className="w-3.5 h-3.5" />
-              <span>Citizen Redressal Account</span>
+        <div className="bg-white rounded-xl p-5 sm:p-8 border border-slate-200/90 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-start gap-3.5 sm:gap-4 max-w-xl">
+            <img
+              src="/civicresolve-logo.png"
+              alt="CivicResolve Logo"
+              className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-sm flex-shrink-0 mt-0.5"
+            />
+            <div className="space-y-2 min-w-0">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-50 text-navy-800 text-xs font-semibold border border-navy-200">
+                <User className="w-3.5 h-3.5" />
+                <span>Citizen Redressal Account</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                Sign In to Access Your Personal Case Files
+              </h2>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Review personal grievance history, download formal receipt slips, inspect assigned officers, and provide satisfaction ratings upon resolution.
+              </p>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
-              Sign In to Access Your Personal Case Files
-            </h2>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Review personal grievance history, download formal receipt slips, inspect assigned officers, and provide satisfaction ratings upon resolution.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 flex-shrink-0 w-full sm:w-auto">
             <button
               onClick={() => onOpenAuth('login')}
-              className="px-5 py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 shadow-sm transition-colors"
+              className="flex-1 sm:flex-initial px-5 py-2.5 rounded-lg font-semibold text-xs text-white bg-navy-900 hover:bg-navy-950 shadow-sm transition-colors min-h-[44px] flex items-center justify-center"
             >
               Citizen Sign In
             </button>
             <button
               onClick={() => onOpenAuth('register')}
-              className="px-5 py-2.5 rounded-lg font-semibold text-xs text-slate-800 border border-slate-300 hover:bg-slate-50 transition-colors"
+              className="flex-1 sm:flex-initial px-5 py-2.5 rounded-lg font-semibold text-xs text-slate-800 border border-slate-300 hover:bg-slate-50 transition-colors min-h-[44px] flex items-center justify-center"
             >
               Create Account
             </button>
@@ -465,7 +479,7 @@ export default function CitizenPortal({
               </div>
               <h3 className="text-base font-bold text-slate-900">No Grievances Found</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                {citizenUser 
+                {citizenUser
                   ? 'You have not submitted any complaints under this account yet. Click below to submit your first civic grievance.'
                   : 'Sign in to see complaints linked to your phone and email, or submit a new one.'}
               </p>
@@ -482,7 +496,7 @@ export default function CitizenPortal({
               {filteredList.map((c) => {
                 const isResolved = c.status === 'Resolved';
                 return (
-                  <div 
+                  <div
                     key={c.id || c.ref_id}
                     className="p-4 sm:p-5 rounded-xl border border-slate-200/90 hover:border-slate-300 hover:shadow-sm transition-colors bg-white flex flex-col md:flex-row md:items-center justify-between gap-4"
                   >
@@ -516,11 +530,11 @@ export default function CitizenPortal({
                       <p className="text-xs text-slate-500 flex flex-wrap items-center gap-x-4 gap-y-1">
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                          {c.district || 'Chennai'} {c.ward ? `• ${c.ward}` : ''}
+                          {c.district || 'Chennai'} {c.ward ? `â€¢ ${c.ward}` : ''}
                         </span>
-                        <span>•</span>
+                        <span>â€¢</span>
                         <span>Dept: <strong className="text-slate-700 font-semibold">{c.department}</strong></span>
-                        <span>•</span>
+                        <span>â€¢</span>
                         <span className="flex items-center gap-1 text-slate-600">
                           <Clock className="w-3.5 h-3.5 text-slate-400" />
                           SLA: <strong className="font-mono tabular-nums">{c.sla_hours || 24}h</strong>
@@ -576,7 +590,7 @@ export default function CitizenPortal({
       {/* TAB 2: PROFILE & NOTIFICATION PREFERENCES */}
       {activeTab === 'settings' && citizenUser && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
+
           {/* Contact Details & Notification Preferences */}
           <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -655,7 +669,7 @@ export default function CitizenPortal({
               {/* Notification Toggles */}
               <div className="space-y-2.5 pt-3 border-t border-slate-100 text-xs">
                 <span className="font-semibold text-slate-900 block">Notification Channels:</span>
-                
+
                 <label className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
                   <div className="flex items-center gap-2.5">
                     <Mail className="w-4 h-4 text-navy-800" />
@@ -770,7 +784,7 @@ export default function CitizenPortal({
                 onClick={() => setFeedbackComplaint(null)}
                 className="text-slate-400 hover:text-slate-700 text-sm font-bold p-1"
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -858,8 +872,8 @@ export default function CitizenPortal({
                   type="submit"
                   disabled={submittingFeedback}
                   className={`w-full py-2.5 rounded-lg font-semibold text-xs text-white transition-colors ${
-                    isAppealing 
-                      ? 'bg-rose-700 hover:bg-rose-800' 
+                    isAppealing
+                      ? 'bg-rose-700 hover:bg-rose-800'
                       : 'bg-navy-900 hover:bg-navy-950'
                   }`}
                 >

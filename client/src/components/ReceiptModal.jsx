@@ -1,16 +1,16 @@
 import React, { useRef } from 'react';
-import { 
-  CheckCircle2, Printer, Copy, Check, X, ShieldCheck, 
-  MapPin, Calendar, Clock, Building2, User, ArrowRight 
+import {
+  CheckCircle2, Printer, Copy, Check, X,
+  MapPin, Calendar, Clock, Building2, User, ArrowRight
 } from 'lucide-react';
 import { translations } from '../data/translations';
 
-export default function ReceiptModal({ 
-  complaint, 
-  isOpen, 
-  onClose, 
-  onTrack, 
-  lang = 'en' 
+export default function ReceiptModal({
+  complaint,
+  isOpen,
+  onClose,
+  onTrack,
+  lang = 'en'
 }) {
   const [copied, setCopied] = React.useState(false);
   const receiptRef = useRef(null);
@@ -30,7 +30,7 @@ export default function ReceiptModal({
     window.print();
   };
 
-  const submissionDate = complaint.created_at 
+  const submissionDate = complaint.created_at
     ? new Date(complaint.created_at).toLocaleString('en-IN', {
         dateStyle: 'medium',
         timeStyle: 'short'
@@ -47,13 +47,15 @@ export default function ReceiptModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/70 backdrop-blur-sm flex items-center justify-center p-4 print:p-0 print:bg-white">
       <div className="bg-white rounded-xl max-w-2xl w-full border border-slate-200 shadow-xl overflow-hidden my-8 animate-in fade-in duration-200 print:shadow-none print:border-none print:my-0 print:max-w-full">
-        
+
         {/* Top Header */}
         <div className="bg-navy-950 text-white px-6 py-4 border-b border-navy-900 flex items-center justify-between print:bg-white print:text-navy-950 print:border-b-2 print:border-navy-950">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-navy-900 border border-navy-800 flex items-center justify-center text-saffron print:border-navy-950 print:text-navy-950">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
+            <img
+              src="/civicresolve-logo.png"
+              alt="CivicResolve Logo"
+              className="w-10 h-10 object-contain drop-shadow-sm flex-shrink-0"
+            />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-base sm:text-lg tracking-tight">CivicResolve</span>
@@ -62,7 +64,7 @@ export default function ReceiptModal({
                 </span>
               </div>
               <p className="text-xs text-slate-300 print:text-slate-600">
-                {lang === 'ta' ? 'குடிமக்கள் குறைதீர்ப்பு ரசீது' : 'Public Grievance Acknowledgement Slip'}
+                {lang === 'ta' ? 'à®•à¯à®Ÿà®¿à®®à®•à¯à®•à®³à¯ à®•à¯à®±à¯ˆà®¤à¯€à®°à¯à®ªà¯à®ªà¯ à®°à®šà¯€à®¤à¯' : 'Public Grievance Acknowledgement Slip'}
               </p>
             </div>
           </div>
@@ -78,7 +80,7 @@ export default function ReceiptModal({
 
         {/* Receipt Content */}
         <div ref={receiptRef} className="p-6 sm:p-8 space-y-5">
-          
+
           {/* Success Banner */}
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3.5 flex items-start gap-3 print:bg-slate-50 print:border-slate-300">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
@@ -147,7 +149,7 @@ export default function ReceiptModal({
                 <span className="text-[10px] uppercase font-semibold text-slate-500 block">Jurisdiction (District & Ward)</span>
                 <span className="font-semibold text-slate-800 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                  {complaint.district || 'Chennai'}{complaint.ward ? ` • ${complaint.ward}` : ''}
+                  {complaint.district || 'Chennai'}{complaint.ward ? ` â€¢ ${complaint.ward}` : ''}
                 </span>
               </div>
               <div className="p-3 space-y-0.5">
@@ -198,7 +200,7 @@ export default function ReceiptModal({
           {/* Acknowledgement Footer */}
           <div className="text-[11px] text-slate-500 bg-slate-100 p-3 rounded-lg border border-slate-200 text-center leading-normal">
             <p className="font-semibold text-slate-700">
-              CivicResolve — Citizen Grievance Redressal
+              CivicResolve â€” Citizen Grievance Redressal
             </p>
             <p className="text-[10px] text-slate-500 mt-0.5">
               This acknowledgement is generated electronically upon submission. Guaranteed turnaround enforced by automated escalation timers.

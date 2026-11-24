@@ -1,14 +1,14 @@
 import React, { useEffect, useRef } from 'react';
-import { 
-  ShieldCheck, PhoneCall, Lock, Cpu, 
-  FileText, ArrowRight, Clock 
+import {
+  ShieldCheck, PhoneCall, Lock, Cpu,
+  FileText, ArrowRight, Clock
 } from 'lucide-react';
 
-export default function AboutPage({ 
-  onOpenSubmit, 
-  onGoToTracker, 
-  focusSection = null, 
-  lang = 'en' 
+export default function AboutPage({
+  onOpenSubmit,
+  onGoToTracker,
+  focusSection = null,
+  lang = 'en'
 }) {
   const contactRef = useRef(null);
 
@@ -31,24 +31,29 @@ export default function AboutPage({
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-16">
-      
+
       {/* Hero Banner */}
       <div className="bg-navy-950 text-white border-b border-navy-900 py-12 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-7xl mx-auto text-center space-y-4">
+          <img
+            src="/civicresolve-logo.png"
+            alt="CivicResolve Logo"
+            className="w-12 h-12 object-contain mx-auto mb-2 drop-shadow-md"
+          />
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded text-xs font-semibold bg-navy-900 text-slate-300 border border-navy-800 tracking-wide mx-auto">
             <ShieldCheck className="w-4 h-4 text-saffron-400" />
-            <span>{lang === 'ta' ? 'அமைப்பின் நோக்கம்' : 'Mission & Institutional Framework'}</span>
+            <span>{lang === 'ta' ? 'à®…à®®à¯ˆà®ªà¯à®ªà®¿à®©à¯ à®¨à¯‹à®•à¯à®•à®®à¯' : 'Mission & Institutional Framework'}</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white max-w-3xl mx-auto">
-            {lang === 'ta' 
-              ? 'சிவிக்ரிசால்வ்: குடிமைத் தீர்வு தளம்' 
+            {lang === 'ta'
+              ? 'à®šà®¿à®µà®¿à®•à¯à®°à®¿à®šà®¾à®²à¯à®µà¯: à®•à¯à®Ÿà®¿à®®à¯ˆà®¤à¯ à®¤à¯€à®°à¯à®µà¯ à®¤à®³à®®à¯'
               : 'About CivicResolve'}
           </h1>
 
           <p className="text-slate-300 text-xs sm:text-sm max-w-2xl mx-auto leading-relaxed">
             {lang === 'ta'
-              ? 'தமிழ்நாடு முழுவதும் வெளிப்படையான, தாமதமில்லாத மற்றும் பொறுப்புமிக்க மக்கள் குறைதீர்க்கும் தளம்.'
+              ? 'à®¤à®®à®¿à®´à¯à®¨à®¾à®Ÿà¯ à®®à¯à®´à¯à®µà®¤à¯à®®à¯ à®µà¯†à®³à®¿à®ªà¯à®ªà®Ÿà¯ˆà®¯à®¾à®©, à®¤à®¾à®®à®¤à®®à®¿à®²à¯à®²à®¾à®¤ à®®à®±à¯à®±à¯à®®à¯ à®ªà¯Šà®±à¯à®ªà¯à®ªà¯à®®à®¿à®•à¯à®• à®®à®•à¯à®•à®³à¯ à®•à¯à®±à¯ˆà®¤à¯€à®°à¯à®•à¯à®•à¯à®®à¯ à®¤à®³à®®à¯.'
               : 'An independent civic technology platform engineered to bring algorithmic transparency, guaranteed turnaround times, and verified field resolutions to municipal administration.'}
           </p>
 
@@ -57,14 +62,14 @@ export default function AboutPage({
               onClick={() => onOpenSubmit && onOpenSubmit('Road Damage')}
               className="px-5 py-2.5 rounded-lg bg-saffron-500 hover:bg-saffron-600 text-navy-950 font-semibold text-xs shadow-xs transition-colors flex items-center gap-2"
             >
-              <span>{lang === 'ta' ? 'மனு பதிவு' : 'Report Civic Issue'}</span>
+              <span>{lang === 'ta' ? 'à®®à®©à¯ à®ªà®¤à®¿à®µà¯' : 'Report Civic Issue'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
             <button
               onClick={() => onGoToTracker && onGoToTracker()}
               className="px-5 py-2.5 rounded-lg bg-navy-900 hover:bg-navy-950 text-white border border-navy-800 font-medium text-xs transition-colors"
             >
-              <span>{lang === 'ta' ? 'மனு கண்காணிக்க' : 'Track Existing Issue'}</span>
+              <span>{lang === 'ta' ? 'à®®à®©à¯ à®•à®£à¯à®•à®¾à®£à®¿à®•à¯à®•' : 'Track Existing Issue'}</span>
             </button>
           </div>
         </div>
@@ -72,7 +77,7 @@ export default function AboutPage({
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 space-y-10">
-        
+
         {/* Core Principles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-3">
@@ -144,7 +149,7 @@ export default function AboutPage({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {emergencyHelplines.map((line, idx) => (
-              <div 
+              <div
                 key={idx}
                 className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between"
               >

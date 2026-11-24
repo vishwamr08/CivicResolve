@@ -216,7 +216,7 @@ function getClearCookieOptions() {
 }
 
 // Persistent uploads folder configuration (Supports Render Persistent Disks)
-const uploadsDir = process.env.UPLOADS_DIR || 
+const uploadsDir = process.env.UPLOADS_DIR ||
   (process.env.DATA_DIR ? path.join(process.env.DATA_DIR, 'uploads') : path.join(__dirname, 'uploads'));
 
 if (!fs.existsSync(uploadsDir)) {
@@ -571,7 +571,7 @@ app.get('/api/geo/corporations', async (req, res) => {
 app.get('/api/geo/hierarchy', async (req, res) => {
   res.json({
     state: 'Tamil Nadu',
-    state_ta: 'தமிழ்நாடு',
+    state_ta: 'à®¤à®®à®¿à®´à¯à®¨à®¾à®Ÿà¯',
     total_districts: TAMIL_NADU_DISTRICTS.length,
     districts: TAMIL_NADU_DISTRICTS
   });
@@ -953,7 +953,7 @@ app.post('/api/auth/citizen/register-with-otp', async (req, res) => {
 
     res.cookie('civic_citizen_token', token, getCookieOptions());
 
-    await createNotification('citizen', citizen.id, null, 'Welcome to CivicResolve', `வணக்கம் ${citizen.name}! Your citizen portal account is verified and ready.`);
+    await createNotification('citizen', citizen.id, null, 'Welcome to CivicResolve', `à®µà®£à®•à¯à®•à®®à¯ ${citizen.name}! Your citizen portal account is verified and ready.`);
 
     return res.status(201).json({
       success: true,
@@ -1127,7 +1127,7 @@ app.get('/api/citizen/profile', authenticateCitizen, async (req, res) => {
   try {
     const c = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent, created_at FROM citizens WHERE id = ?').get(req.citizen.id);
     if (!c) return res.status(404).json({ error: 'Citizen not found' });
-    res.json({ profile: c });
+    res.json({ profile: c, citizen: c });
   } catch (err) {
     console.error('[Profile Fetch Error]:', err);
     res.status(500).json({ error: 'Failed to fetch profile' });
@@ -1138,9 +1138,9 @@ app.get('/api/citizen/profile', authenticateCitizen, async (req, res) => {
 app.put('/api/citizen/profile', authenticateCitizen, async (req, res) => {
   try {
     const { name, phone, district, municipality, ward, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent } = req.body;
-    
+
     await db.prepare(`
-      UPDATE citizens 
+      UPDATE citizens
       SET name = COALESCE(?, name),
           phone = COALESCE(?, phone),
           district = COALESCE(?, district),
@@ -1168,7 +1168,7 @@ app.put('/api/citizen/profile', authenticateCitizen, async (req, res) => {
     );
 
     const updated = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent FROM citizens WHERE id = ?').get(req.citizen.id);
-    res.json({ message: 'Profile updated successfully', profile: updated });
+    res.json({ message: 'Profile updated successfully', profile: updated, citizen: updated });
   } catch (err) {
     console.error('[Profile Update Error]:', err);
     res.status(500).json({ error: 'Failed to update profile' });
@@ -1208,9 +1208,9 @@ app.post('/api/auth/citizen/password-reset', async (req, res) => {
 app.get('/api/citizen/my-complaints', authenticateCitizen, async (req, res) => {
   try {
     const raw = await db.prepare(`
-      SELECT * FROM complaints 
-      WHERE citizen_id = ? 
-         OR (citizen_phone IS NOT NULL AND citizen_phone = ?) 
+      SELECT * FROM complaints
+      WHERE citizen_id = ?
+         OR (citizen_phone IS NOT NULL AND citizen_phone = ?)
          OR (citizen_email IS NOT NULL AND LOWER(citizen_email) = ?)
       ORDER BY created_at DESC
     `).all(req.citizen.id, req.citizen.phone || '', (req.citizen.email || '').toLowerCase());
@@ -1239,7 +1239,7 @@ app.post('/api/auth/login', async (req, res) => {
     const cleanEmail = email.toLowerCase().trim();
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.connection.remoteAddress || '127.0.0.1';
     const rateLimitKey = `${clientIp}:${cleanEmail}`;
-    
+
     // Check Rate Limiter per client and targeted account
     const rateCheck = checkLoginRateLimit(rateLimitKey);
     if (!rateCheck.allowed) {
@@ -1314,8 +1314,8 @@ app.get('/api/complaints', optionalCitizenAuth, async (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    const { 
-      search, category, priority, status, department, 
+    const {
+      search, category, priority, status, department,
       district, local_body, ward, sla_status
     } = req.query;
 
@@ -1449,7 +1449,8 @@ app.get('/api/complaints/track/:refId', optionalCitizenAuth, async (req, res) =>
       }
     }
 
-    res.json(parseComplaint(complaint, isAuthorized));
+    const parsed = parseComplaint(complaint, isAuthorized);
+    res.json({ ...parsed, complaint: parsed });
   } catch (err) {
     console.error('Error tracking complaint:', err);
     res.status(500).json({ error: 'Failed to track complaint' });
@@ -1498,7 +1499,7 @@ app.get('/api/complaints/:id', optionalCitizenAuth, async (req, res) => {
     if (/^\d+$/.test(idParam)) {
       complaint = await db.prepare('SELECT * FROM complaints WHERE id = ?').get(parseInt(idParam, 10));
     }
-    
+
     if (!complaint) {
       complaint = await db.prepare('SELECT * FROM complaints WHERE ref_id = ?').get(idParam);
     }
@@ -1520,7 +1521,8 @@ app.get('/api/complaints/:id', optionalCitizenAuth, async (req, res) => {
       }
     }
 
-    res.json(parseComplaint(complaint, isAuthorized));
+    const parsed = parseComplaint(complaint, isAuthorized);
+    res.json({ ...parsed, complaint: parsed });
   } catch (err) {
     console.error('Error fetching complaint details:', err);
     res.status(500).json({ error: 'Failed to fetch complaint details' });
@@ -1637,7 +1639,7 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
       const spaceFormat = new Date(Date.now() - 60000).toISOString().replace('T', ' ').slice(0, 19);
       const isoFormat = new Date(Date.now() - 60000).toISOString();
       const recentDup = await db.prepare(`
-        SELECT id, ref_id FROM complaints 
+        SELECT id, ref_id FROM complaints
         WHERE citizen_id = ? AND title = ? AND location = ? AND (created_at > ? OR created_at > ?)
         LIMIT 1
       `).get(citizenId, title.trim(), location.trim(), spaceFormat, isoFormat);
@@ -1824,8 +1826,8 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
 // 5. CITIZEN FEEDBACK & APPEALS WORKFLOW
 // -------------------------------------------------------------
 
-// POST /api/complaints/:id/feedback
-app.post('/api/complaints/:id/feedback', optionalCitizenAuth, async (req, res) => {
+// POST /api/complaints/:id/feedback & /api/complaints/:id/rate (Satisfaction Rating)
+app.post(['/api/complaints/:id/feedback', '/api/complaints/:id/rate'], optionalCitizenAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { rating, feedback, credential } = req.body;
@@ -1854,12 +1856,13 @@ app.post('/api/complaints/:id/feedback', optionalCitizenAuth, async (req, res) =
     }
 
     await db.prepare(`
-      UPDATE complaints 
+      UPDATE complaints
       SET citizen_rating = ?, citizen_feedback = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? OR ref_id = ?
     `).run(rating || 5, feedback || null, id, id);
 
-    res.json({ message: 'Thank you! Your feedback has been recorded.' });
+    const updated = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
+    res.json({ message: 'Thank you! Your feedback has been recorded.', complaint: parseComplaint(updated, true) });
   } catch (err) {
     console.error('[Feedback Record Error]:', err);
     res.status(500).json({ error: 'Failed to record feedback' });
@@ -1911,7 +1914,7 @@ app.post('/api/complaints/:id/appeal', optionalCitizenAuth, async (req, res) => 
     });
 
     await db.prepare(`
-      UPDATE complaints 
+      UPDATE complaints
       SET status = 'Under Review',
           is_appealed = 1,
           appeal_reason = ?,
@@ -2020,7 +2023,7 @@ app.post('/api/officer/tasks/:id/report', authenticateAdmin, upload.single('evid
     });
 
     await db.prepare(`
-      UPDATE complaints 
+      UPDATE complaints
       SET status = ?,
           resolution_remarks = COALESCE(?, resolution_remarks),
           resolution_evidence_url = COALESCE(?, resolution_evidence_url),
@@ -2082,8 +2085,8 @@ app.post('/api/officer/tasks/:id/report', authenticateAdmin, upload.single('evid
 app.get('/api/notifications', async (req, res) => {
   try {
     const notifications = await db.prepare(`
-      SELECT * FROM notifications 
-      ORDER BY created_at DESC 
+      SELECT * FROM notifications
+      ORDER BY created_at DESC
       LIMIT 20
     `).all();
     res.json({ notifications });
@@ -2172,7 +2175,7 @@ app.post('/api/admin/notifications/:id/retry', authenticateAdmin, async (req, re
 app.patch('/api/complaints/:id/manage', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
+    const {
       category, department, status, resolution_remarks, priority,
       assigned_officer, internal_notes, resolution_evidence_url, sla_hours,
       duplicate_of_ref_id
@@ -2226,12 +2229,12 @@ app.patch('/api/complaints/:id/manage', authenticateAdmin, async (req, res) => {
       changes.push(`Official Remarks: "${resolution_remarks}"`);
     }
 
-    const noteText = changes.length > 0 
-      ? changes.join('. ') 
+    const noteText = changes.length > 0
+      ? changes.join('. ')
       : (resolution_remarks || 'Updated by Municipal Officer');
 
-    const adminActorName = req.admin 
-      ? `${req.admin.name} (${req.admin.designation || 'Officer'})` 
+    const adminActorName = req.admin
+      ? `${req.admin.name} (${req.admin.designation || 'Officer'})`
       : 'Municipal Officer';
 
     history.push({
@@ -2242,7 +2245,7 @@ app.patch('/api/complaints/:id/manage', authenticateAdmin, async (req, res) => {
     });
 
     const update = await db.prepare(`
-      UPDATE complaints 
+      UPDATE complaints
       SET category = ?,
           department = ?,
           status = ?,
@@ -2351,8 +2354,8 @@ app.patch('/api/complaints/:id/status', authenticateAdmin, async (req, res) => {
     });
 
     await db.prepare(`
-      UPDATE complaints 
-      SET status = ?, status_history = ?, updated_at = CURRENT_TIMESTAMP 
+      UPDATE complaints
+      SET status = ?, status_history = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? OR ref_id = ?
     `).run(status, JSON.stringify(history), id, id);
 
@@ -2528,7 +2531,7 @@ app.post('/api/admin/link-duplicate', authenticateAdmin, async (req, res) => {
     }
 
     await db.prepare(`
-      UPDATE complaints 
+      UPDATE complaints
       SET duplicate_of_ref_id = ?, updated_at = CURRENT_TIMESTAMP
       WHERE ref_id = ?
     `).run(primaryRefId, duplicateRefId);
@@ -2566,7 +2569,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
 
     // Consolidated single-pass aggregation query for maximum efficiency
     const countsRow = await db.prepare(`
-      SELECT 
+      SELECT
         COUNT(*) as total,
         SUM(CASE WHEN status IN ('Submitted', 'Under Review') THEN 1 ELSE 0 END) as pending,
         SUM(CASE WHEN priority = 'High' THEN 1 ELSE 0 END) as high_priority,
@@ -2579,8 +2582,8 @@ app.get('/api/dashboard/stats', async (req, res) => {
 
     // Distinct departments with counts
     const departments = await db.prepare(`
-      SELECT department, COUNT(*) as count 
-      FROM complaints 
+      SELECT department, COUNT(*) as count
+      FROM complaints
       ${whereClause} AND department IS NOT NULL AND department != ''
       GROUP BY department
       ORDER BY count DESC
@@ -2588,29 +2591,29 @@ app.get('/api/dashboard/stats', async (req, res) => {
 
     // District distribution
     const districtRows = await db.prepare(`
-      SELECT district, COUNT(*) as count 
-      FROM complaints 
+      SELECT district, COUNT(*) as count
+      FROM complaints
       ${whereClause}
-      GROUP BY district 
+      GROUP BY district
       ORDER BY count DESC
     `).all(...params);
 
     // Category distribution
     const categoryRows = await db.prepare(`
-      SELECT category, COUNT(*) as count 
-      FROM complaints 
+      SELECT category, COUNT(*) as count
+      FROM complaints
       ${whereClause}
-      GROUP BY category 
+      GROUP BY category
       ORDER BY count DESC
     `).all(...params);
 
     // Priority distribution
     const priorityRows = await db.prepare(`
-      SELECT priority, COUNT(*) as count 
-      FROM complaints 
+      SELECT priority, COUNT(*) as count
+      FROM complaints
       ${whereClause}
       GROUP BY priority
-      ORDER BY CASE 
+      ORDER BY CASE
         WHEN priority = 'Critical' THEN 1
         WHEN priority = 'High' THEN 2
         WHEN priority = 'Medium' THEN 3
@@ -2946,7 +2949,7 @@ app.get('/api/complaints/:refId/receipt', optionalCitizenAuth, async (req, res) 
     }
 
     const isAuthorized = Boolean(
-      (req.admin) || 
+      (req.admin) ||
       (req.citizen && complaint.citizen_id === req.citizen.id) ||
       (req.citizen && complaint.citizen_phone === req.citizen.phone)
     );
