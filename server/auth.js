@@ -26,7 +26,7 @@ function findCitizenByPhone(database, phone) {
   if (!norm) return null;
   const dbInstance = database || db;
   return dbInstance.prepare(`
-    SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, created_at
+    SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, web_push_enabled, profile_photo_url, profile_photo_updated_at, created_at
     FROM citizens
     WHERE phone = ?
        OR phone = ?
@@ -193,6 +193,13 @@ async function authenticateAdmin(req, res, next) {
       });
     }
 
+    // Strict role separation: prevent citizen JWTs with overlapping integer IDs from accessing admin accounts
+    if (decoded.type === 'citizen' || !decoded.role || !ADMIN_ROLES.includes(decoded.role)) {
+      return res.status(403).json({
+        error: 'Access denied: Active administrator privileges required.'
+      });
+    }
+
     // Check token revocation
     if (await isTokenRevoked(token)) {
       return res.status(401).json({
@@ -201,7 +208,7 @@ async function authenticateAdmin(req, res, next) {
     }
 
     // Verify admin in database
-    const admin = await db.prepare('SELECT id, email, name, role, district, department, designation FROM admins WHERE id = ?').get(decoded.id);
+    const admin = await db.prepare('SELECT id, email, name, role, district, department, designation, profile_photo_url, profile_photo_updated_at, web_push_enabled FROM admins WHERE id = ?').get(decoded.id);
     if (!admin || !ADMIN_ROLES.includes(admin.role)) {
       return res.status(403).json({
         error: 'Access denied: Active administrator privileges required.'
@@ -239,9 +246,15 @@ async function authenticateCitizen(req, res, next) {
     }
 
     const decoded = verifyToken(token);
-    if (!decoded || !decoded.id) {
+    if (!decoded || !decoded.id || decoded.purpose === 'citizen_registration') {
       return res.status(401).json({
         error: 'Session expired. Please log in again.'
+      });
+    }
+
+    if (decoded.role && ADMIN_ROLES.includes(decoded.role)) {
+      return res.status(403).json({
+        error: 'Invalid session type for citizen portal.'
       });
     }
 
@@ -252,7 +265,7 @@ async function authenticateCitizen(req, res, next) {
       });
     }
 
-    const citizen = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, created_at FROM citizens WHERE id = ?').get(decoded.id);
+    const citizen = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, web_push_enabled, profile_photo_url, profile_photo_updated_at, created_at FROM citizens WHERE id = ?').get(decoded.id);
     if (!citizen) {
       return res.status(401).json({ error: 'Citizen record not found. Please log in again.' });
     }
@@ -284,12 +297,75 @@ async function optionalCitizenAuth(req, res, next) {
     if (token) {
       const decoded = verifyToken(token);
       if (decoded && decoded.id) {
-        const citizen = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, created_at FROM citizens WHERE id = ?').get(decoded.id);
+        const citizen = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, web_push_enabled, profile_photo_url, profile_photo_updated_at, created_at FROM citizens WHERE id = ?').get(decoded.id);
         if (citizen) req.citizen = citizen;
       }
     }
   } catch {}
   next();
+}
+
+// Unified Authentication Middleware (Accepts Authenticated Citizen OR Administrator)
+async function authenticateAnyUser(req, res, next) {
+  try {
+    let token = null;
+    const portalHint = (req.headers['x-portal-context'] || '').toLowerCase().trim();
+
+    if (req.headers.authorization) {
+      const parts = req.headers.authorization.split(' ');
+      if (parts.length === 2 && parts[0] === 'Bearer') {
+        token = parts[1];
+      }
+    }
+
+    if (!token && req.cookies) {
+      if (portalHint === 'admin' && req.cookies.civic_admin_token) {
+        token = req.cookies.civic_admin_token;
+      } else if (portalHint === 'citizen' && req.cookies.civic_citizen_token) {
+        token = req.cookies.civic_citizen_token;
+      } else {
+        token = req.cookies.civic_admin_token || req.cookies.civic_citizen_token || null;
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required. Please log in.' });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded || !decoded.id || decoded.purpose === 'citizen_registration') {
+      return res.status(401).json({ error: 'Invalid or expired session token. Please log in again.' });
+    }
+
+    if (await isTokenRevoked(token)) {
+      return res.status(401).json({ error: 'Session has been invalidated. Please log in again.' });
+    }
+
+    if (decoded.role && ADMIN_ROLES.includes(decoded.role) && decoded.type !== 'citizen') {
+      const admin = await db.prepare('SELECT id, email, name, role, district, department, designation, profile_photo_url, profile_photo_updated_at, web_push_enabled FROM admins WHERE id = ?').get(decoded.id);
+      if (!admin || !ADMIN_ROLES.includes(admin.role)) {
+        return res.status(403).json({ error: 'Administrator privileges required.' });
+      }
+      req.admin = admin;
+      req.actor = { userType: 'admin', id: admin.id, email: admin.email, name: admin.name, role: admin.role };
+      return next();
+    }
+
+    if (decoded.type === 'citizen' || !decoded.role) {
+      const citizen = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, web_push_enabled, profile_photo_url, profile_photo_updated_at FROM citizens WHERE id = ?').get(decoded.id);
+      if (!citizen) {
+        return res.status(401).json({ error: 'Citizen session invalid. Please log in again.' });
+      }
+      req.citizen = citizen;
+      req.actor = { userType: 'citizen', id: citizen.id, email: citizen.email, name: citizen.name, role: 'citizen' };
+      return next();
+    }
+
+    return res.status(401).json({ error: 'Unrecognized session role. Please log in again.' });
+  } catch (err) {
+    console.error('[Unified Auth Error]:', err.message);
+    return res.status(500).json({ error: 'Authentication verification failed.' });
+  }
 }
 
 // Role-Based Access Control middleware
@@ -323,6 +399,7 @@ module.exports = {
   authenticateAdmin,
   authenticateCitizen,
   optionalCitizenAuth,
+  authenticateAnyUser,
   requireRole,
   isTokenRevoked,
   revokeToken,

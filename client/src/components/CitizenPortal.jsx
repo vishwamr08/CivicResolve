@@ -3,14 +3,19 @@ import {
   User, PlusCircle, Search, ShieldCheck, MapPin,
   Clock, CheckCircle2, AlertTriangle,
   Star, Printer, RefreshCw, Loader2, LogOut, ChevronRight,
-  Settings, Lock, Save, Phone, Mail
+  Settings, Lock, Save, Mail
 } from 'lucide-react';
 import { translations } from '../data/translations';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
 import { getApiUrl } from '../config/api';
+import AvatarDisplay from './AvatarDisplay';
+import ProfilePhotoUploader from './ProfilePhotoUploader';
+import WebPushControl from './WebPushControl';
 
 export default function CitizenPortal({
   citizenUser,
+  citizenToken,
+  onCitizenUpdated,
   onLogoutCitizen,
   onOpenAuth,
   onOpenSubmit,
@@ -176,18 +181,23 @@ export default function CitizenPortal({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update profile');
 
+      if (onCitizenUpdated && data.citizen) {
+        onCitizenUpdated(data.citizen);
+      }
+
       // Update local storage representation
       try {
         const raw = localStorage.getItem('civic_citizen_user');
-        if (raw) {
-          const userObj = JSON.parse(raw);
-          userObj.name = profileName;
-          userObj.phone = profilePhone;
-          userObj.district = profileDistrict;
-          userObj.municipality = profileMunicipality;
-          userObj.ward = profileWard;
-          localStorage.setItem('civic_citizen_user', JSON.stringify(userObj));
-        }
+        const userObj = raw ? JSON.parse(raw) : {};
+        localStorage.setItem('civic_citizen_user', JSON.stringify({
+          ...userObj,
+          ...(data.citizen || {}),
+          name: profileName,
+          phone: profilePhone,
+          district: profileDistrict,
+          municipality: profileMunicipality,
+          ward: profileWard
+        }));
       } catch {}
 
       setProfileMsg({
@@ -312,33 +322,41 @@ export default function CitizenPortal({
       {citizenUser ? (
         <div className="bg-[#0f2040] rounded-xl p-6 sm:p-8 text-white shadow-sm relative overflow-hidden border border-navy-850">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold border border-saffron/30">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Verified Citizen Session</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
+              <AvatarDisplay
+                user={citizenUser}
+                size="lg"
+                variant="citizen"
+                className="ring-2 ring-white/20"
+              />
+              <div className="space-y-2 min-w-0">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold border border-saffron/30">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Verified Citizen Session</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">
+                  Welcome, {citizenUser.name}
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span>District: <strong className="text-white font-semibold">{citizenUser.district || 'Chennai'}</strong></span>
+                  {citizenUser.municipality && (
+                    <>
+                      <span>•</span>
+                      <span>Admin Body: <strong className="text-white font-semibold">{citizenUser.municipality}</strong></span>
+                    </>
+                  )}
+                  {citizenUser.ward && (
+                    <>
+                      <span>•</span>
+                      <span>Ward: <strong className="text-white font-semibold">{citizenUser.ward}</strong></span>
+                    </>
+                  )}
+                  <span>•</span>
+                  <span>Mobile: <strong className="text-white font-mono">{citizenUser.phone || '9840XXXXXX'}</strong></span>
+                  <span>•</span>
+                  <span>Email: <strong className="text-white font-semibold">{citizenUser.email}</strong></span>
+                </p>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                Welcome, {citizenUser.name}
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span>District: <strong className="text-white font-semibold">{citizenUser.district || 'Chennai'}</strong></span>
-                {citizenUser.municipality && (
-                  <>
-                    <span>•</span>
-                    <span>Admin Body: <strong className="text-white font-semibold">{citizenUser.municipality}</strong></span>
-                  </>
-                )}
-                {citizenUser.ward && (
-                  <>
-                    <span>•</span>
-                    <span>Ward: <strong className="text-white font-semibold">{citizenUser.ward}</strong></span>
-                  </>
-                )}
-                <span>•</span>
-                <span>Mobile: <strong className="text-white font-mono">{citizenUser.phone || '9840XXXXXX'}</strong></span>
-                <span>•</span>
-                <span>Email: <strong className="text-white font-semibold">{citizenUser.email}</strong></span>
-              </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -575,7 +593,18 @@ export default function CitizenPortal({
 
       {/* TAB 2: PROFILE & NOTIFICATION PREFERENCES */}
       {activeTab === 'settings' && citizenUser && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6">
+
+          {/* Profile Photo Uploader */}
+          <ProfilePhotoUploader
+            user={citizenUser}
+            userType="citizen"
+            token={citizenToken}
+            onPhotoUpdated={onCitizenUpdated}
+            lang={lang}
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
           {/* Contact Details & Notification Preferences */}
           <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
@@ -606,7 +635,7 @@ export default function CitizenPortal({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">Registered Phone (for SMS Updates)</label>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">Registered Mobile Number</label>
                 <input
                   type="tel"
                   required
@@ -652,16 +681,16 @@ export default function CitizenPortal({
                 </div>
               </div>
 
-              {/* Notification Toggles */}
+              {/* Free-First Notification Channels */}
               <div className="space-y-2.5 pt-3 border-t border-slate-100 text-xs">
-                <span className="font-semibold text-slate-900 block">Notification Channels:</span>
+                <span className="font-semibold text-slate-900 block">Notification Channels (Free-First Alerts):</span>
 
                 <label className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
                   <div className="flex items-center gap-2.5">
-                    <Mail className="w-4 h-4 text-navy-800" />
+                    <Mail className="w-4 h-4 text-navy-800 flex-shrink-0" />
                     <div>
-                      <p className="font-semibold text-slate-800">Email Status Notifications</p>
-                      <p className="text-[11px] text-slate-500">Receive dispatch & resolution updates at {citizenUser.email}</p>
+                      <p className="font-semibold text-slate-800">Email Status Notifications (Resend)</p>
+                      <p className="text-[11px] text-slate-500">Receive registration & resolution emails at {citizenUser.email}</p>
                     </div>
                   </div>
                   <input
@@ -672,21 +701,11 @@ export default function CitizenPortal({
                   />
                 </label>
 
-                <label className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <Phone className="w-4 h-4 text-navy-800" />
-                    <div>
-                      <p className="font-semibold text-slate-800">SMS Text Alerts</p>
-                      <p className="text-[11px] text-slate-500">I consent to receiving SMS alerts at {profilePhone || citizenUser.phone}</p>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={smsNotifs}
-                    onChange={(e) => setSmsNotifs(e.target.checked)}
-                    className="w-4 h-4 text-navy-800 rounded focus:ring-navy-800"
-                  />
-                </label>
+                <WebPushControl
+                  token={citizenToken}
+                  userType="citizen"
+                  lang={lang}
+                />
               </div>
 
               <button
@@ -752,6 +771,7 @@ export default function CitizenPortal({
             </form>
           </div>
 
+          </div>
         </div>
       )}
 

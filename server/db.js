@@ -333,6 +333,18 @@ if (targetEngine === 'postgres') {
     try {
       sqliteDb.exec(`ALTER TABLE admins ADD COLUMN designation TEXT DEFAULT 'Municipal Officer';`);
     } catch {}
+    const adminProfileCols = [
+      'profile_photo_data TEXT',
+      'profile_photo_mime TEXT',
+      'profile_photo_url TEXT',
+      'profile_photo_updated_at DATETIME',
+      'web_push_enabled INTEGER DEFAULT 0'
+    ];
+    for (const aCol of adminProfileCols) {
+      try {
+        sqliteDb.exec(`ALTER TABLE admins ADD COLUMN ${aCol};`);
+      } catch {}
+    }
 
     sqliteDb.exec(`
       CREATE TABLE IF NOT EXISTS citizens (
@@ -362,7 +374,12 @@ if (targetEngine === 'postgres') {
       'sms_notifications INTEGER DEFAULT 1',
       'whatsapp_notifications INTEGER DEFAULT 0',
       'sms_consent INTEGER DEFAULT 1',
-      'whatsapp_consent INTEGER DEFAULT 0'
+      'whatsapp_consent INTEGER DEFAULT 0',
+      'profile_photo_data TEXT',
+      'profile_photo_mime TEXT',
+      'profile_photo_url TEXT',
+      'profile_photo_updated_at DATETIME',
+      'web_push_enabled INTEGER DEFAULT 0'
     ];
     for (const cCol of citizenCols) {
       try {
@@ -473,8 +490,38 @@ if (targetEngine === 'postgres') {
         ref_id TEXT,
         title TEXT NOT NULL,
         message TEXT NOT NULL,
+        event_type TEXT DEFAULT 'grievance_update',
+        action_url TEXT,
         is_read INTEGER DEFAULT 0,
+        read_at DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    const notifCols = [
+      "event_type TEXT DEFAULT 'grievance_update'",
+      'action_url TEXT',
+      'read_at DATETIME'
+    ];
+    for (const nCol of notifCols) {
+      try {
+        sqliteDb.exec(`ALTER TABLE notifications ADD COLUMN ${nCol};`);
+      } catch {}
+    }
+
+    sqliteDb.exec(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_type TEXT NOT NULL,
+        user_id INTEGER NOT NULL,
+        endpoint TEXT UNIQUE NOT NULL,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        user_agent TEXT,
+        is_active INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_used_at DATETIME
       );
     `);
 
@@ -518,6 +565,8 @@ if (targetEngine === 'postgres') {
         CREATE INDEX IF NOT EXISTS idx_audit_logs_complaint_ref ON audit_logs(complaint_ref);
         CREATE INDEX IF NOT EXISTS idx_announcements_active ON announcements(is_active);
         CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_type, recipient_id);
+        CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(recipient_type, recipient_id, is_read);
+        CREATE INDEX IF NOT EXISTS idx_push_subs_user ON push_subscriptions(user_type, user_id);
         CREATE INDEX IF NOT EXISTS idx_revoked_tokens_hash ON revoked_tokens(token_hash);
       `);
     } catch {}

@@ -89,6 +89,11 @@ function createSyntheticSchema(db) {
       district TEXT DEFAULT 'Statewide',
       department TEXT DEFAULT 'Municipal Administration & Water Supply',
       designation TEXT DEFAULT 'Director of Municipal Operations',
+      profile_photo_data TEXT,
+      profile_photo_mime TEXT,
+      profile_photo_url TEXT,
+      profile_photo_updated_at DATETIME,
+      web_push_enabled INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -109,6 +114,11 @@ function createSyntheticSchema(db) {
       whatsapp_notifications INTEGER DEFAULT 0,
       sms_consent INTEGER DEFAULT 1,
       whatsapp_consent INTEGER DEFAULT 0,
+      profile_photo_data TEXT,
+      profile_photo_mime TEXT,
+      profile_photo_url TEXT,
+      profile_photo_updated_at DATETIME,
+      web_push_enabled INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -164,9 +174,28 @@ function createSyntheticSchema(db) {
       ref_id TEXT,
       title TEXT NOT NULL,
       message TEXT NOT NULL,
+      event_type TEXT DEFAULT 'grievance_update',
+      action_url TEXT,
       is_read INTEGER DEFAULT 0,
+      read_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_type TEXT NOT NULL,
+      user_id INTEGER NOT NULL,
+      endpoint TEXT UNIQUE NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      user_agent TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_used_at DATETIME
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_push_subs_user ON push_subscriptions(user_type, user_id);
 
     CREATE TABLE IF NOT EXISTS notification_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

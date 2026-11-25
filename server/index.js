@@ -23,6 +23,7 @@ const {
   authenticateAdmin,
   authenticateCitizen,
   optionalCitizenAuth,
+  authenticateAnyUser,
   requireRole,
   generateSecureOtp,
   hashOtp,
@@ -33,12 +34,27 @@ const {
 const { computeSlaMetrics, getTargetSlaHours } = require('./sla-engine');
 const { findDuplicateCandidates } = require('./duplicate-engine');
 const {
+  saveUserProfilePhoto,
+  removeUserProfilePhoto,
+  getUserProfilePhoto,
+  handleAvatarUpload
+} = require('./profilePhotoService');
+const {
+  getPublicVapidState,
+  registerPushSubscription,
+  removePushSubscription,
+  getUserPushStatus
+} = require('./pushService');
+const {
   sendSms,
   sendComplaintRegistrationSms,
   sendComplaintResolutionSms,
   notifyCitizenEvent,
+  createInAppNotification,
   retryNotificationLog,
+  testEmailConnection,
   testSmtpConnection,
+  isResendConfigured,
   isSmtpConfigured,
   isSmsConfigured,
   isWhatsAppConfigured
@@ -83,8 +99,9 @@ app.use('/api/', (req, res, next) => {
 // -------------------------------------------------------------
 const allowedOrigins = [
   'https://civicresolve-yc9v.onrender.com',
-  process.env.FRONTEND_URL,
-  process.env.CORS_ORIGIN,
+  'https://civicresolve-frontend.onrender.com',
+  ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
+  ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : []),
   // Development origins (only active outside production)
   ...(process.env.NODE_ENV !== 'production' ? [
     'http://localhost:5173',
@@ -122,6 +139,7 @@ const corsOptions = {
     'Content-Type',
     'Authorization',
     'X-Requested-With',
+    'X-Portal-Context',
     'Accept',
     'Origin'
   ],
@@ -186,7 +204,7 @@ app.use((req, res, next) => {
 
 // Cache-Control Security Policy: Ensure sensitive routes are never cached by intermediate proxies
 app.use((req, res, next) => {
-  const sensitivePrefixes = ['/api/auth', '/api/citizen', '/api/admin', '/api/notifications'];
+  const sensitivePrefixes = ['/api/auth', '/api/citizen', '/api/admin', '/api/notifications', '/api/push/status'];
   if (sensitivePrefixes.some(prefix => req.path.startsWith(prefix)) || req.method !== 'GET') {
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -355,7 +373,7 @@ function maskPhone(phone) {
   if (digits.length <= 4) return '******';
   const last10 = digits.slice(-10);
   if (last10.length === 10) {
-    return `+91-XXXXXX${last10.slice(-4)}`;
+    return `+91-******${last10.slice(-4)}`;
   }
   return `${digits.slice(0, 2)}******${digits.slice(-2)}`;
 }
@@ -455,16 +473,69 @@ function parseComplaintSummary(c, isAuthorized = false) {
   };
 }
 
-// Helper to record in-app notification in SQLite
-async function createNotification(recipientType, recipientId, refId, title, message) {
+// Helper to record in-app notification in database
+async function createNotification(recipientType, recipientId, refId, title, message, options = {}) {
+  return createInAppNotification({
+    recipientType,
+    recipientId,
+    refId,
+    title,
+    message,
+    eventType: options.eventType || 'grievance_update',
+    actionUrl: options.actionUrl || null
+  });
+}
+
+// Safely resolve owning citizen ID for a complaint
+async function resolveComplaintCitizenId(complaint) {
+  if (!complaint) return null;
+  if (complaint.citizen_id) return complaint.citizen_id;
   try {
-    await db.prepare(`
-      INSERT INTO notifications (recipient_type, recipient_id, ref_id, title, message)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(recipientType, recipientId || null, refId || null, title, message);
-  } catch (err) {
-    console.warn('[Notification DB Notice]:', err.message);
-  }
+    if (complaint.citizen_email) {
+      const row = await db.prepare('SELECT id FROM citizens WHERE LOWER(email) = ? LIMIT 1').get(complaint.citizen_email.toLowerCase().trim());
+      if (row) return row.id;
+    }
+    if (complaint.citizen_phone) {
+      const found = await findCitizenByPhone(db, complaint.citizen_phone);
+      if (found) return found.id;
+    }
+  } catch {}
+  return null;
+}
+
+function sanitizeCitizenUser(c) {
+  if (!c) return null;
+  return {
+    id: c.id,
+    name: c.name,
+    email: c.email,
+    phone: c.phone,
+    district: c.district || 'Chennai',
+    municipality: c.municipality || 'Greater Chennai Corporation',
+    ward: c.ward || 'Ward 114',
+    mobile_verified: Boolean(c.mobile_verified),
+    email_verified: Boolean(c.email_verified),
+    email_notifications: c.email_notifications !== undefined ? Boolean(c.email_notifications) : true,
+    web_push_enabled: Boolean(c.web_push_enabled),
+    profile_photo_url: c.profile_photo_url || null,
+    profile_photo_updated_at: c.profile_photo_updated_at || null
+  };
+}
+
+function sanitizeAdminUser(a) {
+  if (!a) return null;
+  return {
+    id: a.id,
+    email: a.email,
+    name: a.name,
+    role: a.role,
+    district: a.district,
+    department: a.department,
+    designation: a.designation,
+    web_push_enabled: Boolean(a.web_push_enabled),
+    profile_photo_url: a.profile_photo_url || null,
+    profile_photo_updated_at: a.profile_photo_updated_at || null
+  };
 }
 
 // Helper to record audit log in SQLite
@@ -818,17 +889,7 @@ app.post('/api/auth/citizen/verify-otp', async (req, res) => {
         verified: true,
         isNewUser: false,
         token,
-        citizen: {
-          id: citizen.id,
-          name: citizen.name,
-          email: citizen.email,
-          phone: citizen.phone,
-          district: citizen.district || 'Chennai',
-          municipality: citizen.municipality || 'Greater Chennai Corporation',
-          ward: citizen.ward || 'Ward 114',
-          mobile_verified: true,
-          email_verified: Boolean(citizen.email_verified)
-        }
+        citizen: sanitizeCitizenUser({ ...citizen, mobile_verified: true })
       });
     } else {
       // New citizen: issue cryptographically signed 15-minute registration verification token
@@ -1021,7 +1082,7 @@ app.post('/api/auth/citizen/register', async (req, res) => {
       VALUES (?, ?, ?, ?, ?, 1, 1)
     `).run(name.trim(), cleanEmail, cleanPhone, passwordHash, district || 'Chennai');
 
-    const citizen = await db.prepare('SELECT id, name, email, phone, district, email_verified, email_notifications FROM citizens WHERE id = ?').get(result.lastInsertRowid);
+    const citizen = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, web_push_enabled, profile_photo_url, profile_photo_updated_at FROM citizens WHERE id = ?').get(result.lastInsertRowid);
     const token = generateToken({ id: citizen.id, email: citizen.email, name: citizen.name, phone: citizen.phone, type: 'citizen' });
 
     res.cookie('civic_citizen_token', token, getCookieOptions());
@@ -1029,15 +1090,15 @@ app.post('/api/auth/citizen/register', async (req, res) => {
     // Fire welcome notification asynchronously
     notifyCitizenEvent({
       eventType: 'citizen_registration',
+      citizenId: citizen.id,
       citizenName: citizen.name,
-      citizenEmail: citizen.email,
-      citizenPhone: citizen.phone
+      citizenEmail: citizen.email
     });
 
     res.status(201).json({
       message: 'Citizen account registered successfully',
       token,
-      citizen
+      citizen: sanitizeCitizenUser(citizen)
     });
   } catch (err) {
     console.error('[Citizen Register Error]:', err);
@@ -1076,15 +1137,7 @@ app.post('/api/auth/citizen/login', async (req, res) => {
     res.json({
       message: 'Citizen login successful',
       token,
-      citizen: {
-        id: citizen.id,
-        name: citizen.name,
-        email: citizen.email,
-        phone: citizen.phone,
-        district: citizen.district,
-        email_notifications: Boolean(citizen.email_notifications),
-        sms_notifications: Boolean(citizen.sms_notifications)
-      }
+      citizen: sanitizeCitizenUser(citizen)
     });
   } catch (err) {
     console.error('[Citizen Login Error]:', err);
@@ -1105,17 +1158,7 @@ app.get('/api/auth/citizen/me', authenticateCitizen, async (req, res) => {
   res.json({
     authenticated: true,
     token,
-    citizen: {
-      id: req.citizen.id,
-      name: req.citizen.name,
-      email: req.citizen.email,
-      phone: req.citizen.phone,
-      district: req.citizen.district || 'Chennai',
-      municipality: req.citizen.municipality || 'Greater Chennai Corporation',
-      ward: req.citizen.ward || 'Ward 114',
-      mobile_verified: Boolean(req.citizen.mobile_verified),
-      email_verified: Boolean(req.citizen.email_verified)
-    }
+    citizen: sanitizeCitizenUser(req.citizen)
   });
 });
 
@@ -1145,12 +1188,37 @@ app.post('/api/auth/citizen/logout', async (req, res) => {
   res.json({ message: 'Citizen logged out successfully' });
 });
 
+// GET /api/avatars/:userType/:id (Serve database-persisted resized avatar cleanly)
+app.get('/api/avatars/:userType/:id', async (req, res) => {
+  try {
+    const { userType, id } = req.params;
+    const avatar = await getUserProfilePhoto(userType, id);
+    if (!avatar || !avatar.buffer) {
+      return res.status(404).json({ error: 'Profile photo not found' });
+    }
+    res.setHeader('Content-Type', avatar.mimeType || 'image/webp');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+    return res.send(avatar.buffer);
+  } catch (err) {
+    console.error('[Avatar Serve Error]:', err.message);
+    return res.status(500).json({ error: 'Failed to serve profile photo' });
+  }
+});
+
 // GET /api/citizen/profile
 app.get('/api/citizen/profile', authenticateCitizen, async (req, res) => {
   try {
-    const c = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent, created_at FROM citizens WHERE id = ?').get(req.citizen.id);
+    const c = await db.prepare(`
+      SELECT id, name, email, phone, district, municipality, ward,
+             mobile_verified, email_verified, email_notifications, sms_notifications,
+             whatsapp_notifications, sms_consent, whatsapp_consent, web_push_enabled,
+             profile_photo_url, profile_photo_updated_at, created_at
+      FROM citizens WHERE id = ?
+    `).get(req.citizen.id);
     if (!c) return res.status(404).json({ error: 'Citizen not found' });
-    res.json({ profile: c, citizen: c });
+    res.json({ profile: c, citizen: sanitizeCitizenUser(c) });
   } catch (err) {
     console.error('[Profile Fetch Error]:', err);
     res.status(500).json({ error: 'Failed to fetch profile' });
@@ -1160,7 +1228,7 @@ app.get('/api/citizen/profile', authenticateCitizen, async (req, res) => {
 // PUT /api/citizen/profile
 app.put('/api/citizen/profile', authenticateCitizen, async (req, res) => {
   try {
-    const { name, phone, district, municipality, ward, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent } = req.body;
+    const { name, phone, district, municipality, ward, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent, web_push_enabled } = req.body;
 
     await db.prepare(`
       UPDATE citizens
@@ -1174,6 +1242,7 @@ app.put('/api/citizen/profile', authenticateCitizen, async (req, res) => {
           whatsapp_notifications = COALESCE(?, whatsapp_notifications),
           sms_consent = COALESCE(?, sms_consent),
           whatsapp_consent = COALESCE(?, whatsapp_consent),
+          web_push_enabled = COALESCE(?, web_push_enabled),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
@@ -1187,14 +1256,74 @@ app.put('/api/citizen/profile', authenticateCitizen, async (req, res) => {
       whatsapp_notifications !== undefined ? (whatsapp_notifications ? 1 : 0) : null,
       sms_consent !== undefined ? (sms_consent ? 1 : 0) : null,
       whatsapp_consent !== undefined ? (whatsapp_consent ? 1 : 0) : null,
+      web_push_enabled !== undefined ? (web_push_enabled ? 1 : 0) : null,
       req.citizen.id
     );
 
-    const updated = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, sms_notifications, whatsapp_notifications, sms_consent, whatsapp_consent FROM citizens WHERE id = ?').get(req.citizen.id);
-    res.json({ message: 'Profile updated successfully', profile: updated, citizen: updated });
+    const updated = await db.prepare(`
+      SELECT id, name, email, phone, district, municipality, ward,
+             mobile_verified, email_verified, email_notifications, sms_notifications,
+             whatsapp_notifications, sms_consent, whatsapp_consent, web_push_enabled,
+             profile_photo_url, profile_photo_updated_at
+      FROM citizens WHERE id = ?
+    `).get(req.citizen.id);
+    res.json({ message: 'Profile updated successfully', profile: updated, citizen: sanitizeCitizenUser(updated) });
   } catch (err) {
     console.error('[Profile Update Error]:', err);
     res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// POST / PUT /api/citizen/profile/photo (Upload/Replace own citizen avatar)
+app.post('/api/citizen/profile/photo', authenticateCitizen, handleAvatarUpload, async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ error: 'Please select a JPEG, PNG, or WebP photo to upload.' });
+    }
+    const saved = await saveUserProfilePhoto('citizen', req.citizen.id, req.file.buffer);
+    const updated = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, web_push_enabled, profile_photo_url, profile_photo_updated_at FROM citizens WHERE id = ?').get(req.citizen.id);
+    res.json({
+      success: true,
+      message: 'Profile photo updated successfully',
+      profile_photo_url: saved.profile_photo_url,
+      citizen: sanitizeCitizenUser(updated)
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Failed to process profile photo.' });
+  }
+});
+
+app.put('/api/citizen/profile/photo', authenticateCitizen, handleAvatarUpload, async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ error: 'Please select a JPEG, PNG, or WebP photo to upload.' });
+    }
+    const saved = await saveUserProfilePhoto('citizen', req.citizen.id, req.file.buffer);
+    const updated = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, web_push_enabled, profile_photo_url, profile_photo_updated_at FROM citizens WHERE id = ?').get(req.citizen.id);
+    res.json({
+      success: true,
+      message: 'Profile photo updated successfully',
+      profile_photo_url: saved.profile_photo_url,
+      citizen: sanitizeCitizenUser(updated)
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Failed to process profile photo.' });
+  }
+});
+
+// DELETE /api/citizen/profile/photo (Remove own citizen avatar)
+app.delete('/api/citizen/profile/photo', authenticateCitizen, async (req, res) => {
+  try {
+    await removeUserProfilePhoto('citizen', req.citizen.id);
+    const updated = await db.prepare('SELECT id, name, email, phone, district, municipality, ward, mobile_verified, email_verified, email_notifications, web_push_enabled, profile_photo_url, profile_photo_updated_at FROM citizens WHERE id = ?').get(req.citizen.id);
+    res.json({
+      success: true,
+      message: 'Profile photo removed and default avatar restored.',
+      profile_photo_url: null,
+      citizen: sanitizeCitizenUser(updated)
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to remove profile photo' });
   }
 });
 
@@ -1297,7 +1426,7 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({
       message: 'Officer authentication successful',
       token,
-      admin: tokenPayload
+      admin: sanitizeAdminUser(admin)
     });
   } catch (err) {
     console.error('[Admin Login Error]:', err);
@@ -1322,8 +1451,111 @@ app.post('/api/auth/logout', async (req, res) => {
 app.get('/api/auth/me', authenticateAdmin, async (req, res) => {
   res.json({
     authenticated: true,
-    admin: req.admin
+    admin: sanitizeAdminUser(req.admin)
   });
+});
+
+// GET /api/admin/profile
+app.get('/api/admin/profile', authenticateAdmin, async (req, res) => {
+  try {
+    const admin = await db.prepare(`
+      SELECT id, email, name, role, district, department, designation,
+             web_push_enabled, profile_photo_url, profile_photo_updated_at, created_at
+      FROM admins WHERE id = ?
+    `).get(req.admin.id);
+    if (!admin) return res.status(404).json({ error: 'Administrator not found' });
+    res.json({ profile: sanitizeAdminUser(admin), admin: sanitizeAdminUser(admin) });
+  } catch (err) {
+    console.error('[Admin Profile Fetch Error]:', err);
+    res.status(500).json({ error: 'Failed to fetch admin profile' });
+  }
+});
+
+// PUT /api/admin/profile (Strict ownership: updates only own safe display fields; role escalation forbidden)
+app.put('/api/admin/profile', authenticateAdmin, async (req, res) => {
+  try {
+    const { name, designation, web_push_enabled } = req.body;
+    await db.prepare(`
+      UPDATE admins
+      SET name = COALESCE(?, name),
+          designation = COALESCE(?, designation),
+          web_push_enabled = COALESCE(?, web_push_enabled),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(
+      name && String(name).trim() ? String(name).trim() : null,
+      designation && String(designation).trim() ? String(designation).trim() : null,
+      web_push_enabled !== undefined ? (web_push_enabled ? 1 : 0) : null,
+      req.admin.id
+    );
+
+    const updated = await db.prepare(`
+      SELECT id, email, name, role, district, department, designation,
+             web_push_enabled, profile_photo_url, profile_photo_updated_at
+      FROM admins WHERE id = ?
+    `).get(req.admin.id);
+    res.json({
+      message: 'Administrator profile updated successfully',
+      profile: sanitizeAdminUser(updated),
+      admin: sanitizeAdminUser(updated)
+    });
+  } catch (err) {
+    console.error('[Admin Profile Update Error]:', err);
+    res.status(500).json({ error: 'Failed to update admin profile' });
+  }
+});
+
+// POST / PUT /api/admin/profile/photo (Upload/Replace own admin avatar)
+app.post('/api/admin/profile/photo', authenticateAdmin, handleAvatarUpload, async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ error: 'Please select a JPEG, PNG, or WebP photo to upload.' });
+    }
+    const saved = await saveUserProfilePhoto('admin', req.admin.id, req.file.buffer);
+    const updated = await db.prepare('SELECT id, email, name, role, district, department, designation, web_push_enabled, profile_photo_url, profile_photo_updated_at FROM admins WHERE id = ?').get(req.admin.id);
+    res.json({
+      success: true,
+      message: 'Administrator profile photo updated successfully',
+      profile_photo_url: saved.profile_photo_url,
+      admin: sanitizeAdminUser(updated)
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Failed to process profile photo.' });
+  }
+});
+
+app.put('/api/admin/profile/photo', authenticateAdmin, handleAvatarUpload, async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ error: 'Please select a JPEG, PNG, or WebP photo to upload.' });
+    }
+    const saved = await saveUserProfilePhoto('admin', req.admin.id, req.file.buffer);
+    const updated = await db.prepare('SELECT id, email, name, role, district, department, designation, web_push_enabled, profile_photo_url, profile_photo_updated_at FROM admins WHERE id = ?').get(req.admin.id);
+    res.json({
+      success: true,
+      message: 'Administrator profile photo updated successfully',
+      profile_photo_url: saved.profile_photo_url,
+      admin: sanitizeAdminUser(updated)
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Failed to process profile photo.' });
+  }
+});
+
+// DELETE /api/admin/profile/photo (Remove own admin avatar)
+app.delete('/api/admin/profile/photo', authenticateAdmin, async (req, res) => {
+  try {
+    await removeUserProfilePhoto('admin', req.admin.id);
+    const updated = await db.prepare('SELECT id, email, name, role, district, department, designation, web_push_enabled, profile_photo_url, profile_photo_updated_at FROM admins WHERE id = ?').get(req.admin.id);
+    res.json({
+      success: true,
+      message: 'Administrator profile photo removed and default avatar restored.',
+      profile_photo_url: null,
+      admin: sanitizeAdminUser(updated)
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to remove profile photo' });
+  }
 });
 
 // -------------------------------------------------------------
@@ -1827,21 +2059,22 @@ app.post('/api/complaints', optionalCitizenAuth, upload.single('image'), async (
       created = await db.prepare('SELECT * FROM complaints WHERE ref_id = ?').get(ref_id);
     }
 
-    // In-App Notification
+    // Admin In-App Queue Alert
     await createNotification(
-      'citizen',
-      citizenId,
+      'admin',
+      null,
       ref_id,
-      `Grievance Registered: ${ref_id}`,
-      `Your report "${title.slice(0, 60)}..." has been submitted to ${effectiveDistrict} administration. Reference ID: ${ref_id}`
+      `New Grievance Submitted: ${ref_id}`,
+      `New ${effectivePriority} priority complaint filed in ${effectiveDistrict}: "${title.slice(0, 80)}"`,
+      { eventType: 'complaint_registered', actionUrl: `/?trackRef=${encodeURIComponent(ref_id)}` }
     );
 
-    // Multi-Channel Dispatch (Email / SMS)
-    notifyCitizenEvent({
+    // Free-First Multi-Channel Dispatch (In-App + Resend Email + Web Push)
+    await notifyCitizenEvent({
       eventType: 'submission_acknowledgement',
+      citizenId: citizenId || (await resolveComplaintCitizenId(created)),
       citizenName: finalCitizenName,
       citizenEmail: finalCitizenEmail,
-      citizenPhone: finalCitizenPhone,
       refId: ref_id,
       grievanceTitle: title,
       status: initialStatus,
@@ -2102,21 +2335,26 @@ app.post('/api/officer/tasks/:id/report', authenticateAdmin, upload.single('evid
       ip: req.ip
     });
 
-    // Notify citizen
-    notifyCitizenEvent({
-      eventType: newStatus === 'Resolved' ? 'resolution_certified' : 'status_update',
-      citizenName: updated.citizen_name,
-      citizenEmail: updated.citizen_email,
-      citizenPhone: updated.citizen_phone,
-      refId: updated.ref_id,
-      grievanceTitle: updated.title,
-      status: newStatus,
-      details: {
-        remarks,
-        evidenceUrl,
-        officer: req.admin.name
-      }
-    });
+    // Free-First Citizen Notification on Resolution / Status Change
+    const isNewResolution = newStatus === 'Resolved' && current.status !== 'Resolved';
+    const statusChanged = newStatus !== current.status;
+    if (isNewResolution || statusChanged) {
+      const targetCitizenId = await resolveComplaintCitizenId(updated);
+      await notifyCitizenEvent({
+        eventType: isNewResolution ? 'resolution_certified' : 'status_update',
+        citizenId: targetCitizenId,
+        citizenName: updated.citizen_name,
+        citizenEmail: updated.citizen_email,
+        refId: updated.ref_id,
+        grievanceTitle: updated.title,
+        status: newStatus,
+        details: {
+          remarks,
+          evidenceUrl,
+          officer: req.admin.name
+        }
+      });
+    }
 
     res.json({ message: 'Field report saved successfully', complaint: parseComplaint(updated, true) });
   } catch (err) {
@@ -2126,31 +2364,213 @@ app.post('/api/officer/tasks/:id/report', authenticateAdmin, upload.single('evid
 });
 
 // -------------------------------------------------------------
-// 7. NOTIFICATIONS INBOX & DELIVERY AUDIT LOGS
+// 7. AUTHENTICATED IN-APP NOTIFICATIONS, WEB PUSH & DELIVERY AUDIT LOGS
 // -------------------------------------------------------------
-app.get('/api/notifications', async (req, res) => {
+
+// GET /api/notifications (Strict Ownership-Scoped Notification Inbox with Pagination)
+app.get('/api/notifications', authenticateAnyUser, async (req, res) => {
   try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit || '20', 10) || 20, 1), 50);
+    const offset = Math.max(parseInt(req.query.offset || '0', 10) || 0, 0);
+    const unreadOnly = req.query.unreadOnly === 'true';
+
+    let ownerWhere = '';
+    const params = [];
+
+    if (req.actor.userType === 'citizen') {
+      ownerWhere = "recipient_type = 'citizen' AND recipient_id = ?";
+      params.push(req.actor.id);
+    } else {
+      ownerWhere = "recipient_type = 'admin' AND (recipient_id = ? OR recipient_id IS NULL)";
+      params.push(req.actor.id);
+    }
+
+    const filterClause = unreadOnly ? ` AND is_read = 0` : '';
+
     const notifications = await db.prepare(`
-      SELECT * FROM notifications
-      ORDER BY created_at DESC
-      LIMIT 20
-    `).all();
-    res.json({ notifications });
+      SELECT id, recipient_type, recipient_id, ref_id, title, message, event_type, action_url, is_read, read_at, created_at
+      FROM notifications
+      WHERE ${ownerWhere}${filterClause}
+      ORDER BY created_at DESC, id DESC
+      LIMIT ? OFFSET ?
+    `).all(...params, limit, offset);
+
+    const unreadRow = await db.prepare(`
+      SELECT COUNT(*) as count FROM notifications
+      WHERE ${ownerWhere} AND is_read = 0
+    `).get(...params);
+
+    const totalRow = await db.prepare(`
+      SELECT COUNT(*) as count FROM notifications
+      WHERE ${ownerWhere}
+    `).get(...params);
+
+    const unreadCount = Number(unreadRow?.count || 0);
+    const totalCount = Number(totalRow?.count || 0);
+
+    res.json({
+      notifications: notifications.map(n => ({
+        ...n,
+        is_read: Boolean(n.is_read)
+      })),
+      unreadCount,
+      totalCount,
+      limit,
+      offset,
+      hasMore: offset + notifications.length < totalCount
+    });
   } catch (err) {
     console.error('[Notifications Fetch Error]:', err);
     res.status(500).json({ error: 'Failed to fetch notifications' });
   }
 });
 
-app.patch('/api/notifications/:id/read', async (req, res) => {
+// PATCH /api/notifications/read-all (Mark all owned notifications read)
+app.patch('/api/notifications/read-all', authenticateAnyUser, async (req, res) => {
   try {
-    await db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(req.params.id);
+    if (req.actor.userType === 'citizen') {
+      await db.prepare(`
+        UPDATE notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP
+        WHERE recipient_type = 'citizen' AND recipient_id = ? AND is_read = 0
+      `).run(req.actor.id);
+    } else {
+      await db.prepare(`
+        UPDATE notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP
+        WHERE recipient_type = 'admin' AND (recipient_id = ? OR recipient_id IS NULL) AND is_read = 0
+      `).run(req.actor.id);
+    }
+    res.json({ success: true, unreadCount: 0 });
+  } catch (err) {
+    console.error('[Notification Mark-All Error]:', err);
+    res.status(500).json({ error: 'Failed to mark notifications as read' });
+  }
+});
+
+// PATCH /api/notifications/:id/read (Strict ownership enforcement)
+app.patch('/api/notifications/:id/read', authenticateAnyUser, async (req, res) => {
+  try {
+    const notifId = parseInt(req.params.id, 10);
+    if (isNaN(notifId)) {
+      return res.status(400).json({ error: 'Invalid notification ID' });
+    }
+
+    let result;
+    if (req.actor.userType === 'citizen') {
+      result = await db.prepare(`
+        UPDATE notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND recipient_type = 'citizen' AND recipient_id = ?
+      `).run(notifId, req.actor.id);
+    } else {
+      result = await db.prepare(`
+        UPDATE notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND recipient_type = 'admin' AND (recipient_id = ? OR recipient_id IS NULL)
+      `).run(notifId, req.actor.id);
+    }
+
+    if (!result || result.changes === 0) {
+      return res.status(404).json({ error: 'Notification not found or access denied' });
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error('[Notification Mark Error]:', err);
     res.status(500).json({ error: 'Failed to mark notification' });
   }
 });
+
+// DELETE /api/notifications/:id (Strict ownership enforcement)
+app.delete('/api/notifications/:id', authenticateAnyUser, async (req, res) => {
+  try {
+    const notifId = parseInt(req.params.id, 10);
+    if (isNaN(notifId)) {
+      return res.status(400).json({ error: 'Invalid notification ID' });
+    }
+
+    let result;
+    if (req.actor.userType === 'citizen') {
+      result = await db.prepare(`
+        DELETE FROM notifications
+        WHERE id = ? AND recipient_type = 'citizen' AND recipient_id = ?
+      `).run(notifId, req.actor.id);
+    } else {
+      result = await db.prepare(`
+        DELETE FROM notifications
+        WHERE id = ? AND recipient_type = 'admin' AND (recipient_id = ? OR recipient_id IS NULL)
+      `).run(notifId, req.actor.id);
+    }
+
+    if (!result || result.changes === 0) {
+      return res.status(404).json({ error: 'Notification not found or access denied' });
+    }
+
+    res.json({ success: true, deletedId: notifId });
+  } catch (err) {
+    console.error('[Notification Delete Error]:', err);
+    res.status(500).json({ error: 'Failed to delete notification' });
+  }
+});
+
+// -------------------------------------------------------------
+// 7B. FREE-FIRST BROWSER WEB PUSH ENDPOINTS (VAPID)
+// -------------------------------------------------------------
+
+// GET /api/push/vapid-public-key (Public VAPID key only; never exposes private key)
+app.get('/api/push/vapid-public-key', (req, res) => {
+  res.json(getPublicVapidState());
+});
+
+// GET /api/push/status (Authenticated subscription status)
+app.get('/api/push/status', authenticateAnyUser, async (req, res) => {
+  try {
+    const status = await getUserPushStatus(req.actor.userType, req.actor.id);
+    res.json(status);
+  } catch (err) {
+    console.error('[Web Push Status Error]:', err);
+    res.status(500).json({ error: 'Failed to inspect push notification status' });
+  }
+});
+
+// POST /api/push/subscribe (Authenticated Web Push registration)
+app.post('/api/push/subscribe', authenticateAnyUser, async (req, res) => {
+  try {
+    const subscription = req.body?.subscription || req.body;
+    const result = await registerPushSubscription({
+      userType: req.actor.userType,
+      userId: req.actor.id,
+      subscription,
+      userAgent: req.headers['user-agent'] || ''
+    });
+    res.status(201).json({
+      success: true,
+      message: 'Browser push notifications enabled for this device.',
+      ...result
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Invalid push subscription payload' });
+  }
+});
+
+// POST / DELETE /api/push/unsubscribe & /api/push/subscribe
+async function handlePushUnsubscribe(req, res) {
+  try {
+    const endpoint = req.body?.endpoint || req.query?.endpoint || null;
+    const result = await removePushSubscription({
+      userType: req.actor.userType,
+      userId: req.actor.id,
+      endpoint
+    });
+    res.json({
+      success: true,
+      message: 'Browser push notifications disabled.',
+      ...result
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to remove push subscription' });
+  }
+}
+
+app.post('/api/push/unsubscribe', authenticateAnyUser, handlePushUnsubscribe);
+app.delete('/api/push/subscribe', authenticateAnyUser, handlePushUnsubscribe);
 
 // GET /api/admin/notifications/logs (Real-Time Notification Delivery Logs)
 app.get('/api/admin/notifications/logs', authenticateAdmin, async (req, res) => {
@@ -2184,7 +2604,7 @@ app.get('/api/admin/notifications/logs', authenticateAdmin, async (req, res) => 
   }
 });
 
-// POST /api/admin/notifications/test-email (Live SMTP Test)
+// POST /api/admin/notifications/test-email (Live Resend / SMTP Verification)
 app.post('/api/admin/notifications/test-email', authenticateAdmin, async (req, res) => {
   try {
     const { to } = req.body;
@@ -2192,10 +2612,10 @@ app.post('/api/admin/notifications/test-email', authenticateAdmin, async (req, r
       return res.status(400).json({ error: 'A valid recipient email address is required.' });
     }
 
-    const result = await testSmtpConnection(to, req.admin.name);
+    const result = await testEmailConnection(to, req.admin.name);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message || 'SMTP test error' });
+    res.status(500).json({ error: err.message || 'Email verification error' });
   }
 });
 
@@ -2325,23 +2745,35 @@ app.patch('/api/complaints/:id/manage', authenticateAdmin, async (req, res) => {
 
     const updated = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
 
-    // Multi-Channel Notification to citizen (Duplicate Resolution SMS Protection)
+    // Free-First Multi-Channel Notification to citizen (In-App + Resend Email + Web Push)
     const isNewResolution = newStatus === 'Resolved' && current.status !== 'Resolved';
-    notifyCitizenEvent({
-      eventType: isNewResolution ? 'resolution_certified' : 'status_update',
-      citizenName: updated.citizen_name,
-      citizenEmail: updated.citizen_email,
-      citizenPhone: updated.citizen_phone,
-      refId: updated.ref_id,
-      grievanceTitle: updated.title,
-      status: newStatus,
-      details: {
-        remarks: newRemarks,
-        evidenceUrl: newEvidence,
-        department: newDept,
-        officer: newOfficer
-      }
-    });
+    const statusChanged = newStatus !== current.status;
+    const officerChanged = Boolean(newOfficer && newOfficer !== current.assigned_officer);
+
+    if (isNewResolution || statusChanged || officerChanged) {
+      const targetCitizenId = await resolveComplaintCitizenId(updated);
+      const evt = isNewResolution
+        ? 'resolution_certified'
+        : statusChanged
+          ? 'status_update'
+          : 'officer_assignment';
+
+      await notifyCitizenEvent({
+        eventType: evt,
+        citizenId: targetCitizenId,
+        citizenName: updated.citizen_name,
+        citizenEmail: updated.citizen_email,
+        refId: updated.ref_id,
+        grievanceTitle: updated.title,
+        status: newStatus,
+        details: {
+          remarks: newRemarks,
+          evidenceUrl: newEvidence,
+          department: newDept,
+          officer: newOfficer
+        }
+      });
+    }
 
     // Record administrative audit trail
     await recordAuditLog({
@@ -2422,18 +2854,22 @@ app.patch('/api/complaints/:id/status', authenticateAdmin, async (req, res) => {
     });
 
     const isNewResolution = status === 'Resolved' && current.status !== 'Resolved';
-    notifyCitizenEvent({
-      eventType: isNewResolution ? 'resolution_certified' : 'status_update',
-      citizenName: updated.citizen_name,
-      citizenEmail: updated.citizen_email,
-      citizenPhone: updated.citizen_phone,
-      refId: updated.ref_id,
-      grievanceTitle: updated.title,
-      status,
-      details: {
-        remarks: `Status updated to ${status}`
-      }
-    });
+    const statusChanged = status !== current.status;
+    if (isNewResolution || statusChanged) {
+      const targetCitizenId = await resolveComplaintCitizenId(updated);
+      await notifyCitizenEvent({
+        eventType: isNewResolution ? 'resolution_certified' : 'status_update',
+        citizenId: targetCitizenId,
+        citizenName: updated.citizen_name,
+        citizenEmail: updated.citizen_email,
+        refId: updated.ref_id,
+        grievanceTitle: updated.title,
+        status,
+        details: {
+          remarks: `Status updated to ${status}`
+        }
+      });
+    }
 
     invalidateStatsCache();
 

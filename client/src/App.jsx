@@ -64,7 +64,13 @@ export default function App() {
   };
 
   // Administrator Authentication State
-  const [adminToken, setAdminToken] = useState(() => localStorage.getItem('civic_admin_token') || null);
+  const [adminToken, setAdminToken] = useState(() => {
+    try {
+      return localStorage.getItem('civic_admin_token') || null;
+    } catch {
+      return null;
+    }
+  });
   const [adminUser, setAdminUser] = useState(() => {
     try {
       const saved = localStorage.getItem('civic_admin_user');
@@ -75,7 +81,13 @@ export default function App() {
   });
 
   // Citizen Authentication State
-  const [citizenToken, setCitizenToken] = useState(() => localStorage.getItem('civic_citizen_token') || null);
+  const [citizenToken, setCitizenToken] = useState(() => {
+    try {
+      return localStorage.getItem('civic_citizen_token') || null;
+    } catch {
+      return null;
+    }
+  });
   const [citizenUser, setCitizenUser] = useState(() => {
     try {
       const saved = localStorage.getItem('civic_citizen_user');
@@ -149,6 +161,7 @@ export default function App() {
           if (res.ok) {
             const data = await res.json();
             setAdminUser(data.admin);
+            if (data.admin) localStorage.setItem('civic_admin_user', JSON.stringify(data.admin));
           } else if (res.status === 401 || res.status === 403) {
             // Strictly remove on authenticated refusal only, never on 502/503/504 cold starts!
             localStorage.removeItem('civic_admin_token');
@@ -472,6 +485,41 @@ export default function App() {
     setActiveTab('tracker');
   };
 
+  // Handle Deep Links from Web Push Notifications & Resend Emails (?trackRef=CR-...)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const trackRef = params.get('trackRef');
+      if (trackRef && trackRef.trim()) {
+        setTrackerInitialId(trackRef.trim().toUpperCase());
+        setActiveTab('tracker');
+      }
+    } catch {}
+  }, []);
+
+  // Synchronize updated profile & avatar state across Header and Portal views
+  const handleCitizenUpdated = (updated) => {
+    if (!updated) return;
+    setCitizenUser(prev => {
+      const merged = { ...(prev || {}), ...updated };
+      try {
+        localStorage.setItem('civic_citizen_user', JSON.stringify(merged));
+      } catch {}
+      return merged;
+    });
+  };
+
+  const handleAdminUpdated = (updated) => {
+    if (!updated) return;
+    setAdminUser(prev => {
+      const merged = { ...(prev || {}), ...updated };
+      try {
+        localStorage.setItem('civic_admin_user', JSON.stringify(merged));
+      } catch {}
+      return merged;
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans text-slate-800">
 
@@ -482,9 +530,12 @@ export default function App() {
         onOpenSubmit={handleOpenSubmit}
         health={health}
         adminUser={adminUser}
+        adminToken={adminToken}
         onLogoutAdmin={handleAdminLogout}
         citizenUser={citizenUser}
+        citizenToken={citizenToken}
         onLogoutCitizen={handleCitizenLogout}
+        onNavigateToComplaint={handleTrackRefId}
         onOpenCitizenAuth={(m) => {
           setCitizenAuthMode(m || 'otp');
           setIsCitizenAuthOpen(true);
@@ -608,6 +659,8 @@ export default function App() {
               {activeTab === 'citizen-portal' && (
                 <CitizenPortal
                   citizenUser={citizenUser}
+                  citizenToken={citizenToken}
+                  onCitizenUpdated={handleCitizenUpdated}
                   onLogoutCitizen={handleCitizenLogout}
                   onOpenAuth={(m) => {
                     setCitizenAuthMode(m || 'otp');
@@ -669,6 +722,8 @@ export default function App() {
                     onSelectComplaint={(c) => setSelectedComplaint(c)}
                     onManageComplaint={(c) => setManagingComplaint(c)}
                     adminUser={adminUser}
+                    adminToken={adminToken}
+                    onAdminUpdated={handleAdminUpdated}
                     onLogout={handleAdminLogout}
                     lang={lang}
                   />

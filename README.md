@@ -120,22 +120,24 @@ graph TD
     Frontend -->|Photo Proof| Multer[Multer Secure Storage\n/uploads]
     Frontend -.->|Interactive Maps| GMaps[Google Maps Platform JS]
 
-    Backend -->|Prepared Statements| DB[(SQLite Database\ncivicresolve.db\n10 B-Tree Indexes)]
+    Backend -->|Prepared Statements| DB[(SQLite / PostgreSQL\ncivicresolve.db & push_subscriptions)]
+    Backend -->|sharp 256x256 WebP| Avatars[DB-Backed Avatar Store\n/api/avatars/:userType/:id]
     Backend -->|@google/genai SDK| Gemini[Google Gemini 2.5 Flash\nMultimodal Triage]
     Backend -->|Reverse Geocoding| GGeocode[Google Maps Geocoding API]
     Backend -->|Siteverify API| GRecaptcha[Google reCAPTCHA]
-    Backend -->|SMS / Email Alerts| Notif[Multi-Channel Notifications\nSMS Gateway / SMTP]
+    Backend -->|Free-First Alerts| Notif[Resend Email + Web Push VAPID\n+ In-App Notification Centre]
 ```
 
 ---
 
 ## 5. Technology Stack
 
-- **Frontend**: React 19, Vite v8, Tailwind CSS, Lucide React, Recharts, Leaflet, Google Maps JS API Loader
-- **Backend**: Node.js, Express.js 5, `@google/genai`, Multer, CORS, Cookie-Parser, Dotenv
-- **Database**: SQLite with `better-sqlite3` (WAL mode enabled, 10 custom performance B-tree indexes)
+- **Frontend**: React 19, Vite v8, Tailwind CSS, Lucide React, Recharts, Leaflet, Google Maps JS API Loader, Service Worker (`public/sw.js`)
+- **Backend**: Node.js, Express.js 5, `@google/genai`, Multer (memory-buffered image validation), `sharp` (server-side 256×256 WebP conversion & EXIF stripping), CORS, Cookie-Parser, Dotenv
+- **Database**: SQLite (`better-sqlite3` with WAL mode enabled) and PostgreSQL dual-adapter (`migrations/001`–`005`)
 - **AI Engine**: Google Gemini (`gemini-2.5-flash`) via official `@google/genai` SDK with deterministic rule-based heuristic fallback
-- **Authentication**: `bcryptjs` password hashing, `jsonwebtoken` (HS256), SHA-256 OTP hashing with 60s cooldown
+- **Notifications (Free-First)**: Resend SDK (`resend`) for transactional email, Web Push (`web-push` with VAPID) for browser push alerts, and persistent In-App Notification Centre (`/api/notifications`)
+- **Authentication**: `bcryptjs` password hashing, `jsonwebtoken` (HS256) with strict citizen/admin token isolation, SHA-256 OTP hashing with 60s cooldown
 - **Mapping & GIS**: Google Maps Platform with OpenStreetMap Leaflet automatic fallback
 
 ---
@@ -155,7 +157,7 @@ cd "C:\Users\Vishwam R\.gemini\antigravity\scratch\civicresolve"
 cp server/.env.example server/.env
 ```
 
-Configure `server/.env` with your API keys:
+Configure `server/.env` with your API keys (see [server/.env.example](server/.env.example) for the complete template):
 ```env
 PORT=5000
 
@@ -172,15 +174,27 @@ RECAPTCHA_SITE_KEY=your_recaptcha_site_key_here
 
 # JWT Authentication Secret
 JWT_SECRET=civicresolve_jwt_secret_key_2026_super_secure
+
+# Free-First Email (Resend)
+EMAIL_ENABLED=false
+RESEND_API_KEY=your_resend_api_key_here
+EMAIL_FROM="CivicResolve <onboarding@resend.dev>"
+
+# Browser Web Push (VAPID)
+WEB_PUSH_ENABLED=false
+VAPID_PUBLIC_KEY=your_vapid_public_key_here
+VAPID_PRIVATE_KEY=your_vapid_private_key_here
+VAPID_SUBJECT=mailto:admin@civicresolve.local
 ```
 
-### 2. Run Automated Test Suite (61/61 Tests)
+### 2. Run Automated Test Suites
 ```bash
-# Run all automated tests from server directory:
+# Run all 11 backend suites (322 tests):
 cd server
 npm test
 
-# Or run from project root:
+# Run frontend SSR & UI component verification suite (19 tests):
+cd client
 npm test
 ```
 
@@ -198,11 +212,18 @@ npm run dev -- --host
 Access the application:
 - **Citizen Portal & Tracker**: `http://localhost:5173`
 - **Municipal Command Center**: `http://localhost:5173` (Click "Admin Portal" or use demo credentials)
-- **Backend API Health**: `http://localhost:5000/api/health`
+- **Backend API Health**: `http://localhost:5000/health`
 
 ---
 
-## 7. Demo Accounts & Seed Credentials
+## 7. Profile Photos & Free-First Notification Architecture
+
+- **Profile Photo System**: Citizens, Municipal Administrators, and Field Officers can preview, upload, replace, and remove profile photos (JPEG, PNG, WebP up to 2 MB) verified via magic-byte inspection, stripped of EXIF metadata, resized to `256×256` WebP via `sharp`, and persisted safely in the database via `/api/avatars/:userType/:id`. See [PROFILE_PHOTO_DOCUMENTATION.md](PROFILE_PHOTO_DOCUMENTATION.md).
+- **Free-First Notification System**: Complaint registration, status updates, and resolution trigger deduplicated notifications across **Resend Email**, **Web Push (VAPID + `sw.js`)**, and the **In-App Notification Centre** without relying on paid SMS. See [NOTIFICATION_SYSTEM_DOCUMENTATION.md](NOTIFICATION_SYSTEM_DOCUMENTATION.md).
+
+---
+
+## 8. Demo Accounts & Seed Credentials
 
 | Role | Email | Password | Access Scope |
 | :--- | :--- | :--- | :--- |
@@ -212,13 +233,15 @@ Access the application:
 
 ---
 
-## 8. Verification & Evaluator Conformance
+## 9. Verification & Evaluator Conformance
 
+- **Master Production Report**: [MASTER_CIVICRESOLVE_PRODUCTION_REPORT.md](MASTER_CIVICRESOLVE_PRODUCTION_REPORT.md)
+- **Production Deployment Report**: [PRODUCTION_DEPLOYMENT_REPORT.md](PRODUCTION_DEPLOYMENT_REPORT.md)
 - **Problem Statement Alignment**: [PROBLEM_STATEMENT_MAPPING.md](PROBLEM_STATEMENT_MAPPING.md)
 - **Comprehensive Evaluation Report**: [CIVICRESOLVE_EVALUATION_OPTIMIZATION_REPORT.md](CIVICRESOLVE_EVALUATION_OPTIMIZATION_REPORT.md)
-- **Evaluation Test Runner**: `server/test_evaluation_complete.js` (**25/25 tests passed**)
-- **Master Regression Suite**: `server/test_full_suite_master.js` (**36/36 tests passed**)
-- **Frontend Production Build**: `npm run build` in `client/` (**Clean build in 2.17s, 0 errors**)
+- **Backend Test Suites**: `cd server && npm test` (**322 tests across 11 suites**)
+- **Frontend Component Verification**: `cd client && npm test` (**19 tests**)
+- **Frontend Production Build & Lint**: `cd client && npm run lint && npm run build` (**0 lint warnings/errors**)
 - **WCAG Accessibility**: Full compliance with WCAG 2.1 AA (keyboard skip navigation, screen-reader data tables for Recharts & GIS maps, explicit form label associations).
 
 ---

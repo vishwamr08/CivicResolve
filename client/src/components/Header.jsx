@@ -4,6 +4,8 @@ import {
   HelpCircle, BarChart3, Bell, PhoneCall, User, Lock,
   PlusCircle, LogOut, ChevronRight } from 'lucide-react';
 import { translations } from '../data/translations';
+import AvatarDisplay from './AvatarDisplay';
+import NotificationCenter from './NotificationCenter';
 
 export default function Header({
   activeTab,
@@ -11,9 +13,12 @@ export default function Header({
   onOpenSubmit,
   onOpenCitizenAuth,
   citizenUser,
+  citizenToken,
   onLogoutCitizen,
   adminUser,
+  adminToken,
   onLogoutAdmin,
+  onNavigateToComplaint,
   _health,
   lang = 'en',
   setLang,
@@ -21,6 +26,13 @@ export default function Header({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const t = translations[lang] || translations.en;
+
+  const isAdminSessionPriority = Boolean(
+    adminUser && (activeTab === 'admin' || activeTab === 'officer-portal' || !citizenUser)
+  );
+  const notifUserType = isAdminSessionPriority ? 'admin' : 'citizen';
+  const notifToken = isAdminSessionPriority ? adminToken : citizenToken;
+  const isAnyUserAuthenticated = Boolean((citizenUser && citizenToken) || (adminUser && adminToken));
 
   const handleNavClick = (tabId) => {
     setActiveTab(tabId);
@@ -137,21 +149,21 @@ export default function Header({
           {/* Brand Identity */}
           <div
             onClick={() => handleNavClick('landing')}
-            className="flex items-center gap-3 cursor-pointer select-none group"
+            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer select-none group min-w-0"
           >
-            <div className="w-10 h-10 rounded-xl bg-[#1a3c6e] border border-[#2a5298] flex items-center justify-center text-white shadow-sm flex-shrink-0">
-              <ShieldCheck className="w-6 h-6 text-[#f47920]" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#1a3c6e] border border-[#2a5298] flex items-center justify-center text-white shadow-sm flex-shrink-0">
+              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-[#f47920]" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-xl tracking-tight text-[#1a3c6e]">
+                <span className="font-bold text-lg sm:text-xl tracking-tight text-[#1a3c6e] truncate">
                   Civic<span className="text-[#f47920]">Resolve</span>
                 </span>
-                <span className="text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded bg-orange-50 text-[#d96810] border border-orange-200/80">
+                <span className="hidden sm:inline-block text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded bg-orange-50 text-[#d96810] border border-orange-200/80 whitespace-nowrap">
                   Govt of Tamil Nadu
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-normal">
+              <p className="text-[10px] sm:text-[11px] text-slate-500 font-normal truncate">
                 {lang === 'ta' ? 'குடிமக்கள் குறைதீர்க்கும் தளம்' : 'Citizen Grievance Redressal Platform'}
               </p>
             </div>
@@ -184,101 +196,115 @@ export default function Header({
             })}
           </nav>
 
-          {/* Action CTAs */}
-          <div className="hidden sm:flex items-center gap-2">
+          {/* Action CTAs + Persistent Notification Bell */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="hidden sm:flex items-center gap-2">
 
-            {/* Primary Submit Grievance CTA */}
-            <button
-              onClick={() => onOpenSubmit && onOpenSubmit('Road Damage')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#f47920] hover:bg-[#d96810] transition-colors shadow-sm"
-            >
-              <PlusCircle className="w-3.5 h-3.5 text-white" />
-              <span>{lang === 'ta' ? 'மனு பதிவு' : 'File Complaint'}</span>
-            </button>
-
-            {/* Citizen Auth Badge / Login Button */}
-            {citizenUser ? (
-              <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
-                <button
-                  onClick={() => handleNavClick('citizen-portal')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
-                    activeTab === 'citizen-portal'
-                      ? 'bg-orange-50 border-orange-200 text-[#d96810]'
-                      : 'border-slate-300 text-[#1a3c6e] bg-white hover:bg-slate-50'
-                  }`}
-                >
-                  <User className="w-3.5 h-3.5 text-[#1a3c6e]" />
-                  <span className="max-w-[90px] truncate">{citizenUser.name.split(' ')[0]}</span>
-                </button>
-                <button
-                  onClick={onLogoutCitizen}
-                  title="Logout Citizen"
-                  className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
+              {/* Primary Submit Grievance CTA */}
               <button
-                onClick={onOpenCitizenAuth}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-[#1a3c6e] bg-white border border-slate-300 hover:bg-slate-50 transition-colors shadow-sm"
+                onClick={() => onOpenSubmit && onOpenSubmit('Road Damage')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-white bg-[#f47920] hover:bg-[#d96810] transition-colors shadow-sm"
               >
-                <User className="w-3.5 h-3.5 text-slate-600" />
-                <span>{lang === 'ta' ? 'குடிமக்கள்' : 'Login'}</span>
+                <PlusCircle className="w-3.5 h-3.5 text-white" />
+                <span>{lang === 'ta' ? 'மனு பதிவு' : 'File Complaint'}</span>
               </button>
-            )}
 
-            {/* Municipal Officer / Admin Console CTA */}
-            {adminUser ? (
-              <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
+              {/* Citizen Auth Badge / Login Button */}
+              {citizenUser ? (
+                <div className="flex items-center gap-1 pl-2 border-l border-slate-200">
+                  <button
+                    onClick={() => handleNavClick('citizen-portal')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                      activeTab === 'citizen-portal'
+                        ? 'bg-orange-50 border-orange-200 text-[#d96810]'
+                        : 'border-slate-300 text-[#1a3c6e] bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <AvatarDisplay user={citizenUser} size="xs" variant="citizen" />
+                    <span className="max-w-[85px] truncate">{citizenUser.name.split(' ')[0]}</span>
+                  </button>
+                  <button
+                    onClick={onLogoutCitizen}
+                    title="Logout Citizen"
+                    aria-label="Logout Citizen"
+                    className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={() => handleNavClick('admin')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                    activeTab === 'admin' || activeTab === 'officer-portal'
-                      ? 'bg-[#1a3c6e] text-white shadow-sm'
-                      : 'bg-slate-100 text-[#1a3c6e] hover:bg-slate-200'
-                  }`}
+                  onClick={onOpenCitizenAuth}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-[#1a3c6e] bg-white border border-slate-300 hover:bg-slate-50 transition-colors shadow-sm"
                 >
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#f47920]" />
-                  <span>Admin</span>
+                  <User className="w-3.5 h-3.5 text-slate-600" />
+                  <span>{lang === 'ta' ? 'குடிமக்கள்' : 'Login'}</span>
                 </button>
+              )}
+
+              {/* Municipal Officer / Admin Console CTA */}
+              {adminUser ? (
+                <div className="flex items-center gap-1 pl-2 border-l border-slate-200">
+                  <button
+                    onClick={() => handleNavClick('admin')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      activeTab === 'admin' || activeTab === 'officer-portal'
+                        ? 'bg-[#1a3c6e] text-white shadow-sm'
+                        : 'bg-slate-100 text-[#1a3c6e] hover:bg-slate-200'
+                    }`}
+                  >
+                    <AvatarDisplay user={adminUser} size="xs" variant="admin" />
+                    <span>Admin</span>
+                  </button>
+                  <button
+                    onClick={onLogoutAdmin}
+                    title="Sign Out Officer"
+                    aria-label="Sign Out Officer"
+                    className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={onLogoutAdmin}
-                  title="Sign Out Officer"
-                  className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                  onClick={() => handleNavClick('admin-login')}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-[#1a3c6e] hover:bg-slate-100 transition-colors"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <Lock className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="hidden xl:inline">{lang === 'ta' ? 'அதிகாரி' : 'Officer'}</span>
                 </button>
-              </div>
-            ) : (
+              )}
+
+            </div>
+
+            {/* Unified Authenticated Notification Bell (Visible across mobile & desktop) */}
+            <NotificationCenter
+              isAuthenticated={isAnyUserAuthenticated}
+              userType={notifUserType}
+              token={notifToken}
+              onNavigateToComplaint={onNavigateToComplaint}
+              lang={lang}
+            />
+
+            {/* Mobile Action & Hamburger Toggle */}
+            <div className="flex lg:hidden items-center gap-1.5">
               <button
-                onClick={() => handleNavClick('admin-login')}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-[#1a3c6e] hover:bg-slate-100 transition-colors"
+                onClick={() => onOpenSubmit && onOpenSubmit('Road Damage')}
+                className="sm:hidden p-2 rounded-lg bg-[#f47920] text-white font-semibold text-xs shadow-sm"
+                title="Report Issue"
+                aria-label="File Complaint"
               >
-                <Lock className="w-3.5 h-3.5 text-slate-500" />
-                <span className="hidden xl:inline">{lang === 'ta' ? 'அதிகாரி' : 'Officer'}</span>
+                <PlusCircle className="w-4 h-4" />
               </button>
-            )}
 
-          </div>
-
-          {/* Mobile Hamburger Toggle */}
-          <div className="flex lg:hidden items-center gap-2">
-            <button
-              onClick={() => onOpenSubmit && onOpenSubmit('Road Damage')}
-              className="p-2 rounded-lg bg-[#f47920] text-white font-semibold text-xs shadow-sm"
-              title="Report Issue"
-            >
-              <PlusCircle className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
-              aria-label="Toggle Navigation Menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
+                aria-label="Toggle Navigation Menu"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
 
         </div>
@@ -294,7 +320,7 @@ export default function Header({
                 onClick={() => handleNavClick('citizen-portal')}
                 className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg bg-orange-50 border border-orange-200 text-[#d96810] text-xs font-semibold"
               >
-                <User className="w-3.5 h-3.5 text-[#f47920]" />
+                <AvatarDisplay user={citizenUser} size="xs" variant="citizen" />
                 <span className="truncate">{t.citizenPortal}</span>
               </button>
             ) : (
@@ -312,7 +338,7 @@ export default function Header({
                 onClick={() => handleNavClick('admin')}
                 className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg bg-[#1a3c6e] text-white text-xs font-semibold"
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-[#f47920]" />
+                <AvatarDisplay user={adminUser} size="xs" variant="admin" />
                 <span className="truncate">{t.commandCenter}</span>
               </button>
             ) : (

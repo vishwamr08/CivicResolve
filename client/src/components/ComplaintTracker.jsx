@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, Sparkles, CheckCircle2, Clock, AlertTriangle, ArrowRight,
   Loader2, Printer, Lock, Unlock
@@ -26,9 +26,7 @@ export default function ComplaintTracker({
 
   const t = translations[lang] || translations.en;
 
-  const handleTrack = async (e) => {
-    if (e) e.preventDefault();
-    const cleanId = refInput.trim();
+  const performLookup = useCallback(async (cleanId) => {
     if (!cleanId) return;
 
     setLoading(true);
@@ -50,6 +48,20 @@ export default function ComplaintTracker({
     } finally {
       setLoading(false);
     }
+  }, [t.noRecordFound]);
+
+  useEffect(() => {
+    const clean = (initialRefId || '').trim().toUpperCase();
+    if (clean) {
+      setRefInput(clean);
+      performLookup(clean);
+    }
+  }, [initialRefId, performLookup]);
+
+  const handleTrack = async (e) => {
+    if (e) e.preventDefault();
+    const cleanId = refInput.trim().toUpperCase();
+    await performLookup(cleanId);
   };
 
   const handleVerifyOwnership = async (e) => {

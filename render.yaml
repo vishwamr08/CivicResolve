@@ -36,8 +36,20 @@ services:
         value: /var/data/civicresolve.db
       - key: UPLOADS_DIR
         value: /var/data/uploads
-      - key: SMS_PROVIDER
-        value: msg91
+      - key: EMAIL_ENABLED
+        value: "true"
+      - key: EMAIL_FROM
+        value: "CivicResolve <onboarding@resend.dev>"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: WEB_PUSH_ENABLED
+        value: "true"
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: mailto:grievance@civicresolve.gov
       - key: FRONTEND_URL
         value: https://civicresolve-yc9v.onrender.com
       - key: CORS_ORIGIN

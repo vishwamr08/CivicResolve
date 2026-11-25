@@ -1,5 +1,20 @@
 {
   "framework": "vite",
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -10,7 +25,7 @@
       "destination": "https://civicresolve-8nve.onrender.com/uploads/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|uploads/|assets/|sw\\.js|civicresolve-logo\\.png|favicon\\.svg|icons\\.svg).*)",
       "destination": "/index.html"
     }
   ]

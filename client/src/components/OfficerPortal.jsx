@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { translations } from '../data/translations';
 import { getApiUrl } from '../config/api';
+import AvatarDisplay from './AvatarDisplay';
 
 export default function OfficerPortal({
   adminUser,
@@ -135,21 +136,24 @@ export default function OfficerPortal({
 
       {/* Officer Header Card */}
       <div className="bg-[#0f2040] rounded-xl p-6 sm:p-8 text-white shadow-sm border border-navy-850 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold border border-saffron/30">
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Field Duty & Inspection Desk</span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
+          <AvatarDisplay user={adminUser} size="lg" variant="admin" className="ring-2 ring-white/20" />
+          <div className="space-y-2 min-w-0">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-navy-900 text-saffron text-xs font-semibold border border-saffron/30">
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Field Duty & Inspection Desk</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">
+              {adminUser?.name || 'Municipal Officer'}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span>Role: <strong className="text-white font-semibold">{adminUser?.designation || 'Zonal Officer'}</strong></span>
+              <span>•</span>
+              <span>Department: <strong className="text-white font-semibold">{adminUser?.department || 'Municipal Operations'}</strong></span>
+              <span>•</span>
+              <span>Jurisdiction: <strong className="text-white font-semibold">{adminUser?.district || 'Statewide'}</strong></span>
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {adminUser?.name || 'Municipal Officer'}
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span>Role: <strong className="text-white font-semibold">{adminUser?.designation || 'Zonal Officer'}</strong></span>
-            <span>•</span>
-            <span>Department: <strong className="text-white font-semibold">{adminUser?.department || 'Municipal Operations'}</strong></span>
-            <span>•</span>
-            <span>Jurisdiction: <strong className="text-white font-semibold">{adminUser?.district || 'Statewide'}</strong></span>
-          </p>
         </div>
 
         <div className="flex items-center gap-3">

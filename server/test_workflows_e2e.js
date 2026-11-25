@@ -56,7 +56,8 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 dotenv.config();
 
 process.env.USE_SQLITE = 'true';
-process.env.SMS_PROVIDER = 'mock';
+process.env.MOCK_EMAIL = 'true';
+process.env.MOCK_PUSH = 'true';
 
 const { setupIsolatedTestDb } = require('./test_helper');
 const { isolatedDbPath, cleanup } = setupIsolatedTestDb('workflows_e2e');
@@ -260,15 +261,19 @@ async function runWorkflowTestSuite() {
     // 14. AI classification & SLA assignment
     assert(dbRecord.sla_hours > 0 && dbRecord.department && dbRecord.status, `Complaint assigned SLA (${dbRecord.sla_hours}h) and department (${dbRecord.department})`);
 
-    // 15. SMS registration notification dispatch & database logging
-    const regSmsLog = db.prepare(`
+    // 15. Free-First registration notification dispatch (Resend Email Mock + In-App)
+    const regEmailLog = db.prepare(`
       SELECT * FROM notification_logs 
-      WHERE ref_id = ? AND channel = 'sms'
+      WHERE ref_id = ? AND channel = 'email'
       ORDER BY id DESC LIMIT 1
     `).get(createdRefId);
-    assert(regSmsLog && regSmsLog.status === 'sent', 'Complaint Registration SMS recorded with status="sent"');
-    const expectedRegText = `Dear Citizen, your complaint has been successfully registered with CivicResolve. Your Complaint ID is ${createdRefId}. You can use this ID to track your complaint status. Thank you.`;
-    assert(regSmsLog.body === expectedRegText, 'Registration SMS content matches the required template verbatim');
+    assert(regEmailLog && regEmailLog.status === 'sent', 'Complaint Registration Email (Resend Mock) recorded with status="sent"');
+    const regInApp = db.prepare(`
+      SELECT * FROM notifications 
+      WHERE recipient_type = 'citizen' AND ref_id = ?
+      ORDER BY id DESC LIMIT 1
+    `).get(createdRefId);
+    assert(regInApp && regInApp.title.includes('Registered'), 'Citizen In-App Notification created upon complaint submission');
 
     // 16. Public complaint tracking
     const trackPublicRes = await makeRequest('GET', `/api/complaints/track/${createdRefId}`);
@@ -276,7 +281,7 @@ async function runWorkflowTestSuite() {
 
     // 17. Citizen privacy & PII masking on public view
     const publicData = trackPublicRes.data;
-    assert(publicData.citizen_phone && publicData.citizen_phone.includes('XXXXXX'), `Public track phone is properly masked: ${publicData.citizen_phone}`);
+    assert(publicData.citizen_phone && publicData.citizen_phone.includes('******'), `Public track phone is properly masked: ${publicData.citizen_phone}`);
     assert(publicData.citizen_email && publicData.citizen_email.includes('***'), `Public track email is properly masked: ${publicData.citizen_email}`);
     assert(publicData.internal_notes === null, 'Administrative internal notes omitted from public tracking view');
     assert(publicData.ai_reason === null, 'AI reasoning details omitted from public tracking view');
@@ -379,20 +384,24 @@ async function runWorkflowTestSuite() {
     });
     assert(resolveRes.statusCode === 200 && resolveRes.data.complaint.status === 'Resolved', 'Complaint officially transitioned to Resolved status with remarks');
 
-    // 34. SMS resolution notification dispatch & database logging
-    const resSmsLog = db.prepare(`
+    // 34. Free-First resolution notification dispatch (Resend Email Mock + In-App)
+    const resEmailLog = db.prepare(`
       SELECT * FROM notification_logs 
-      WHERE ref_id = ? AND channel = 'sms' AND body LIKE '%marked as resolved%'
+      WHERE ref_id = ? AND channel = 'email' AND event_type = 'resolution_certified'
       ORDER BY id DESC LIMIT 1
     `).get(createdRefId);
-    assert(resSmsLog && resSmsLog.status === 'sent', 'Resolution SMS recorded in database with status="sent"');
-    const expectedResText = `Dear Citizen, your complaint ${createdRefId} has been marked as resolved. Thank you for using CivicResolve. Please visit the portal to review your complaint.`;
-    assert(resSmsLog.body === expectedResText, 'Resolution SMS content matches the required template verbatim');
+    assert(resEmailLog && resEmailLog.status === 'sent', 'Resolution Email recorded in database with status="sent"');
+    const resInApp = db.prepare(`
+      SELECT * FROM notifications 
+      WHERE recipient_type = 'citizen' AND ref_id = ? AND event_type = 'resolution_certified'
+      ORDER BY id DESC LIMIT 1
+    `).get(createdRefId);
+    assert(resInApp && resInApp.title.includes('Resolved'), 'Citizen In-App Resolution notification persisted');
 
-    // 35. Duplicate resolution SMS prevention on re-save
+    // 35. Duplicate resolution notification prevention on re-save
     const initialCount = db.prepare(`
       SELECT COUNT(*) as count FROM notification_logs 
-      WHERE ref_id = ? AND channel = 'sms' AND body LIKE '%marked as resolved%'
+      WHERE ref_id = ? AND channel = 'email' AND event_type = 'resolution_certified'
     `).get(createdRefId).count;
 
     // Resave resolved complaint
@@ -403,9 +412,9 @@ async function runWorkflowTestSuite() {
 
     const newCount = db.prepare(`
       SELECT COUNT(*) as count FROM notification_logs 
-      WHERE ref_id = ? AND channel = 'sms' AND body LIKE '%marked as resolved%'
+      WHERE ref_id = ? AND channel = 'email' AND event_type = 'resolution_certified'
     `).get(createdRefId).count;
-    assert(initialCount === newCount, 'Re-saving already resolved complaint prevented duplicate resolution SMS dispatch');
+    assert(initialCount === newCount, 'Re-saving already resolved complaint prevented duplicate resolution notification dispatch');
 
     // 36. Notification audit logs retrieval
     const notifLogsRes = await makeRequest('GET', '/api/admin/notifications/logs', adminAuthHeader);

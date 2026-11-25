@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node test_health.js && node test_evaluation_complete.js && node test_full_suite_master.js && node test_phase1_data_integrity.js && node test_phase2_auth_persistence.js && node test_phase3_location_routing.js && node test_phase4_performance.js && node test_citizen_sms_notification.js && node test_workflows_e2e.js",
+    "test": "node test_health.js && node test_evaluation_complete.js && node test_full_suite_master.js && node test_phase1_data_integrity.js && node test_phase2_auth_persistence.js && node test_phase2_security_audit.js && node test_phase3_location_routing.js && node test_phase4_performance.js && node test_citizen_sms_notification.js && node test_workflows_e2e.js && node test_profile_photos_and_free_notifications.js",
+    "test:profile-notifications": "node test_profile_photos_and_free_notifications.js",
     "test:sms": "node test_citizen_sms_notification.js",
     "test:workflows": "node test_workflows_e2e.js",
     "test:health": "node test_health.js",
@@ -37,6 +38,9 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.5.0",
     "nodemailer": "^10.6.1",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "resend": "^6.39.0",
+    "sharp": "^0.35.5",
+    "web-push": "^4.0.0"
   }
 }

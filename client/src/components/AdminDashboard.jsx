@@ -2,13 +2,16 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   CheckCircle2, AlertTriangle,
   BarChart3, PieChart as PieIcon, RefreshCw, Eye, Edit3, Wrench, Search,
-  Mail, Send, Loader2, RotateCcw, Map as MapIcon, Inbox
+  Mail, Send, Loader2, RotateCcw, Map as MapIcon, Inbox, User, Save
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
 import ComplaintMap from './ComplaintMap';
+import AvatarDisplay from './AvatarDisplay';
+import ProfilePhotoUploader from './ProfilePhotoUploader';
+import WebPushControl from './WebPushControl';
 import { getApiUrl } from '../config/api';
 import { translations } from '../data/translations';
 
@@ -19,12 +22,57 @@ export default function AdminDashboard({
   onSelectComplaint,
   onManageComplaint,
   adminUser,
+  adminToken,
+  onAdminUpdated,
   onLogout,
   lang = 'en'
 }) {
-  const [activeAdminTab, setActiveAdminTab] = useState('inbox'); // 'inbox', 'analytics', 'map', 'notifications', 'duplicates'
+  const [activeAdminTab, setActiveAdminTab] = useState('inbox'); // 'inbox', 'analytics', 'map', 'notifications', 'profile'
+  const effectiveAdminToken = adminToken || (typeof localStorage !== 'undefined' ? localStorage.getItem('civic_admin_token') : null);
 
   const t = translations[lang] || translations.en;
+
+  // Admin Profile Settings State
+  const [adminProfileName, setAdminProfileName] = useState(adminUser?.name || '');
+  const [adminProfileDesignation, setAdminProfileDesignation] = useState(adminUser?.designation || '');
+  const [savingAdminProfile, setSavingAdminProfile] = useState(false);
+  const [adminProfileMsg, setAdminProfileMsg] = useState(null);
+
+  useEffect(() => {
+    if (adminUser) {
+      if (adminUser.name) setAdminProfileName(adminUser.name);
+      if (adminUser.designation) setAdminProfileDesignation(adminUser.designation);
+    }
+  }, [adminUser]);
+
+  const handleSaveAdminProfile = async (e) => {
+    e.preventDefault();
+    if (!effectiveAdminToken) return;
+    setSavingAdminProfile(true);
+    setAdminProfileMsg(null);
+    try {
+      const res = await fetch(getApiUrl('/api/admin/profile'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${effectiveAdminToken}`
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: adminProfileName,
+          designation: adminProfileDesignation
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to update profile');
+      if (onAdminUpdated && data.admin) onAdminUpdated(data.admin);
+      setAdminProfileMsg({ type: 'success', text: 'Administrator profile updated successfully!' });
+    } catch (err) {
+      setAdminProfileMsg({ type: 'error', text: err.message });
+    } finally {
+      setSavingAdminProfile(false);
+    }
+  };
 
   // Inbox filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -200,39 +248,42 @@ export default function AdminDashboard({
 
       {/* Admin Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-              Municipal Administration Console
-            </h1>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300">
-              {adminUser?.designation || 'Zonal Officer Session'}
-            </span>
-            {adminUser?.district && (
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-navy-50 text-navy-800 border border-navy-200">
-                {adminUser.district}
+        <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+          <AvatarDisplay user={adminUser} size="lg" variant="admin" />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
+                Municipal Administration Console
+              </h1>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300">
+                {adminUser?.designation || 'Zonal Officer Session'}
               </span>
-            )}
-            {stats?.isDemoData ? (
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                Demonstration Data
-              </span>
-            ) : total > 0 ? (
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                Live Database Data
-              </span>
-            ) : (
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                No Data Available
-              </span>
-            )}
+              {adminUser?.district && (
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-navy-50 text-navy-800 border border-navy-200">
+                  {adminUser.district}
+                </span>
+              )}
+              {stats?.isDemoData ? (
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                  Demonstration Data
+                </span>
+              ) : total > 0 ? (
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Live Database Data
+                </span>
+              ) : (
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                  No Data Available
+                </span>
+              )}
+            </div>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 truncate">
+              Logged in as <strong className="text-slate-900 font-semibold">{adminUser?.name || 'Administrator'}</strong> ({adminUser?.email || 'admin@civicresolve.gov'})
+            </p>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Logged in as <strong className="text-slate-900 font-semibold">{adminUser?.name || 'Administrator'}</strong> ({adminUser?.email || 'admin@civicresolve.gov'})
-          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -295,10 +346,10 @@ export default function AdminDashboard({
       </div>
 
       {/* Admin Module Navigation Tabs */}
-      <div className="flex border-b border-slate-200 text-xs font-bold gap-2">
+      <div className="flex flex-wrap sm:flex-nowrap overflow-x-auto border-b border-slate-200 text-xs font-bold gap-1 sm:gap-2">
         <button
           onClick={() => setActiveAdminTab('inbox')}
-          className={`flex items-center gap-1.5 py-3 px-4 rounded-t-lg transition-colors border-b-2 ${
+          className={`flex items-center gap-1.5 py-3 px-3.5 rounded-t-lg transition-colors border-b-2 whitespace-nowrap ${
             activeAdminTab === 'inbox'
               ? 'border-navy-900 text-navy-950 bg-white shadow-sm font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -310,7 +361,7 @@ export default function AdminDashboard({
 
         <button
           onClick={() => setActiveAdminTab('analytics')}
-          className={`flex items-center gap-1.5 py-3 px-4 rounded-t-lg transition-colors border-b-2 ${
+          className={`flex items-center gap-1.5 py-3 px-3.5 rounded-t-lg transition-colors border-b-2 whitespace-nowrap ${
             activeAdminTab === 'analytics'
               ? 'border-navy-900 text-navy-950 bg-white shadow-sm font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -322,26 +373,38 @@ export default function AdminDashboard({
 
         <button
           onClick={() => setActiveAdminTab('map')}
-          className={`flex items-center gap-1.5 py-3 px-4 rounded-t-lg transition-colors border-b-2 ${
+          className={`flex items-center gap-1.5 py-3 px-3.5 rounded-t-lg transition-colors border-b-2 whitespace-nowrap ${
             activeAdminTab === 'map'
               ? 'border-navy-900 text-navy-950 bg-white shadow-sm font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
           <MapIcon className="w-4 h-4 text-navy-800" />
-          <span>Geotagged Incident Map</span>
+          <span>Incident Map</span>
         </button>
 
         <button
           onClick={() => setActiveAdminTab('notifications')}
-          className={`flex items-center gap-1.5 py-3 px-4 rounded-t-lg transition-colors border-b-2 ${
+          className={`flex items-center gap-1.5 py-3 px-3.5 rounded-t-lg transition-colors border-b-2 whitespace-nowrap ${
             activeAdminTab === 'notifications'
               ? 'border-navy-900 text-navy-950 bg-white shadow-sm font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
           <Mail className="w-4 h-4 text-navy-800" />
-          <span>Notification Engine & Logs</span>
+          <span>Notifications & Logs</span>
+        </button>
+
+        <button
+          onClick={() => setActiveAdminTab('profile')}
+          className={`flex items-center gap-1.5 py-3 px-3.5 rounded-t-lg transition-colors border-b-2 whitespace-nowrap ${
+            activeAdminTab === 'profile'
+              ? 'border-navy-900 text-navy-950 bg-white shadow-sm font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <User className="w-4 h-4 text-navy-800" />
+          <span>My Profile & Alerts</span>
         </button>
       </div>
 
@@ -719,20 +782,20 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* 4. NOTIFICATION CENTER & SMTP TESTER */}
+      {/* 4. NOTIFICATION CENTER & EMAIL TESTER */}
       {activeAdminTab === 'notifications' && (
         <div className="space-y-6">
 
-          {/* SMTP Live Testing Card */}
+          {/* Resend Email Verification Card */}
           <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <Mail className="w-5 h-5 text-navy-800" />
-                  Live Notification Engine & SMTP Verification
+                  Free-First Notification Engine & Email Verification (Resend)
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Test actual SMTP connectivity. Real delivery states are logged to SQLite without simulated falsification.
+                  Test live Resend API email connectivity. Delivery telemetry is logged truthfully without false status claims.
                 </p>
               </div>
               <button
@@ -761,7 +824,7 @@ export default function AdminDashboard({
                 {testingSmtp ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Testing SMTP Transport...</span>
+                    <span>Sending Test Email...</span>
                   </>
                 ) : (
                   <>
@@ -785,7 +848,7 @@ export default function AdminDashboard({
                 )}
                 <div>
                   <p className="font-bold">
-                    {smtpTestResult.status === 'sent' ? 'SMTP Accepted & Delivered' : 'Delivery Logged as Failed / Unconfigured'}
+                    {smtpTestResult.status === 'sent' ? 'Email Accepted & Delivered' : 'Delivery Logged as Failed / Unconfigured'}
                   </p>
                   <p className="mt-0.5">
                     {smtpTestResult.message || smtpTestResult.error}
@@ -855,7 +918,7 @@ export default function AdminDashboard({
                           </span>
                         </td>
                         <td className="py-2.5 px-3 max-w-xs truncate text-slate-500 text-[11px]" title={log.error_message || log.provider_response || ''}>
-                          {log.error_message || (log.status === 'sent' ? 'Accepted by SMTP Provider' : '-')}
+                          {log.error_message || (log.status === 'sent' ? 'Accepted & Delivered' : '-')}
                         </td>
                         <td className="py-2.5 px-3 text-right">
                           {log.status === 'failed' && (
@@ -877,6 +940,110 @@ export default function AdminDashboard({
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* 5. ADMIN PROFILE, AVATAR PHOTO & WEB PUSH TAB */}
+      {activeAdminTab === 'profile' && (
+        <div className="space-y-6">
+          <ProfilePhotoUploader
+            user={adminUser}
+            userType="admin"
+            token={effectiveAdminToken}
+            onPhotoUpdated={onAdminUpdated}
+            lang={lang}
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+                <User className="w-4 h-4 text-[#1a3c6e]" />
+                <span>Administrator Account Details</span>
+              </h3>
+
+              {adminProfileMsg && (
+                <div className={`p-3 rounded-lg border text-xs flex items-center gap-2 ${
+                  adminProfileMsg.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}>
+                  {adminProfileMsg.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  )}
+                  <span>{adminProfileMsg.text}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveAdminProfile} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">Officer / Admin Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={adminProfileName}
+                    onChange={(e) => setAdminProfileName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#1a3c6e] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">Official Designation</label>
+                  <input
+                    type="text"
+                    required
+                    value={adminProfileDesignation}
+                    onChange={(e) => setAdminProfileDesignation(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#1a3c6e] focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Official Email</span>
+                    <strong className="text-slate-800 font-semibold break-all">{adminUser?.email}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Access Role</span>
+                    <strong className="text-[#1a3c6e] font-semibold uppercase">{adminUser?.role}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Assigned District</span>
+                    <strong className="text-slate-800 font-semibold">{adminUser?.district || 'Statewide'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Department</span>
+                    <strong className="text-slate-800 font-semibold">{adminUser?.department || 'Municipal Administration'}</strong>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingAdminProfile}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-xs text-white bg-[#1a3c6e] hover:bg-[#15305a] shadow-sm transition-colors disabled:opacity-50 min-h-[42px]"
+                >
+                  {savingAdminProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>Save Administrator Profile</span>
+                </button>
+              </form>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+                <Mail className="w-4 h-4 text-[#1a3c6e]" />
+                <span>Browser Push & Desk Alerts</span>
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Enable browser push notifications on your administrative console to stay informed of newly registered grievances and urgent escalations.
+              </p>
+              <WebPushControl
+                token={effectiveAdminToken}
+                userType="admin"
+                lang={lang}
+              />
+            </div>
+          </div>
         </div>
       )}
 
