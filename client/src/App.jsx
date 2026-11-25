@@ -89,7 +89,6 @@ export default function App() {
   const [complaintsLoaded, setComplaintsLoaded] = useState(false);
   const [stats, setStats] = useState(null);
   const [health, setHealth] = useState(null);
-  const [loading, _setLoading] = useState(false);
 
   // Modals & Tracking
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
@@ -513,27 +512,8 @@ export default function App() {
 
       {/* Main View Container */}
       <main id="main-content" role="main" tabIndex="-1" className="flex-1 outline-none">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-navy-900" />
-            <p className="text-xs font-medium text-slate-600">Loading CivicResolve Telemetry...</p>
-          </div>
-        ) : error ? (
-          <div className="max-w-md mx-auto my-16 p-5 bg-rose-50 border border-rose-200 rounded-xl text-center space-y-2.5">
-            <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
-            <h3 className="font-bold text-rose-900 text-sm">Backend Connection Notice</h3>
-            <p className="text-xs text-rose-700">{error}</p>
-            <button
-              onClick={fetchData}
-              className="mt-2 px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-lg transition-colors"
-            >
-              Retry Connection
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* 1. Complete Government-Style Homepage */}
-            {activeTab === 'landing' && (
+        {/* 1. Complete Government-Style Homepage */}
+        {activeTab === 'landing' && (
               <LandingPage
                 onOpenSubmit={handleOpenSubmit}
                 onGoToCitizen={() => setActiveTab('citizen-portal')}
@@ -699,9 +679,7 @@ export default function App() {
                   />
                 )
               )}
-            </Suspense>
-          </>
-        )}
+        </Suspense>
       </main>
 
       {/* Footer */}
