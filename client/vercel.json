@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://civicresolve-api.onrender.com/api/$1"
+      "destination": "https://civicresolve-8nve.onrender.com/api/$1"
     },
     {
       "source": "/uploads/(.*)",
-      "destination": "https://civicresolve-api.onrender.com/uploads/$1"
+      "destination": "https://civicresolve-8nve.onrender.com/uploads/$1"
     },
     {
       "source": "/(.*)",

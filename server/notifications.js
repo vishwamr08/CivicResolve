@@ -36,7 +36,8 @@ function isSmtpConfigured() {
  * Check if MSG91 is configured
  */
 function isMsg91Configured() {
-  const key = process.env.MSG91_AUTH_KEY;
+  const provider = (process.env.SMS_PROVIDER || '').toLowerCase();
+  const key = process.env.MSG91_AUTH_KEY || (provider === 'msg91' ? process.env.SMS_API_KEY : null);
   return Boolean(key && !key.includes('your_'));
 }
 
@@ -44,8 +45,19 @@ function isMsg91Configured() {
  * Check if Fast2SMS is configured
  */
 function isFast2SmsConfigured() {
-  const key = process.env.FAST2SMS_API_KEY;
+  const provider = (process.env.SMS_PROVIDER || '').toLowerCase();
+  const key = process.env.FAST2SMS_API_KEY || (provider === 'fast2sms' ? process.env.SMS_API_KEY : null);
   return Boolean(key && !key.includes('your_'));
+}
+
+/**
+ * Check if Exotel is configured
+ */
+function isExotelConfigured() {
+  const provider = (process.env.SMS_PROVIDER || '').toLowerCase();
+  const sid = process.env.EXOTEL_SID || process.env.EXOTEL_ACCOUNT_SID;
+  const token = process.env.EXOTEL_TOKEN || (provider === 'exotel' ? process.env.SMS_API_KEY : null);
+  return Boolean(sid && token && !sid.includes('your_'));
 }
 
 /**
@@ -59,14 +71,72 @@ function isTwilioConfigured() {
 }
 
 /**
- * Check if SMS (Fast2SMS, MSG91, or Twilio) is configured
+ * Check if Mock SMS Adapter is enabled (for testing/development)
+ */
+function isMockSmsConfigured() {
+  const provider = (process.env.SMS_PROVIDER || '').toLowerCase();
+  return provider === 'mock' || process.env.MOCK_SMS === 'true';
+}
+
+/**
+ * Check if SMS gateway is configured
  */
 function isSmsConfigured() {
   const provider = (process.env.SMS_PROVIDER || '').toLowerCase();
-  if (provider === 'fast2sms') return isFast2SmsConfigured();
+  if (provider === 'mock') return true;
   if (provider === 'msg91') return isMsg91Configured();
+  if (provider === 'exotel') return isExotelConfigured();
+  if (provider === 'fast2sms') return isFast2SmsConfigured();
   if (provider === 'twilio') return isTwilioConfigured();
-  return isFast2SmsConfigured() || isMsg91Configured() || isTwilioConfigured();
+  return isFast2SmsConfigured() || isMsg91Configured() || isExotelConfigured() || isTwilioConfigured() || isMockSmsConfigured();
+}
+
+/**
+ * Validate and clean standard Indian mobile numbers (10 digits starting with 6-9)
+ * Returns 10-digit number string or null if invalid.
+ */
+function validateIndianMobile(phone) {
+  if (!phone || (typeof phone !== 'string' && typeof phone !== 'number')) return null;
+  const clean = String(phone).replace(/\D/g, '');
+  const last10 = clean.slice(-10);
+  if (last10.length === 10 && /^[6-9]\d{9}$/.test(last10)) {
+    return last10;
+  }
+  return null;
+}
+
+/**
+ * Duplicate Prevention: Check if resolution SMS was already sent for this grievance
+ */
+async function hasResolutionSmsBeenSent(refId) {
+  if (!refId) return false;
+  try {
+    const existing = await db.prepare(`
+      SELECT id FROM notification_logs 
+      WHERE ref_id = ? AND channel = 'sms' AND event_type = 'complaint_resolved' AND status = 'sent'
+      LIMIT 1
+    `).get(refId);
+    return Boolean(existing);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Duplicate Prevention: Check if registration SMS was already sent for this grievance
+ */
+async function hasRegistrationSmsBeenSent(refId) {
+  if (!refId) return false;
+  try {
+    const existing = await db.prepare(`
+      SELECT id FROM notification_logs 
+      WHERE ref_id = ? AND channel = 'sms' AND event_type = 'complaint_registered' AND status = 'sent'
+      LIMIT 1
+    `).get(refId);
+    return Boolean(existing);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -238,33 +308,72 @@ async function sendEmail({ to, subject, html, text, refId = null, eventType = 'g
 }
 
 /**
- * Dispatch SMS Notification via Fast2SMS, MSG91, or Twilio
+ * Dispatch SMS Notification via configured Indian/Global provider or Mock Adapter
  */
 async function sendSms({ to, text, otp = null, refId = null, eventType = 'sms_notification' }) {
   if (!to) return { success: false, status: 'failed', error: 'No recipient phone provided' };
 
-  const cleanPhone = to.replace(/\D/g, '').slice(-10);
+  const validPhone = validateIndianMobile(to);
+  if (!validPhone) {
+    const errorMsg = `Invalid Indian mobile number: "${to}". Must be a valid 10-digit number starting with 6-9.`;
+    console.warn(`[SMS Engine] Validation failed for ${to}: ${errorMsg}`);
+    try {
+      await db.prepare(`
+        INSERT INTO notification_logs (ref_id, recipient, channel, event_type, status, subject, body, error_message, attempts, created_at)
+        VALUES (?, ?, 'sms', ?, 'failed', 'SMS Notification', ?, ?, 1, CURRENT_TIMESTAMP)
+      `).run(refId, String(to).slice(0, 30), eventType, text, errorMsg);
+    } catch {}
+    return { success: false, status: 'invalid_number', error: errorMsg };
+  }
 
-  const logInsert = db.prepare(`
-    INSERT INTO notification_logs (ref_id, recipient, channel, event_type, status, subject, body, attempts, created_at)
-    VALUES (?, ?, 'sms', ?, 'sending', 'SMS Update', ?, 1, CURRENT_TIMESTAMP)
-  `).run(refId, cleanPhone, eventType, text);
-
-  const logId = logInsert.lastInsertRowid;
+  let logId = null;
+  try {
+    const logInsert = await db.prepare(`
+      INSERT INTO notification_logs (ref_id, recipient, channel, event_type, status, subject, body, attempts, created_at)
+      VALUES (?, ?, 'sms', ?, 'sending', 'SMS Notification', ?, 1, CURRENT_TIMESTAMP)
+    `).run(refId, validPhone, eventType, text);
+    logId = logInsert?.lastInsertRowid;
+  } catch (err) {
+    console.warn('[SMS Log Insert Notice]:', err.message);
+  }
 
   // If unconfigured, fail truthfully and never pretend SMS was sent
   if (!isSmsConfigured()) {
-    const errorMsg = 'SMS verification is temporarily unavailable. Please try again later.';
-    console.warn(`[SMS Engine] Delivery halted for ${cleanPhone}: SMS gateway (Fast2SMS / MSG91 / Twilio) unconfigured.`);
-    db.prepare(`UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?`)
-      .run('Gateway unconfigured in server/.env', logId);
-    return { success: false, status: 'unconfigured', error: errorMsg };
+    const errorMsg = 'SMS provider unconfigured. Please configure SMS credentials in server/.env.';
+    console.warn(`[SMS Engine] Delivery halted for ${validPhone}: SMS gateway unconfigured.`);
+    if (logId) {
+      try {
+        await db.prepare(`UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?`)
+          .run(errorMsg, logId);
+      } catch {}
+    }
+    return { success: false, status: 'unconfigured', logId, error: errorMsg };
   }
 
   try {
-    // 1. Fast2SMS Provider (Preferred for Indian Mobile Numbers)
+    // 0. Mock Provider (for automated test suite and development)
+    if (isMockSmsConfigured()) {
+      const mockMessageId = `MOCK-SMS-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+      const responseData = {
+        provider: 'mock',
+        status: 'delivered',
+        messageId: mockMessageId,
+        recipient: `+91${validPhone}`,
+        refId,
+        eventType,
+        timestamp: new Date().toISOString()
+      };
+      console.log(`[SMS Mock Adapter] Simulated SMS dispatched to +91-${validPhone} (${eventType}): "${text}"`);
+      if (logId) {
+        await db.prepare(`UPDATE notification_logs SET status = 'sent', provider_response = ?, sent_at = CURRENT_TIMESTAMP WHERE id = ?`)
+          .run(JSON.stringify(responseData), logId);
+      }
+      return { success: true, status: 'sent', provider: 'mock', messageId: mockMessageId, logId };
+    }
+
+    // 1. Fast2SMS Provider
     if (isFast2SmsConfigured()) {
-      const apiKey = process.env.FAST2SMS_API_KEY;
+      const apiKey = process.env.FAST2SMS_API_KEY || process.env.SMS_API_KEY;
       const extractedOtp = otp || (text.match(/\b\d{6}\b/) ? text.match(/\b\d{6}\b/)[0] : null);
 
       let payload;
@@ -272,7 +381,7 @@ async function sendSms({ to, text, otp = null, refId = null, eventType = 'sms_no
         payload = {
           route: 'otp',
           variables_values: extractedOtp,
-          numbers: cleanPhone
+          numbers: validPhone
         };
       } else {
         payload = {
@@ -281,7 +390,7 @@ async function sendSms({ to, text, otp = null, refId = null, eventType = 'sms_no
           message: text,
           language: 'english',
           flash: 0,
-          numbers: cleanPhone
+          numbers: validPhone
         };
       }
 
@@ -299,42 +408,97 @@ async function sendSms({ to, text, otp = null, refId = null, eventType = 'sms_no
         throw new Error((data.message && data.message[0]) || data.message || 'Fast2SMS returned error');
       }
 
-      db.prepare(`UPDATE notification_logs SET status = 'sent', provider_response = ?, sent_at = CURRENT_TIMESTAMP WHERE id = ?`)
-        .run(JSON.stringify(data), logId);
+      if (logId) {
+        await db.prepare(`UPDATE notification_logs SET status = 'sent', provider_response = ?, sent_at = CURRENT_TIMESTAMP WHERE id = ?`)
+          .run(JSON.stringify(data), logId);
+      }
 
-      return { success: true, status: 'sent', provider: 'fast2sms', messageId: data.request_id };
+      return { success: true, status: 'sent', provider: 'fast2sms', messageId: data.request_id, logId };
     }
 
     // 2. MSG91 Provider
     if (isMsg91Configured()) {
-      const authKey = process.env.MSG91_AUTH_KEY;
-      const templateId = process.env.MSG91_TEMPLATE_ID || process.env.MSG91_FLOW_ID;
+      const authKey = process.env.MSG91_AUTH_KEY || process.env.SMS_API_KEY;
+      const templateId = process.env.SMS_TEMPLATE_ID || process.env.MSG91_TEMPLATE_ID || process.env.MSG91_FLOW_ID;
       const senderId = process.env.SMS_SENDER_ID || process.env.MSG91_SENDER_ID || 'CIVICR';
-      const extractedOtp = otp || (text.match(/\b\d{6}\b/) ? text.match(/\b\d{6}\b/)[0] : '');
+      const extractedOtp = otp || (text.match(/\b\d{6}\b/) ? text.match(/\b\d{6}\b/)[0] : null);
 
-      const res = await fetch('https://control.msg91.com/api/v5/otp', {
+      let endpoint = 'https://control.msg91.com/api/v5/otp';
+      let payload = {
+        template_id: templateId,
+        mobile: '91' + validPhone,
+        otp: extractedOtp,
+        sender: senderId
+      };
+
+      if (!extractedOtp) {
+        endpoint = 'https://control.msg91.com/api/v5/flow';
+        payload = {
+          template_id: templateId,
+          short_url: '0',
+          recipients: [
+            {
+              mobiles: '91' + validPhone,
+              COMPLAINT_ID: refId || '',
+              message: text
+            }
+          ]
+        };
+      }
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'authkey': authKey,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          template_id: templateId,
-          mobile: '91' + cleanPhone,
-          otp: extractedOtp,
-          sender: senderId
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (!res.ok || data.type === 'error') {
         throw new Error(data.message || 'MSG91 API returned failure');
       }
-      db.prepare(`UPDATE notification_logs SET status = 'sent', provider_response = ?, sent_at = CURRENT_TIMESTAMP WHERE id = ?`)
-        .run(JSON.stringify(data), logId);
-      return { success: true, status: 'sent', provider: 'msg91', messageId: data.request_id };
+      if (logId) {
+        await db.prepare(`UPDATE notification_logs SET status = 'sent', provider_response = ?, sent_at = CURRENT_TIMESTAMP WHERE id = ?`)
+          .run(JSON.stringify(data), logId);
+      }
+      return { success: true, status: 'sent', provider: 'msg91', messageId: data.request_id || data.message, logId };
     }
 
-    // 3. Twilio Provider
+    // 3. Exotel Provider
+    if (isExotelConfigured()) {
+      const sid = process.env.EXOTEL_SID || process.env.EXOTEL_ACCOUNT_SID;
+      const token = process.env.EXOTEL_TOKEN || process.env.SMS_API_KEY;
+      const subAccount = process.env.EXOTEL_SUB_ACCOUNT || sid;
+      const callerId = process.env.EXOTEL_CALLER_ID || process.env.SMS_SENDER_ID || '08088919888';
+
+      const authHeader = 'Basic ' + Buffer.from(`${sid}:${token}`).toString('base64');
+      const params = new URLSearchParams();
+      params.append('From', callerId);
+      params.append('To', validPhone);
+      params.append('Body', text);
+
+      const res = await fetch(`https://api.exotel.com/v1/Accounts/${subAccount}/Sms/send.json`, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: params.toString()
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.RestException?.Message || 'Exotel SMS delivery failed');
+      }
+      const msgId = data.SMSMessage?.Sid || 'EXOTEL-' + Date.now();
+      if (logId) {
+        await db.prepare(`UPDATE notification_logs SET status = 'sent', provider_response = ?, sent_at = CURRENT_TIMESTAMP WHERE id = ?`)
+          .run(JSON.stringify(data), logId);
+      }
+      return { success: true, status: 'sent', provider: 'exotel', messageId: msgId, logId };
+    }
+
+    // 4. Twilio Provider
     if (isTwilioConfigured()) {
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -342,7 +506,7 @@ async function sendSms({ to, text, otp = null, refId = null, eventType = 'sms_no
 
       const authHeader = 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64');
       const params = new URLSearchParams();
-      params.append('To', to.startsWith('+') ? to : `+91${cleanPhone}`);
+      params.append('To', `+91${validPhone}`);
       params.append('From', fromPhone);
       params.append('Body', text);
 
@@ -360,18 +524,70 @@ async function sendSms({ to, text, otp = null, refId = null, eventType = 'sms_no
         throw new Error(data.message || 'Twilio API returned failure');
       }
 
-      db.prepare(`UPDATE notification_logs SET status = 'sent', provider_response = ?, sent_at = CURRENT_TIMESTAMP WHERE id = ?`)
-        .run(JSON.stringify(data), logId);
+      if (logId) {
+        await db.prepare(`UPDATE notification_logs SET status = 'sent', provider_response = ?, sent_at = CURRENT_TIMESTAMP WHERE id = ?`)
+          .run(JSON.stringify(data), logId);
+      }
 
-      return { success: true, status: 'sent', provider: 'twilio', messageId: data.sid };
+      return { success: true, status: 'sent', provider: 'twilio', messageId: data.sid, logId };
     }
 
     throw new Error('No recognized SMS provider configured');
   } catch (err) {
-    console.error(`[SMS Engine Error] SMS send failed to ${cleanPhone}:`, err.message);
-    db.prepare(`UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?`).run(err.message, logId);
-    return { success: false, status: 'failed', error: err.message };
+    console.error(`[SMS Engine Error] SMS send failed to ${validPhone}:`, err.message);
+    if (logId) {
+      try {
+        await db.prepare(`UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?`).run(err.message, logId);
+      } catch {}
+    }
+    return { success: false, status: 'failed', logId, error: err.message };
   }
+}
+
+/**
+ * Phase 5 A: Send Citizen Complaint Registration SMS
+ * Message: "Dear Citizen, your complaint has been successfully registered with CivicResolve. Your Complaint ID is {COMPLAINT_ID}. You can use this ID to track your complaint status. Thank you."
+ */
+async function sendComplaintRegistrationSms(refId, phone) {
+  if (!refId || !phone) return { success: false, status: 'skipped', error: 'Missing refId or phone' };
+
+  // Double-layer duplicate prevention
+  const alreadySent = await hasRegistrationSmsBeenSent(refId);
+  if (alreadySent) {
+    console.log(`[SMS Notification] Duplicate registration SMS prevented for ${refId}`);
+    return { success: false, status: 'duplicate_prevented', message: 'Registration SMS already delivered for this complaint.' };
+  }
+
+  const message = `Dear Citizen, your complaint has been successfully registered with CivicResolve. Your Complaint ID is ${refId}. You can use this ID to track your complaint status. Thank you.`;
+  return sendSms({
+    to: phone,
+    text: message,
+    refId,
+    eventType: 'complaint_registered'
+  });
+}
+
+/**
+ * Phase 5 B: Send Citizen Complaint Resolution SMS
+ * Message: "Dear Citizen, your complaint {COMPLAINT_ID} has been marked as resolved. Thank you for using CivicResolve. Please visit the portal to review your complaint."
+ */
+async function sendComplaintResolutionSms(refId, phone) {
+  if (!refId || !phone) return { success: false, status: 'skipped', error: 'Missing refId or phone' };
+
+  // Double-layer duplicate prevention
+  const alreadySent = await hasResolutionSmsBeenSent(refId);
+  if (alreadySent) {
+    console.log(`[SMS Notification] Duplicate resolution SMS prevented for ${refId}`);
+    return { success: false, status: 'duplicate_prevented', message: 'Resolution SMS already delivered for this complaint.' };
+  }
+
+  const message = `Dear Citizen, your complaint ${refId} has been marked as resolved. Thank you for using CivicResolve. Please visit the portal to review your complaint.`;
+  return sendSms({
+    to: phone,
+    text: message,
+    refId,
+    eventType: 'complaint_resolved'
+  });
 }
 
 /**
@@ -531,15 +747,21 @@ async function notifyCitizenEvent({ eventType, citizenName, citizenEmail, citize
       });
     }
 
-    // 2. Send SMS if phone exists and SMS is configured
-    if (citizenPhone && details.smsConsent) {
-      const smsBody = `CivicResolve: Grievance ${refId || ''} update: ${headline}. Status: ${status || 'Updated'}. Track at civicresolve.gov`;
-      await sendSms({
-        to: citizenPhone,
-        text: smsBody,
-        refId,
-        eventType
-      });
+    // 2. Dispatch Official Citizen SMS Notifications
+    if (citizenPhone) {
+      if (eventType === 'submission_acknowledgement') {
+        await sendComplaintRegistrationSms(refId, citizenPhone);
+      } else if (eventType === 'resolution_certified') {
+        await sendComplaintResolutionSms(refId, citizenPhone);
+      } else if (details.smsConsent) {
+        const smsBody = `CivicResolve: Grievance ${refId || ''} update: ${headline}. Status: ${status || 'Updated'}. Track at civicresolve.gov`;
+        await sendSms({
+          to: citizenPhone,
+          text: smsBody,
+          refId,
+          eventType
+        });
+      }
     }
 
   } catch (err) {
@@ -587,6 +809,45 @@ async function retryNotificationLog(logId) {
       `).run(JSON.stringify({ messageId: info.messageId }), logId);
 
       return { success: true, message: 'Notification successfully delivered on retry' };
+    } catch (err) {
+      db.prepare("UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?").run(err.message, logId);
+      return { success: false, error: err.message };
+    }
+  }
+
+  if (log.channel === 'sms') {
+    const validPhone = validateIndianMobile(log.recipient);
+    if (!validPhone) {
+      const err = `Invalid Indian mobile number (${log.recipient}). Cannot retry SMS.`;
+      db.prepare("UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?").run(err, logId);
+      return { success: false, error: err };
+    }
+
+    if (!isSmsConfigured()) {
+      const errorMsg = 'SMS provider still unconfigured. Cannot retry SMS.';
+      db.prepare("UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?").run(errorMsg, logId);
+      return { success: false, error: errorMsg };
+    }
+
+    try {
+      const res = await sendSms({
+        to: validPhone,
+        text: log.body,
+        refId: log.ref_id,
+        eventType: log.event_type || 'sms_retry'
+      });
+
+      if (res.success) {
+        db.prepare(`
+          UPDATE notification_logs 
+          SET status = 'sent', provider_response = ?, sent_at = CURRENT_TIMESTAMP, error_message = NULL
+          WHERE id = ?
+        `).run(JSON.stringify(res), logId);
+        return { success: true, message: 'SMS notification successfully delivered on retry' };
+      } else {
+        db.prepare("UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?").run(res.error || 'Retry failed', logId);
+        return { success: false, error: res.error || 'SMS retry delivery failed' };
+      }
     } catch (err) {
       db.prepare("UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?").run(err.message, logId);
       return { success: false, error: err.message };
@@ -641,6 +902,11 @@ async function testSmtpConnection(targetEmail, adminName = 'Administrator') {
 module.exports = {
   sendEmail,
   sendSms,
+  sendComplaintRegistrationSms,
+  sendComplaintResolutionSms,
+  validateIndianMobile,
+  hasResolutionSmsBeenSent,
+  hasRegistrationSmsBeenSent,
   sendWhatsApp,
   notifyCitizenEvent,
   retryNotificationLog,
@@ -649,6 +915,8 @@ module.exports = {
   isSmsConfigured,
   isFast2SmsConfigured,
   isMsg91Configured,
+  isExotelConfigured,
   isTwilioConfigured,
+  isMockSmsConfigured,
   isWhatsAppConfigured
 };

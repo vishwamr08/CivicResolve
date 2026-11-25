@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node test_health.js && node test_evaluation_complete.js && node test_full_suite_master.js && node test_phase1_data_integrity.js && node test_phase2_auth_persistence.js && node test_phase3_location_routing.js && node test_phase4_performance.js",
+    "test": "node test_health.js && node test_evaluation_complete.js && node test_full_suite_master.js && node test_phase1_data_integrity.js && node test_phase2_auth_persistence.js && node test_phase3_location_routing.js && node test_phase4_performance.js && node test_citizen_sms_notification.js && node test_workflows_e2e.js",
+    "test:sms": "node test_citizen_sms_notification.js",
+    "test:workflows": "node test_workflows_e2e.js",
     "test:health": "node test_health.js",
     "test:phase1": "node test_phase1_data_integrity.js",
     "test:phase2": "node test_phase2_auth_persistence.js",

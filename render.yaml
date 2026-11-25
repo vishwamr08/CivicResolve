@@ -28,8 +28,16 @@ services:
         value: 5000
       - key: NODE_ENV
         value: production
+      - key: USE_SQLITE
+        value: "true"
       - key: DATA_DIR
         value: /var/data
+      - key: SQLITE_DB_PATH
+        value: /var/data/civicresolve.db
+      - key: UPLOADS_DIR
+        value: /var/data/uploads
+      - key: SMS_PROVIDER
+        value: msg91
       - key: FRONTEND_URL
         value: https://civicresolve-yc9v.onrender.com
       - key: CORS_ORIGIN

@@ -26,7 +26,7 @@ const backupDbPath = path.resolve(path.join(__dirname, 'civicresolve_safety_back
 //    - If DATABASE_URL is absent or USE_SQLITE='true', uses SQLite.
 let targetEngine;
 if (isProduction) {
-  if (process.env.USE_SQLITE === 'true') {
+  if (process.env.USE_SQLITE === 'true' || process.env.DATA_DIR || process.env.SQLITE_DB_PATH) {
     targetEngine = 'sqlite';
   } else if (process.env.DATABASE_URL) {
     targetEngine = 'postgres';

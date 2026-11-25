@@ -3,7 +3,7 @@ import {
   ShieldCheck, ArrowLeft, RefreshCw, Filter } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, PieChart, Pie,
-  Cell, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts';
+  Cell, Tooltip, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { TAMIL_NADU_DISTRICTS } from '../data/tamilnaduGeo';
 import { translations } from '../data/translations';
 import { getApiUrl } from '../config/api';
@@ -55,10 +55,12 @@ export default function PublicDashboard({
   const categoryData = (stats?.categoryDistribution?.length > 0)
     ? stats.categoryDistribution.map((c, i) => ({
         name: c.category || 'General',
-        count: c.count,
+        count: Number(c.count) || 0,
         color: COLORS[i % COLORS.length]
       }))
     : [];
+
+  const totalCategoryCount = categoryData.reduce((acc, c) => acc + c.count, 0);
 
   const departmentData = (stats?.departments?.length > 0)
     ? stats.departments.map((d) => ({
@@ -196,12 +198,12 @@ export default function PublicDashboard({
                 <p className="text-xs text-slate-500">Distribution across major municipal operational divisions</p>
               </div>
               <span className="text-xs font-semibold text-[#1a3c6e] bg-navy-50 px-2.5 py-1 rounded-md border border-navy-100">
-                {categoryData.length} Categories
+                {totalCategoryCount} Total • {categoryData.length} Categories
               </span>
             </div>
 
-            {categoryData.length > 0 ? (
-              <div className="h-64 sm:h-72">
+            {categoryData.length > 0 && totalCategoryCount > 0 ? (
+              <div className="h-72 sm:h-80 w-full min-w-0">
                 <table className="sr-only">
                   <caption>Grievance distribution by category</caption>
                   <thead>
@@ -216,38 +218,52 @@ export default function PublicDashboard({
                       <tr key={idx}>
                         <td>{cat.name}</td>
                         <td>{cat.count}</td>
-                        <td>{total > 0 ? `${Math.round((cat.count / total) * 100)}%` : '0%'}</td>
+                        <td>{totalCategoryCount > 0 ? `${Math.round((cat.count / totalCategoryCount) * 100)}%` : '0%'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <ResponsiveContainer width="100%" height="100%" aria-hidden="true">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                   <PieChart>
                     <Pie
                       data={categoryData}
                       dataKey="count"
                       nameKey="name"
                       cx="50%"
-                      cy="50%"
-                      outerRadius={95}
-                      innerRadius={50}
-                      paddingAngle={3}
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      cy="45%"
+                      outerRadius={75}
+                      innerRadius={45}
+                      paddingAngle={categoryData.length > 1 ? 3 : 0}
+                      label={({ percent }) => (typeof percent === 'number' && !isNaN(percent) && percent > 0.05) ? `${(percent * 100).toFixed(0)}%` : ''}
+                      labelLine={false}
                     >
                       {categoryData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(val, name) => [`${val} grievances`, name]}
+                      formatter={(val, name) => [
+                        `${val} grievances (${totalCategoryCount > 0 ? ((val / totalCategoryCount) * 100).toFixed(1) : 0}%)`,
+                        name
+                      ]}
                       contentStyle={{ borderRadius: '8px', fontSize: '12px', borderColor: '#e2e8f0', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={48}
+                      formatter={(value, entry) => (
+                        <span className="text-xs text-slate-700 font-medium">
+                          {value}: <strong>{entry.payload.count}</strong> ({totalCategoryCount > 0 ? ((entry.payload.count / totalCategoryCount) * 100).toFixed(0) : 0}%)
+                        </span>
+                      )}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-slate-400 text-xs">
-                No grievance records available for this district selection.
+              <div className="h-64 flex flex-col items-center justify-center text-slate-400 text-xs gap-2">
+                <ShieldCheck className="w-8 h-8 text-slate-300" />
+                <span>No grievance records available for this district selection.</span>
               </div>
             )}
           </div>
@@ -265,7 +281,7 @@ export default function PublicDashboard({
             </div>
 
             {departmentData.length > 0 ? (
-              <div className="h-64 sm:h-72">
+              <div className="h-72 sm:h-80 w-full min-w-0">
                 <table className="sr-only">
                   <caption>Grievance volume by municipal department</caption>
                   <thead>
@@ -283,8 +299,8 @@ export default function PublicDashboard({
                     ))}
                   </tbody>
                 </table>
-                <ResponsiveContainer width="100%" height="100%" aria-hidden="true">
-                  <BarChart data={departmentData} margin={{ top: 10, right: 10, left: -20, bottom: 40 }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
+                  <BarChart data={departmentData} margin={{ top: 10, right: 10, left: -15, bottom: 45 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis
                       dataKey="name"

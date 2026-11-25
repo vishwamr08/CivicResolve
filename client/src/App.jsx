@@ -90,8 +90,6 @@ export default function App() {
   const [stats, setStats] = useState(null);
   const [health, setHealth] = useState(null);
   const [loading, _setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [isServerWaking, setIsServerWaking] = useState(false);
 
   // Modals & Tracking
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
@@ -160,7 +158,7 @@ export default function App() {
             setAdminUser(null);
           }
         } catch (e) {
-          console.warn('Admin session verify notice (server may be waking):', e.message);
+          console.warn('Admin session verify notice:', e.message);
         }
       }
 
@@ -190,7 +188,7 @@ export default function App() {
           setCitizenUser(null);
         }
       } catch (e) {
-        console.warn('Citizen session verify notice (server may be waking):', e.message);
+        console.warn('Citizen session verify notice:', e.message);
       }
     };
 
@@ -214,7 +212,6 @@ export default function App() {
   // Fetch initial lightweight startup data only (Health + Aggregated Stats)
   const fetchData = useCallback(async () => {
     try {
-      setError(null);
       const [healthRes, statsRes] = await Promise.all([
         fetch(getApiUrl('/api/health')).then(r => r.json()).catch(() => null),
         fetch(getApiUrl('/api/dashboard/stats')).then(r => r.json()).catch(() => null)
@@ -222,40 +219,29 @@ export default function App() {
 
       if (healthRes && !healthRes.error) {
         setHealth(healthRes);
-        setIsServerWaking(false);
       }
       if (statsRes && !statsRes.error) {
         setStats(statsRes);
       }
       return !!(healthRes && !healthRes.error);
-    } catch (err) {
-      console.warn('Backend connection notice:', err.message);
+    } catch {
       return false;
     }
   }, []);
 
-  // Initial startup probe with transparent waking detection and bounded automatic retry for cloud cold starts
+  // Initial startup probe with silent background retry for cold starts
   useEffect(() => {
     let cancelled = false;
     let pollCount = 0;
-    const maxPolls = 8;
+    const maxPolls = 6;
     let pollTimer = null;
-
-    const wakingTimer = setTimeout(() => {
-      if (!cancelled) setIsServerWaking(true);
-    }, 2000);
 
     const probeAndPoll = async () => {
       const ok = await fetchData();
-      clearTimeout(wakingTimer);
-      if (ok) {
-        if (!cancelled) setIsServerWaking(false);
-      } else if (!cancelled && pollCount < maxPolls) {
-        setIsServerWaking(true);
+      if (!ok && !cancelled && pollCount < maxPolls) {
         pollCount++;
-        pollTimer = setTimeout(probeAndPoll, 4000);
-      } else if (!cancelled) {
-        setIsServerWaking(false);
+        const nextDelay = Math.min(3000 * Math.pow(1.5, pollCount), 15000);
+        pollTimer = setTimeout(probeAndPoll, nextDelay);
       }
     };
 
@@ -263,7 +249,6 @@ export default function App() {
 
     return () => {
       cancelled = true;
-      clearTimeout(wakingTimer);
       if (pollTimer) clearTimeout(pollTimer);
     };
   }, [fetchData]);
@@ -525,13 +510,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Cloud Cold-Start Transparent Waking Banner */}
-      {isServerWaking && (
-        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 transition-all">
-          <Loader2 className="w-4 h-4 animate-spin text-amber-700 flex-shrink-0" />
-          <span>CivicResolve Application Server is waking from standby (standard cloud spin-up, typically 15–25 seconds). Services will be ready momentarily.</span>
-        </div>
-      )}
 
       {/* Main View Container */}
       <main id="main-content" role="main" tabIndex="-1" className="flex-1 outline-none">

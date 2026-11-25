@@ -34,6 +34,8 @@ const { computeSlaMetrics, getTargetSlaHours } = require('./sla-engine');
 const { findDuplicateCandidates } = require('./duplicate-engine');
 const {
   sendSms,
+  sendComplaintRegistrationSms,
+  sendComplaintResolutionSms,
   notifyCitizenEvent,
   retryNotificationLog,
   testSmtpConnection,
@@ -334,26 +336,37 @@ function generateRefId() {
 
 // PII Masking Helpers
 function maskName(name) {
-  if (!name) return 'Citizen';
-  const parts = name.trim().split(' ');
+  if (!name || typeof name !== 'string') return 'Citizen';
+  const clean = name.trim();
+  if (!clean || clean.toLowerCase() === 'citizen') return 'Citizen';
+  const parts = clean.split(/\s+/);
   if (parts.length === 1) {
     const w = parts[0];
-    return w.length > 2 ? w.slice(0, 2) + '*'.repeat(Math.max(2, w.length - 2)) : w + '*';
+    return w.length > 2 ? `${w.slice(0, 2)}****` : `${w[0]}*`;
   }
-  return parts[0].slice(0, 2) + '*** ' + parts[parts.length - 1][0] + '.';
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  return `${first.slice(0, 2)}*** ${last[0]}.`;
 }
 
 function maskPhone(phone) {
   if (!phone) return null;
-  const digits = phone.replace(/\D/g, '');
+  const digits = String(phone).replace(/\D/g, '');
   if (digits.length <= 4) return '******';
-  return digits.slice(0, 2) + '******' + digits.slice(-2);
+  const last10 = digits.slice(-10);
+  if (last10.length === 10) {
+    return `+91-XXXXXX${last10.slice(-4)}`;
+  }
+  return `${digits.slice(0, 2)}******${digits.slice(-2)}`;
 }
 
 function maskEmail(email) {
-  if (!email || !email.includes('@')) return null;
-  const [user, domain] = email.split('@');
-  const maskedUser = user.length > 2 ? user.slice(0, 2) + '***' : user[0] + '***';
+  if (!email || typeof email !== 'string' || !email.includes('@')) return null;
+  const [user, domain] = email.trim().split('@');
+  if (!domain) return '••••@••••';
+  const maskedUser = user.length <= 2
+    ? user[0] + '***'
+    : user.slice(0, 2) + '***' + user.slice(-1);
   return `${maskedUser}@${domain}`;
 }
 
@@ -382,12 +395,22 @@ function parseComplaint(c, isAuthorized = false) {
     base.citizen_name = maskName(c.citizen_name);
     base.citizen_phone = maskPhone(c.citizen_phone);
     base.citizen_email = maskEmail(c.citizen_email);
+    base.citizen_id = null; // Zero correlation across public grievances
     base.internal_notes = null; // Hide confidential officer notes from public
     base.ai_reason = null;
     base.ai_safety_risk = null;
     base.ai_recommended_action = null;
     base.verification_otp = null;
     base.otp_expires_at = null;
+    if (Array.isArray(base.status_history)) {
+      base.status_history = base.status_history.map(h => {
+        let actor = h.actor || 'System';
+        if (actor.toLowerCase().includes('citizen')) {
+          actor = 'Citizen (Verified)';
+        }
+        return { ...h, actor };
+      });
+    }
   }
 
   return base;
@@ -1436,12 +1459,23 @@ app.get('/api/complaints/track/:refId', optionalCitizenAuth, async (req, res) =>
 
     // Check if requester is authorized citizen owner or admin
     let isAuthorized = false;
-    if (req.citizen && (req.citizen.id === complaint.citizen_id || req.citizen.email.toLowerCase() === (complaint.citizen_email || '').toLowerCase())) {
-      isAuthorized = true;
+    if (req.citizen) {
+      const citizenEmail = (req.citizen.email || '').toLowerCase().trim();
+      const complaintEmail = (complaint.citizen_email || '').toLowerCase().trim();
+      const citizenPhone = String(req.citizen.phone || '').replace(/\D/g, '').slice(-10);
+      const complaintPhone = String(complaint.citizen_phone || '').replace(/\D/g, '').slice(-10);
+
+      if (
+        (req.citizen.id && req.citizen.id === complaint.citizen_id) ||
+        (citizenEmail && complaintEmail && citizenEmail === complaintEmail) ||
+        (citizenPhone && complaintPhone && citizenPhone === complaintPhone)
+      ) {
+        isAuthorized = true;
+      }
     }
 
     // Check if admin token is present in cookie or bearer
-    const adminToken = req.cookies.civic_admin_token || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
+    const adminToken = req.cookies?.civic_admin_token || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
     if (adminToken) {
       const decoded = verifyToken(adminToken);
       if (decoded && (decoded.type === 'admin' || decoded.role)) {
@@ -1472,9 +1506,12 @@ app.post('/api/complaints/track/:refId/verify-access', async (req, res) => {
       return res.status(404).json({ error: `Grievance ${cleanRef} not found.` });
     }
 
-    const cred = credential.trim().toLowerCase();
-    const emailMatch = c.citizen_email && c.citizen_email.toLowerCase() === cred;
-    const phoneMatch = c.citizen_phone && (c.citizen_phone.replace(/\D/g, '') === cred.replace(/\D/g, ''));
+    const cred = String(credential).trim().toLowerCase();
+    const credPhoneDigits = cred.replace(/\D/g, '').slice(-10);
+    const complaintPhoneDigits = c.citizen_phone ? String(c.citizen_phone).replace(/\D/g, '').slice(-10) : '';
+
+    const emailMatch = Boolean(c.citizen_email && c.citizen_email.toLowerCase().trim() === cred);
+    const phoneMatch = Boolean(complaintPhoneDigits && credPhoneDigits && credPhoneDigits.length === 10 && complaintPhoneDigits === credPhoneDigits);
 
     if (emailMatch || phoneMatch) {
       return res.json({
@@ -1510,10 +1547,21 @@ app.get('/api/complaints/:id', optionalCitizenAuth, async (req, res) => {
 
     // Check authorization
     let isAuthorized = false;
-    if (req.citizen && (req.citizen.id === complaint.citizen_id || req.citizen.email.toLowerCase() === (complaint.citizen_email || '').toLowerCase())) {
-      isAuthorized = true;
+    if (req.citizen) {
+      const citizenEmail = (req.citizen.email || '').toLowerCase().trim();
+      const complaintEmail = (complaint.citizen_email || '').toLowerCase().trim();
+      const citizenPhone = String(req.citizen.phone || '').replace(/\D/g, '').slice(-10);
+      const complaintPhone = String(complaint.citizen_phone || '').replace(/\D/g, '').slice(-10);
+
+      if (
+        (req.citizen.id && req.citizen.id === complaint.citizen_id) ||
+        (citizenEmail && complaintEmail && citizenEmail === complaintEmail) ||
+        (citizenPhone && complaintPhone && citizenPhone === complaintPhone)
+      ) {
+        isAuthorized = true;
+      }
     }
-    const adminToken = req.cookies.civic_admin_token || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
+    const adminToken = req.cookies?.civic_admin_token || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
     if (adminToken) {
       const decoded = verifyToken(adminToken);
       if (decoded && (decoded.type === 'admin' || decoded.role)) {
@@ -2277,9 +2325,10 @@ app.patch('/api/complaints/:id/manage', authenticateAdmin, async (req, res) => {
 
     const updated = await db.prepare('SELECT * FROM complaints WHERE id = ? OR ref_id = ?').get(id, id);
 
-    // Multi-Channel Notification to citizen
+    // Multi-Channel Notification to citizen (Duplicate Resolution SMS Protection)
+    const isNewResolution = newStatus === 'Resolved' && current.status !== 'Resolved';
     notifyCitizenEvent({
-      eventType: newStatus === 'Resolved' ? 'resolution_certified' : 'status_update',
+      eventType: isNewResolution ? 'resolution_certified' : 'status_update',
       citizenName: updated.citizen_name,
       citizenEmail: updated.citizen_email,
       citizenPhone: updated.citizen_phone,
@@ -2372,8 +2421,9 @@ app.patch('/api/complaints/:id/status', authenticateAdmin, async (req, res) => {
       ip: req.ip
     });
 
+    const isNewResolution = status === 'Resolved' && current.status !== 'Resolved';
     notifyCitizenEvent({
-      eventType: status === 'Resolved' ? 'resolution_certified' : 'status_update',
+      eventType: isNewResolution ? 'resolution_certified' : 'status_update',
       citizenName: updated.citizen_name,
       citizenEmail: updated.citizen_email,
       citizenPhone: updated.citizen_phone,
@@ -2619,25 +2669,52 @@ app.get('/api/dashboard/stats', async (req, res) => {
         ELSE 5 END
     `).all(...params);
 
-    const total = countsRow.total || 0;
-    const resolved = countsRow.resolved || 0;
+    const total = Number(countsRow.total) || 0;
+    const resolved = Number(countsRow.resolved) || 0;
     const slaRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
 
+    const normalizedDepartments = (departments || []).map(d => ({
+      department: d.department || 'General',
+      count: Number(d.count) || 0
+    }));
+
+    const normalizedDistricts = (districtRows || []).map(d => ({
+      district: d.district || 'General',
+      count: Number(d.count) || 0
+    }));
+
+    const normalizedCategories = (categoryRows || []).map(c => ({
+      category: c.category || 'General',
+      count: Number(c.count) || 0
+    }));
+
+    const normalizedPriorities = (priorityRows || []).map(p => ({
+      priority: p.priority || 'Medium',
+      count: Number(p.count) || 0
+    }));
+
     const payload = {
+      total: total,
       totalComplaints: total,
-      pendingComplaints: countsRow.pending || 0,
-      highPriorityComplaints: countsRow.high_priority || 0,
-      criticalComplaints: countsRow.critical || 0,
-      inProgressComplaints: countsRow.in_progress || 0,
+      pending: Number(countsRow.pending) || 0,
+      pendingComplaints: Number(countsRow.pending) || 0,
+      highPriority: Number(countsRow.high_priority) || 0,
+      highPriorityComplaints: Number(countsRow.high_priority) || 0,
+      critical: Number(countsRow.critical) || 0,
+      criticalComplaints: Number(countsRow.critical) || 0,
+      inProgress: Number(countsRow.in_progress) || 0,
+      inProgressComplaints: Number(countsRow.in_progress) || 0,
+      resolved: resolved,
       resolvedComplaints: resolved,
-      overdueComplaints: countsRow.overdue || 0,
+      overdue: Number(countsRow.overdue) || 0,
+      overdueComplaints: Number(countsRow.overdue) || 0,
       resolutionRate: slaRate,
       slaResolutionRate: `${slaRate}%`,
-      departments,
-      districts: districtRows,
-      districtDistribution: districtRows,
-      categoryDistribution: categoryRows,
-      priorityDistribution: priorityRows
+      departments: normalizedDepartments,
+      districts: normalizedDistricts,
+      districtDistribution: normalizedDistricts,
+      categoryDistribution: normalizedCategories,
+      priorityDistribution: normalizedPriorities
     };
 
     setCachedStats(cacheKey, payload);
@@ -2799,6 +2876,7 @@ app.get('/api/admin/database/info', authenticateAdmin, async (req, res) => {
     } catch (_) {}
 
     res.json({
+      engine: 'sqlite',
       dbPath,
       exists: Boolean(fileStats),
       sizeBytes: fileStats ? fileStats.size : 0,

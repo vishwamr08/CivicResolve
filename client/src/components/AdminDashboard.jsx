@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   CheckCircle2, AlertTriangle,
   BarChart3, PieChart as PieIcon, RefreshCw, Eye, Edit3, Wrench, Search,
@@ -52,9 +52,53 @@ export default function AdminDashboard({
   const overdueCount = stats ? (stats.overdueComplaints || 0) : complaints.filter(c => c.sla?.isOverdue && c.status !== 'Resolved').length;
   const appealedCount = complaints.filter(c => c.is_appealed).length;
 
-  // Chart data
-  const categoryData = stats?.categoryDistribution || [];
-  const priorityData = stats?.priorityDistribution || [];
+  // Resilient Chart Data Derivation (from stats API or live complaints database records)
+  const categoryData = useMemo(() => {
+    if (stats?.categoryDistribution && stats.categoryDistribution.length > 0) {
+      return stats.categoryDistribution.map(c => ({
+        category: c.category || 'General',
+        count: Number(c.count) || 0
+      }));
+    }
+    if (complaints && complaints.length > 0) {
+      const counts = {};
+      for (const c of complaints) {
+        const cat = c.category || 'Other';
+        counts[cat] = (counts[cat] || 0) + 1;
+      }
+      return Object.entries(counts).map(([category, count]) => ({ category, count }));
+    }
+    return [];
+  }, [stats, complaints]);
+
+  const priorityData = useMemo(() => {
+    if (stats?.priorityDistribution && stats.priorityDistribution.length > 0) {
+      return stats.priorityDistribution.map(p => ({
+        priority: p.priority || 'Medium',
+        count: Number(p.count) || 0
+      }));
+    }
+    if (complaints && complaints.length > 0) {
+      const counts = {};
+      for (const c of complaints) {
+        const prio = c.priority || 'Medium';
+        counts[prio] = (counts[prio] || 0) + 1;
+      }
+      const order = ['Critical', 'High', 'Medium', 'Low'];
+      return order
+        .filter(p => counts[p])
+        .map(p => ({ priority: p, count: counts[p] }));
+    }
+    return [];
+  }, [stats, complaints]);
+
+  const totalPriorityCount = useMemo(() => {
+    return priorityData.reduce((acc, p) => acc + (p.count || 0), 0);
+  }, [priorityData]);
+
+  const totalCategoryCount = useMemo(() => {
+    return categoryData.reduce((acc, c) => acc + (c.count || 0), 0);
+  }, [categoryData]);
 
   const PRIORITY_COLORS = {
     'Critical': '#dc2626',
@@ -576,17 +620,28 @@ export default function AdminDashboard({
                   <BarChart3 className="w-4 h-4 text-navy-800" />
                   Grievance Inflow by Category
                 </h3>
-                <span className="text-xs text-slate-500 font-mono">SQLite Distribution</span>
+                <span className="text-xs text-navy-800 font-semibold bg-navy-50 px-2 py-0.5 rounded border border-navy-100">
+                  {totalCategoryCount} Total
+                </span>
               </div>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={categoryData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
-                    <XAxis dataKey="category" angle={-25} textAnchor="end" tick={{ fontSize: 10, fill: '#64748b' }} interval={0} />
-                    <YAxis tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', border: 'none', color: '#fff', fontSize: '12px' }} />
-                    <Bar dataKey="count" fill="#1a3c6e" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="h-72 w-full min-w-0">
+                {categoryData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+                    <BarChart data={categoryData} margin={{ top: 10, right: 10, left: -15, bottom: 35 }}>
+                      <XAxis dataKey="category" angle={-25} textAnchor="end" tick={{ fontSize: 11, fill: '#475569' }} interval={0} />
+                      <YAxis tick={{ fontSize: 11, fill: '#475569' }} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', border: 'none', color: '#fff', fontSize: '12px' }}
+                        formatter={(val) => [`${val} grievances (${totalCategoryCount > 0 ? ((val / totalCategoryCount) * 100).toFixed(1) : 0}%)`, 'Volume']}
+                      />
+                      <Bar dataKey="count" fill="#1a3c6e" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-slate-400 text-xs">
+                    No category telemetry available.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -596,20 +651,50 @@ export default function AdminDashboard({
                   <PieIcon className="w-4 h-4 text-navy-800" />
                   Priority Distribution
                 </h3>
-                <span className="text-xs text-slate-500 font-mono">Severity Split</span>
+                <span className="text-xs text-navy-800 font-semibold bg-navy-50 px-2 py-0.5 rounded border border-navy-100">
+                  {totalPriorityCount} Total
+                </span>
               </div>
-              <div className="h-64 w-full flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={priorityData} dataKey="count" nameKey="priority" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4}>
-                      {priorityData.map((entry) => (
-                        <Cell key={`cell-${entry.priority}`} fill={PRIORITY_COLORS[entry.priority] || '#94a3b8'} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', border: 'none', color: '#fff', fontSize: '12px' }} />
-                    <Legend verticalAlign="bottom" height={36} formatter={(value) => <span className="text-xs text-slate-600 font-medium">{value}</span>} />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div className="h-72 w-full min-w-0">
+                {priorityData.length > 0 && totalPriorityCount > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+                    <PieChart>
+                      <Pie
+                        data={priorityData}
+                        dataKey="count"
+                        nameKey="priority"
+                        cx="50%"
+                        cy="45%"
+                        innerRadius={45}
+                        outerRadius={75}
+                        paddingAngle={priorityData.length > 1 ? 4 : 0}
+                        label={({ percent }) => (typeof percent === 'number' && !isNaN(percent) && percent > 0.05) ? `${(percent * 100).toFixed(0)}%` : ''}
+                        labelLine={false}
+                      >
+                        {priorityData.map((entry) => (
+                          <Cell key={`cell-${entry.priority}`} fill={PRIORITY_COLORS[entry.priority] || '#94a3b8'} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', border: 'none', color: '#fff', fontSize: '12px' }}
+                        formatter={(val, name) => [`${val} grievances (${totalPriorityCount > 0 ? ((val / totalPriorityCount) * 100).toFixed(1) : 0}%)`, `${name} Priority`]}
+                      />
+                      <Legend
+                        verticalAlign="bottom"
+                        height={45}
+                        formatter={(value, entry) => (
+                          <span className="text-xs text-slate-700 font-medium">
+                            {value}: <strong>{entry.payload.count}</strong> ({totalPriorityCount > 0 ? ((entry.payload.count / totalPriorityCount) * 100).toFixed(0) : 0}%)
+                          </span>
+                        )}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-slate-400 text-xs">
+                    No priority records available.
+                  </div>
+                )}
               </div>
             </div>
           </div>
